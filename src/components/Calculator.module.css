@@ -1,0 +1,18 @@
+.container {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(6, 2fr);
+  grid-template-rows: repeat(4, 1fr);
+  max-width: 500px;
+  gap: 10px;
+}
+
+.container button {
+  background-color: rgb(0, 0, 204);
+  grid-column: auto / span 2;
+}
+
+.container button:nth-last-child(1),
+.container button:nth-last-child(2) {
+  grid-column: auto / span 3;
+}

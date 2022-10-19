@@ -77,6 +77,27 @@ async function requestGapiAccessToken(attrs: {
   });
 }
 
+/**
+ * get Google Drive File path
+ *
+ * You need to recursively navigate using the query syntax
+ * provided by google drive api.
+ *
+ * For eg. If you want to search for path1/path2/file.json
+ *
+ * 'root' in parents and name = 'path1' and mimeType = 'application/vnd.google-apps.folder'
+ *
+ * and pick the first result, then get the folderId and
+ *
+ * '<id of path1>' in parents and name = 'path2' and mimeType = 'application/vnd.google-apps.folder'
+ *
+ * and finally, get the file
+ *
+ * '<id of path2>' in parents and name = 'file.json' and mimeType != 'application/vnd.google-apps.folder'
+ *
+ * https://stackoverflow.com/a/17276092/1623282
+ *
+ */
 async function getGoogleDriveElementPath(path?: string) {
   if (!path) return { id: 'root' };
 
@@ -168,34 +189,8 @@ export async function initGapi() {
     filename: 'llorelo.jpg',
     mimeType: file.type,
     file,
-    // file: new File([JSON.stringify({ aver: 'bebe que es lo que quiere' })], 'elmejor', {
-    //   type: 'application/json',
-    // }),
-    // dataAsString: JSON.stringify({ aver: 'bebe' }),
   });
 
   // https://www.googleapis.com/drive/v3/files/fileId
   console.log(res);
 }
-
-/**
- * get Google Drive File path
- *
- * You need to recursively navigate using the query syntax
- * provided by google drive api.
- *
- * For eg. If you want to search for path1/path2/file.json
- *
- * 'root' in parents and name = 'path1' and mimeType = 'application/vnd.google-apps.folder'
- *
- * and pick the first result, then get the folderId and
- *
- * '<id of path1>' in parents and name = 'path2' and mimeType = 'application/vnd.google-apps.folder'
- *
- * and finally, get the file
- *
- * '<id of path2>' in parents and name = 'file.json' and mimeType != 'application/vnd.google-apps.folder'
- *
- * https://stackoverflow.com/a/17276092/1623282
- *
- */

@@ -1,14 +1,12 @@
-import { useState } from 'react';
-import './App.css';
+import Calculator from './components/Calculator';
 import { initGapi } from './components/GoogleApi';
 
 function App() {
   return (
-    <>
-      <h1>Hello world</h1>
-      <input type="file" id="fileinput" />
+    <div>
+      <Calculator />
       <button onClick={() => initGapi()}>Load Google Api</button>
-    </>
+    </div>
   );
 }
 
