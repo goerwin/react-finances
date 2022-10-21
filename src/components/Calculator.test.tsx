@@ -1,8 +1,12 @@
 import { test, expect } from 'vitest';
-import { applyCalcString } from './Calculator';
+import {
+  applyCalcString,
+  formatNumberValueToCurrency,
+  removeCurrencyFormattingToValue,
+} from './Calculator';
 
-test('applyCalcString', () => {
-  const inputOutputs = [
+test('calculator input should work as expected', () => {
+  const currentInputOutputs = [
     ['', '.', '0.'],
     ['0', '.', '0.'],
     ['', '1', '1'],
@@ -30,7 +34,41 @@ test('applyCalcString', () => {
     ['1.2', 'backspace', '1.'],
   ];
 
-  inputOutputs.forEach((el) => {
+  currentInputOutputs.forEach((el) => {
     expect(applyCalcString(el[0], el[1])).toEqual(el[2]);
+  });
+});
+
+test('format number should be converted to currency', () => {
+  const inputOutputs = [
+    ['0', '$0'],
+    ['12', '$12'],
+    ['1200', '$1,200'],
+    ['1200.45', '$1,200.45'],
+    ['12000.400', '$12,000.400'],
+    ['120000.400', '$120,000.400'],
+    ['1200000.400', '$1,200,000.400'],
+    ['12000000.', '$12,000,000.'],
+  ];
+
+  inputOutputs.forEach((el) => {
+    expect(formatNumberValueToCurrency(el[0])).toEqual(el[1]);
+  });
+});
+
+test('remove currency formatting to value', () => {
+  const inputOutputs = [
+    ['$0', '0'],
+    ['$12', '12'],
+    ['$1,200', '1200'],
+    ['$1,200.45', '1200.45'],
+    ['$12,000.400', '12000.400'],
+    ['$120,000.400', '120000.400'],
+    ['$1,200,000.400', '1200000.400'],
+    ['$12,000,000.', '12000000.'],
+  ];
+
+  inputOutputs.forEach((el) => {
+    expect(removeCurrencyFormattingToValue(el[0])).toEqual(el[1]);
   });
 });

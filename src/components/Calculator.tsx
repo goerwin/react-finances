@@ -14,27 +14,39 @@ const items = [
   { name: '.', value: '.' },
   { name: 0, value: 0 },
   { name: '&#9003;', value: 'backspace' },
-  { name: 'Ingreso', value: 'income' },
-  { name: 'Gasto', value: 'expense' },
 ];
 
-export function applyCalcString(current: string, value: string) {
-  if (['', '0'].includes(current) && value === '.') return '0.';
+export function applyCalcString(current: string, input: string) {
+  if (input === 'backspace') return current.slice(0, -1) || '0';
 
-  if (['income', 'expense'].includes(value)) return current;
-  if (current.includes('.') && value === '.') return current;
+  const [integer, decimal] = current.split('.');
 
-  if (value === 'backspace')
-    return current.substring(0, current.length - 1) || '0';
+  if (['', '0'].includes(integer) && input === '.') return '0.';
+  if (decimal !== undefined && input === '.') return current;
+  if (decimal !== undefined) return current + input;
+  if (input === '.') return integer + input;
 
-  let newValue = '';
-  if (value !== '.' && value !== '0')
-    newValue = String(Number(current + value));
-  else if (current.includes('.') && value === '0') newValue = current + value;
-  else if (value === '0') newValue = String(Number(current + value));
-  else newValue = current + value;
+  return String(Number(integer + input));
+}
 
-  return newValue;
+// TODO:
+// $3,000,000	2022/10/01
+
+export function formatNumberValueToCurrency(value: string) {
+  const [integer, decimal] = value.split('.');
+
+  const integerFormatted = `${new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: 0,
+  }).format(Number(integer))}`;
+
+  return `${integerFormatted}${decimal === undefined ? '' : `.${decimal}`}`;
+}
+
+export function removeCurrencyFormattingToValue(value: string) {
+  return value.replace(/,|\$/g, '');
 }
 
 type Item = typeof items[0];
@@ -44,27 +56,37 @@ export interface Props {
 }
 
 export default function Calculator(props: Props) {
-  const inputRef: MutableRefObject<HTMLInputElement | null> = useRef(null);
+  const spanValueRef: MutableRefObject<HTMLInputElement | null> = useRef(null);
 
   const handleOnButtonClick = (val: Item) => {
-    if (!inputRef.current) return;
+    if (!spanValueRef.current) return;
 
     const value = String(val.value);
-    const inputValue = inputRef.current?.value || '';
+    const inputValue = spanValueRef.current?.value || '';
 
-    inputRef.current.value = applyCalcString(inputValue, value);
+    spanValueRef.current.value = formatNumberValueToCurrency(
+      applyCalcString(removeCurrencyFormattingToValue(inputValue), value)
+    );
   };
 
   return (
     <div className={styles.container}>
-      <input type="text" ref={inputRef} />
-      {items.map((el) => (
-        <button
-          key={el.value}
-          onClick={() => handleOnButtonClick(el)}
-          dangerouslySetInnerHTML={{ __html: String(el.name) }}
-        />
-      ))}
+      <input
+        className={styles.inputValue}
+        type="text"
+        ref={spanValueRef}
+        defaultValue="$0"
+      />
+
+      <div className={styles.buttonsContainer}>
+        {items.map((el) => (
+          <button
+            key={el.value}
+            onClick={() => handleOnButtonClick(el)}
+            dangerouslySetInnerHTML={{ __html: String(el.name) }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

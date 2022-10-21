@@ -1,18 +1,41 @@
 .container {
   padding: 10px;
+}
+
+.buttonsContainer {
+  padding: 10px;
   display: grid;
-  grid-template-columns: repeat(6, 2fr);
+  grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(4, 1fr);
-  max-width: 500px;
+  max-width: 250px;
   gap: 10px;
+  margin: 0 auto;
 }
 
-.container button {
-  background-color: rgb(0, 0, 204);
-  grid-column: auto / span 2;
+.buttonsContainer button {
+  user-select: none;
+  background-color: rgb(18, 129, 185);
+  color: rgb(232, 230, 227);
+  border-radius: 50%;
+  aspect-ratio: 1;
+  font-size: 2em;
+  padding: 0;
+  border: 0;
 }
 
-.container button:nth-last-child(1),
-.container button:nth-last-child(2) {
-  grid-column: auto / span 3;
+.buttonsContainer button:active {
+  -webkit-tap-highlight-color: transparent;
+  outline: 2px solid #fff;
+}
+
+.buttonsContainer button:focus {
+  outline: none;
+}
+
+.inputValue {
+  font-size: 3em;
+  width: 100%;
+  border: 0;
+  text-align: center;
+  background-color: transparent;
 }
