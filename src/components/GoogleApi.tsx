@@ -78,8 +78,6 @@ async function requestGapiAccessToken(attrs: {
 }
 
 /**
- * get Google Drive File path
- *
  * You need to recursively navigate using the query syntax
  * provided by google drive api.
  *
@@ -98,7 +96,7 @@ async function requestGapiAccessToken(attrs: {
  * https://stackoverflow.com/a/17276092/1623282
  *
  */
-async function getGoogleDriveElementPath(path?: string) {
+async function getGoogleDriveElementInfo(path?: string) {
   if (!path) return { id: 'root' };
 
   const dirs = path.split('/');
@@ -116,56 +114,59 @@ async function getGoogleDriveElementPath(path?: string) {
   return dirIds.at(-1);
 }
 
+/**
+ * Note: File inherits from Blob, meaning File is a Blob!
+ */
 async function uploadGoogleDriveFile(
   accessToken: string,
-  attrs: { parents?: string[]; mimeType: string; filename: string; file: File }
+  attrs: { parents?: string[]; blob: Blob; name: string; mimeType: string }
 ) {
-  const { parents, filename, file, mimeType } = attrs;
+  const { parents, blob, name, mimeType } = attrs;
   const metadata = JSON.stringify({
-    name: filename, // Filename at Google Drive
-    mimeType: mimeType, // mimeType at Google Drive
+    name, // Filename at Google Drive
+    mimeType, // mimeType at Google Drive
     parents, // Folder IDs at Google Drive
   });
 
+  // NOTE: order is important (Metadata first then media)
   const form = new FormData();
-  form.append('file', file);
-  form.append('metadata', new Blob([metadata], { type: 'application/json' }));
+  form.append('Metadata', new Blob([metadata], { type: 'application/json' }));
+  form.append('Media', blob);
 
-  const res = await fetch(
-    `${GOOGLE_DRIVE_API_URL}/files?uploadType=multipart&fields=id`,
-    {
-      method: 'POST',
-      headers: new Headers({ Authorization: 'Bearer ' + accessToken }),
-      body: form,
-    }
-  );
-
-  return res.json();
+  return await fetch(`${GOOGLE_DRIVE_API_URL}/files?uploadType=multipart`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken },
+    body: form,
+  });
 }
 
 async function updateGoogleDriveFile(
   accessToken: string,
   fileId: string,
-  attrs: { metadata?: any; file: File }
+  attrs: { blob: Blob; metadata?: Record<string, string> }
 ) {
-  const { file, metadata } = attrs;
-  const form = new FormData();
-  form.append('file', file);
+  const { metadata, blob } = attrs;
+  let body: RequestInit['body'] = blob;
+  const url = `${GOOGLE_DRIVE_API_URL}/files/${fileId}?uploadType=${
+    metadata ? 'multipart' : 'media'
+  }`;
 
   if (metadata) {
+    // NOTE: order is important (Metadata first then media)
+    const form = new FormData();
     form.append(
-      'metadata',
+      'Metadata',
       new Blob([JSON.stringify(metadata)], { type: 'application/json' })
     );
+    form.append('Media', blob);
+    body = form;
   }
 
-  const res = await fetch(`${GOOGLE_DRIVE_API_URL}/files/${fileId}`, {
-    method: 'POST',
-    headers: new Headers({ Authorization: 'Bearer ' + accessToken }),
-    body: form,
+  return fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + accessToken },
+    body,
   });
-
-  return res.json();
 }
 
 export async function initGapi() {
@@ -177,20 +178,34 @@ export async function initGapi() {
   // load gapi
   await loadGapi({ apiKey: API_KEY });
 
+  // request accessToken (show google login popup)
   const gapiAccessToken = await requestGapiAccessToken({
     clientId: CLIENT_ID,
     scope: SCOPE,
   });
 
-  const fileInputEl = document.getElementById('fileinput') as HTMLInputElement;
-  const file = fileInputEl.files?.[0]!;
+  // get databases folder info
+  const googleDriveElInfo = await getGoogleDriveElementInfo('Databases');
 
   const res = await uploadGoogleDriveFile(gapiAccessToken.access_token, {
-    filename: 'llorelo.jpg',
-    mimeType: file.type,
-    file,
+    parents: googleDriveElInfo?.id ? [googleDriveElInfo.id] : undefined,
+    name: 'ohmygod testing this bad by.json',
+    mimeType: 'application/json',
+    blob: new Blob([JSON.stringify({ a: { c: 'erwin' }, b: 4 })]),
   });
 
+  console.log(await res.json());
+
   // https://www.googleapis.com/drive/v3/files/fileId
-  console.log(res);
+
+  const res2 = await updateGoogleDriveFile(
+    gapiAccessToken.access_token,
+    '1hgbB52AQijz9p6dJU3ewXAmOD9a_TQ7L',
+    {
+      blob: new Blob([JSON.stringify({ a: 3, b: 'ganganygangon' })]),
+      metadata: { name: 'expensesIncomes.json' },
+    }
+  );
+
+  console.log(await res2.json());
 }

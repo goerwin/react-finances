@@ -1,4 +1,6 @@
-import Calculator from './components/Calculator';
+import Calculator, {
+  removeCurrencyFormattingToValue,
+} from './components/Calculator';
 import { initGapi } from './components/GoogleApi';
 import './App.scss';
 import { useState } from 'react';
@@ -25,8 +27,10 @@ const db = {
     // // $3,000,000	2022/10/01
     //     },
     {
+      id: 1,
       date: '2022-10-21T01:45:37.919Z',
-      type: 'expense | income',
+      type: 'expense',
+      value: 234234,
       expenseCategories: [1, 2],
       incomeCategories: [],
       description: 'Optional',
@@ -55,8 +59,20 @@ function App() {
 
   const closePopup = () => setPopup(undefined);
 
-  const onSubmit = (values: any) => {
+  const onSubmit = async (values: any) => {
     console.log({ ...values, date: new Date().toISOString() });
+
+    db.actions.push({
+      id: (db.actions.at(-1)?.id ?? 0) + 1,
+      ...values,
+      value: Number(removeCurrencyFormattingToValue(values.value)),
+      date: new Date().toISOString(),
+    });
+    console.log(db.actions);
+
+    // retrieve db json
+    // append the action
+    // save back
     setValue(undefined);
     closePopup();
   };
