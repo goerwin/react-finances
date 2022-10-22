@@ -1,7 +1,7 @@
 import { MutableRefObject, useRef } from 'react';
 import styles from './Calculator.module.css';
 
-const items = [
+const items: { name: string | number; value: string | number }[] = [
   { name: 1, value: 1 },
   { name: 2, value: 2 },
   { name: 3, value: 3 },
@@ -29,9 +29,6 @@ export function applyCalcString(current: string, input: string) {
   return String(Number(integer + input));
 }
 
-// TODO:
-// $3,000,000	2022/10/01
-
 export function formatNumberValueToCurrency(value: string) {
   const [integer, decimal] = value.split('.');
 
@@ -52,20 +49,23 @@ export function removeCurrencyFormattingToValue(value: string) {
 type Item = typeof items[0];
 
 export interface Props {
-  onButtonClick?: (val: Item) => void;
+  value?: string;
+  onButtonClick: (value: string) => void;
 }
 
 export default function Calculator(props: Props) {
   const spanValueRef: MutableRefObject<HTMLInputElement | null> = useRef(null);
 
-  const handleOnButtonClick = (val: Item) => {
+  const handleButtonClick = (val: Item) => {
     if (!spanValueRef.current) return;
 
     const value = String(val.value);
     const inputValue = spanValueRef.current?.value || '';
 
-    spanValueRef.current.value = formatNumberValueToCurrency(
-      applyCalcString(removeCurrencyFormattingToValue(inputValue), value)
+    props.onButtonClick(
+      formatNumberValueToCurrency(
+        applyCalcString(removeCurrencyFormattingToValue(inputValue), value)
+      )
     );
   };
 
@@ -73,16 +73,17 @@ export default function Calculator(props: Props) {
     <div className={styles.container}>
       <input
         className={styles.inputValue}
+        readOnly
         type="text"
         ref={spanValueRef}
-        defaultValue="$0"
+        value={props.value || '$0'}
       />
 
       <div className={styles.buttonsContainer}>
         {items.map((el) => (
           <button
             key={el.value}
-            onClick={() => handleOnButtonClick(el)}
+            onClick={() => handleButtonClick(el)}
             dangerouslySetInnerHTML={{ __html: String(el.name) }}
           />
         ))}

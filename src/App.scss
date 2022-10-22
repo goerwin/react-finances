@@ -1,0 +1,35 @@
+.popup {
+  background: #333;
+  border-radius: 0.5em;
+  padding: 0.4em 2em;
+  position: fixed;
+  top: 0;
+
+  .tagContainer {
+    > label {
+      position: relative;
+
+      input {
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        &:checked + span {
+          border-color: greenyellow;
+          color: greenyellow;
+        }
+      }
+
+      span {
+        display: inline-block;
+        margin: 0 0.5em 0.5em 0;
+        padding: 0.4em;
+        border: 2px solid #fff;
+        border-radius: 0.5em;
+      }
+    }
+  }
+}
