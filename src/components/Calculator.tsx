@@ -1,5 +1,4 @@
 import { MutableRefObject, useRef } from 'react';
-import styles from './Calculator.module.css';
 
 const items: { name: string | number; value: string | number }[] = [
   { name: 1, value: 1 },
@@ -70,18 +69,19 @@ export default function Calculator(props: Props) {
   };
 
   return (
-    <div className={styles.container}>
+    <div className="p-2">
       <input
-        className={styles.inputValue}
+        className="text-[3em] w-full border-0 text-center bg-transparent p-0 outline-none font-bold"
         readOnly
         type="text"
         ref={spanValueRef}
         value={props.value || '$0'}
       />
 
-      <div className={styles.buttonsContainer}>
+      <div className="grid grid-cols-3 grid-rows-4 p-2 gap-2 mx-auto max-w-[250px] ch:select-none ch:bg-calculatorBtn ch:rounded-full ch:aspect-square ch:text-3xl ch:p-0 ch:border-0 ch:font-bold">
         {items.map((el) => (
           <button
+            className="active:outline-2 active:outline-white focus:outline-none"
             key={el.value}
             onClick={() => handleButtonClick(el)}
             dangerouslySetInnerHTML={{ __html: String(el.name) }}

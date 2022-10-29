@@ -1,39 +1,38 @@
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { addAction, getDB, NewAction, updateDB } from './api/actions';
-import './App.scss';
+import {
+  addAction,
+  deleteAction,
+  getDB,
+  NewAction,
+  updateDB,
+} from './api/actions';
 import Calculator, {
   removeCurrencyFormattingToValue,
 } from './components/Calculator';
+import Loading from './components/Loading';
+import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
+import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import { GAPI_API_KEY } from './config';
 import { ActionType, DB, initialDB } from './helpers/DBValidator';
 import { loadGapiClient, loadGISClient } from './helpers/GoogleApi';
 
-function App() {
+export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
   const [value, setValue] = useState<string>();
-  const [popup, setPopup] = useState<{ actionType: ActionType }>();
+  const [popup, setPopup] = useState<
+    | { action: 'add'; actionType: ActionType }
+    | { action: 'show'; actionType: ActionType }
+  >();
   const [gapi, setGapi] = useState<typeof globalThis.gapi>();
   const [google, setGoogle] = useState<typeof globalThis.google>();
   const [db, setDB] = useState<DB>();
-
-  const { handleSubmit, reset, register } = useForm<{
-    value: string;
-    type: ActionType;
-    expenseCategory?: string;
-    incomeCategory?: string;
-    description: string;
-  }>({
-    defaultValues: {
-      expenseCategory: undefined,
-      incomeCategory: undefined,
-      description: '',
-    },
-  });
 
   const closePopup = () => setPopup(undefined);
 
   const handleFormSubmit = async (values: any) => {
     if (!gapi || !google) return;
+
+    setIsLoading(true);
 
     const newAction: NewAction = {
       incomeCategory: values.incomeCategory,
@@ -43,20 +42,25 @@ function App() {
       value: Number(removeCurrencyFormattingToValue(values.value)),
     };
 
-    const resp = await addAction({ gapi, google, newAction });
-
-    console.log(values, resp);
+    await addAction({ gapi, google, newAction });
 
     setValue(undefined);
+    setDB(await getDB({ gapi, google }));
     closePopup();
-    // db.actions.push({
-    //   id: (db.actions.at(-1)?.id ?? 0) + 1,
-    //   ...values,
-    //   value: Number(removeCurrencyFormattingToValue(values.value)),
-    //   date: new Date().toISOString(),
-    // });
+    setIsLoading(false);
+  };
 
-    return;
+  const handleActionDelete = async (actionId: string) => {
+    if (!gapi || !google) return;
+
+    setIsLoading(true);
+
+    await deleteAction({ gapi, google, actionId });
+
+    setValue(undefined);
+    setDB(await getDB({ gapi, google }));
+    closePopup();
+    setIsLoading(false);
   };
 
   const handleButtonClick = (value: string) => {
@@ -65,9 +69,7 @@ function App() {
 
   const handleActionClick = (actionType: ActionType) => {
     if (!value) return;
-
-    reset();
-    setPopup({ actionType });
+    setPopup({ action: 'add', actionType });
   };
 
   useEffect(() => {
@@ -76,12 +78,12 @@ function App() {
         loadGapiClient({ apiKey: GAPI_API_KEY }),
         loadGISClient(),
       ]);
-
       setGapi(gapi);
       setGoogle(google);
 
       const db = await getDB({ gapi, google });
       setDB(db);
+      setIsLoading(false);
     };
 
     loadDBGapiGISClientsD().catch((el) => {
@@ -91,79 +93,67 @@ function App() {
     });
   }, []);
 
-  if (!gapi || !google) {
-    return <h1>loading...</h1>;
-  }
-
   return (
     <div>
+      {isLoading && <Loading />}
       <Calculator value={value} onButtonClick={handleButtonClick} />
-      <button onClick={handleActionClick.bind(null, 'income')}>Ingreso</button>
-      <button onClick={handleActionClick.bind(null, 'expense')}>Gasto</button>
-      <button
-        onClick={async () => {
-          const resp = window.confirm('Seguro de reiniciar la base de datos?');
-          if (!resp) return;
-          await updateDB({ db: initialDB, gapi, google });
-        }}
-      >
-        Reiniciar DB
-      </button>
-      <button onClick={() => setValue(undefined)}>Reset</button>
-      <button onClick={() => setValue(undefined)}>Ver gastos</button>
-      <button onClick={() => setValue(undefined)}>Ver ingresos</button>
+      <div className="flex gap-2 p-4 ch:grow ch:text-xl">
+        <button
+          className="bg-green-700"
+          onClick={handleActionClick.bind(null, 'income')}
+        >
+          Ingreso
+        </button>
+        <button
+          className="bg-red-800"
+          onClick={handleActionClick.bind(null, 'expense')}
+        >
+          Gasto
+        </button>
+      </div>
 
-      {!!popup && (
-        <div className="popup">
-          <h2>
-            {popup.actionType}: {value}
-          </h2>
+      <div className="flex flex-wrap gap-2 justify-center p-2 ch:flex-grow ch:flex-shrink ch:basis-0">
+        <button onClick={() => setValue(undefined)}>Limpiar</button>
+        <button
+          onClick={() => setPopup({ action: 'show', actionType: 'expense' })}
+        >
+          Ver gastos
+        </button>
+        <button
+          onClick={() => setPopup({ action: 'show', actionType: 'income' })}
+        >
+          Ver ingresos
+        </button>
+        <button
+          onClick={async () => {
+            if (!gapi || !google) return;
+            if (!window.confirm('Reiniciar la base de datos?')) return;
+            await updateDB({ db: initialDB, gapi, google });
+          }}
+        >
+          Reiniciar DB
+        </button>
+        <button onClick={() => window.location.reload()}>Recargar</button>
+      </div>
 
-          <form onSubmit={handleSubmit(handleFormSubmit)}>
-            <input type="hidden" {...register('value', { value })} />
-            <input
-              type="hidden"
-              {...register('type', { value: popup.actionType })}
-            />
+      {db && popup?.action === 'show' && (
+        <PopupIncomesExpenses
+          db={db}
+          actionType={popup.actionType}
+          onClose={() => setPopup(undefined)}
+          onActionDelete={handleActionDelete}
+        />
+      )}
 
-            <div className="tagContainer">
-              {db?.[
-                popup.actionType === 'income'
-                  ? 'incomeCategories'
-                  : 'expenseCategories'
-              ].map(({ id, name }) => (
-                <label key={id}>
-                  <input
-                    type="radio"
-                    value={`${id}`}
-                    {...register(
-                      popup.actionType === 'income'
-                        ? 'incomeCategory'
-                        : 'expenseCategory'
-                    )}
-                  />
-                  <span>{name}</span>
-                </label>
-              ))}
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Descripción"
-                {...register('description')}
-              />
-            </div>
-            <div>
-              <button type="button" onClick={closePopup}>
-                Cancelar
-              </button>
-              <button type="submit">Aceptar</button>
-            </div>
-          </form>
-        </div>
+      {db && popup?.action === 'add' && (
+        <PopupIncomeExpenseForm
+          db={db}
+          value={value}
+          actionType={popup.actionType}
+          onSubmit={handleFormSubmit}
+          onClose={() => setPopup(undefined)}
+        />
       )}
     </div>
   );
 }
-
-export default App;
