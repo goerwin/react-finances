@@ -12,8 +12,8 @@ import { formatNumberValueToCurrency } from './Calculator';
 export interface Props {
   db: DB;
   actionType: ActionType;
-  onActionDelete: (actionId: Action['id']) => void;
-  onEditActionSubmit: (action: Action) => void;
+  onItemDelete: (actionId: Action['id']) => void;
+  onEditItemSubmit: (action: Action) => void;
   onClose: () => void;
 }
 
@@ -29,9 +29,13 @@ function getCategoryName(db: DB, action: Action) {
 }
 
 export default function PopupIncomesExpenses({ db, ...props }: Props) {
-  const editingFormRef = useRef<HTMLFormElement | null>(null);
+  const itemFormRef = useRef<HTMLFormElement | null>(null);
   const [date, setDate] = useState(new Date());
-  const [editingActionId, setEditingActionId] = useState<string>();
+  const [editingItemId, setEditingItemId] = useState<string>();
+
+  const { register, handleSubmit, reset } = useForm<Action>({
+    shouldUnregister: true,
+  });
 
   const localMonth = date.getMonth();
   const localMonthStr = date.toLocaleString('default', { month: 'long' });
@@ -54,7 +58,7 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
   const filteredTotal = filteredActions.reduce((acc, el) => acc + el.value, 0);
 
   const manuallySubmitForm = () => {
-    editingFormRef.current?.dispatchEvent(
+    itemFormRef.current?.dispatchEvent(
       new Event('submit', {
         cancelable: true,
         bubbles: true,
@@ -62,20 +66,16 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
     );
   };
 
-  const handleFormSubmit = (action: Action) => {
-    setEditingActionId(undefined);
-    editingFormRef.current = null;
-    props.onEditActionSubmit(action);
+  const handleItemFormSubmit = (item: Action) => {
+    setEditingItemId(undefined);
+    itemFormRef.current = null;
+    props.onEditItemSubmit(item);
   };
 
-  const getEditingForm = (action: Action) => {
-    const { register, handleSubmit } = useForm<Action>({
-      shouldUnregister: true,
-    });
-
+  const getEditingItemForm = (action: Action) => {
     const { id, value, type, expenseCategory, incomeCategory, date } = action;
 
-    if (editingActionId !== id) return;
+    if (editingItemId !== id) return;
 
     const expenseIncomeCategoryName =
       type === 'expense' ? 'expenseCategory' : 'incomeCategory';
@@ -87,8 +87,8 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
     return (
       <form
         name={new Date().toISOString()}
-        onSubmit={handleSubmit(handleFormSubmit)}
-        ref={editingFormRef}
+        onSubmit={handleSubmit(handleItemFormSubmit)}
+        ref={itemFormRef}
       >
         <input type="hidden" {...register('id', { value: id })} />
         <input
@@ -110,7 +110,10 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
           ))}
         </select>
         <input
-          {...register('date', { value: getLocalFormattedInputDate(date) })}
+          {...register('date', {
+            value: getLocalFormattedInputDate(date),
+            valueAsDate: true,
+          })}
           type="datetime-local"
         />
       </form>
@@ -122,36 +125,39 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
         <h2 className="text-3xl mt-4 mb-4 font-bold">{title}</h2>
 
         <div className="h-80 overflow-auto">
-          {filteredActions.map((act) => (
+          {filteredActions.map((item) => (
             <div
-              key={act.id}
+              key={item.id}
               className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center"
             >
               <div className="grow mr-2 break-words min-w-0">
-                {editingActionId !== act.id && (
+                {editingItemId !== item.id && (
                   <>
                     <span className="block">
-                      {formatNumberValueToCurrency(String(act.value))}
+                      {formatNumberValueToCurrency(String(item.value))}
                     </span>
-                    <span className="block">{getCategoryName(db, act)}</span>
+                    <span className="block">{getCategoryName(db, item)}</span>
                     <span className="block">
-                      {getLocalFormattedDate(act.date)}
+                      {getLocalFormattedDate(item.date)}
                     </span>
-                    {act.description && (
-                      <span className="block">{act.description}</span>
+                    {item.description && (
+                      <span className="block">{item.description}</span>
                     )}
                   </>
                 )}
 
-                {getEditingForm(act)}
+                {getEditingItemForm(item)}
               </div>
 
               <div className="flex gap-2 max-h-10">
-                {editingActionId !== act.id && (
+                {editingItemId !== item.id && (
                   <>
                     <button
                       className="btn-success p-0 text-2xl h-10 aspect-square"
-                      onClick={() => setEditingActionId(act.id)}
+                      onClick={() => {
+                        reset();
+                        setEditingItemId(item.id);
+                      }}
                     >
                       ✎
                     </button>
@@ -159,16 +165,18 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
                       className="btn-danger p-0 text-2xl h-10 aspect-square"
                       onClick={async () => {
                         const resp = window.confirm(
-                          `Seguro que quieres eliminar este ingreso (${getCategoryName(
+                          `Seguro que quieres eliminar este ${
+                            item.type === 'expense' ? 'gasto' : 'ingreso'
+                          } (${getCategoryName(
                             db,
-                            act
+                            item
                           )} - ${formatNumberValueToCurrency(
-                            String(act.value)
-                          )} - ${getLocalFormattedDate(act.date)})?`
+                            String(item.value)
+                          )} - ${getLocalFormattedDate(item.date)})?`
                         );
 
                         if (!resp) return;
-                        props.onActionDelete(act.id);
+                        props.onItemDelete(item.id);
                       }}
                     >
                       🗑
@@ -176,7 +184,7 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
                   </>
                 )}
 
-                {editingActionId === act.id && (
+                {editingItemId === item.id && (
                   <>
                     <button
                       className="btn-success p-0 text-2xl h-10 aspect-square"
@@ -186,7 +194,7 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
                     </button>
                     <button
                       className="btn-danger p-0 text-2xl h-10 aspect-square"
-                      onClick={() => setEditingActionId(undefined)}
+                      onClick={() => setEditingItemId(undefined)}
                       dangerouslySetInnerHTML={{ __html: '&times;' }}
                     />
                   </>

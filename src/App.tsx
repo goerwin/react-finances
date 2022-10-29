@@ -1,28 +1,43 @@
 import { useEffect, useState } from 'react';
 import {
   addAction,
+  addCategory,
   deleteAction,
+  deleteCategory,
   editAction,
+  editCategory,
   getDB,
   updateDB,
 } from './api/actions';
 import Calculator from './components/Calculator';
 import Loading from './components/Loading';
+import PopupCategories from './components/PopupCategories';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
-import { GAPI_API_KEY } from './config';
-import { Action, ActionType, DB, initialDB } from './helpers/DBValidator';
-import { loadGapiClient, loadGISClient } from './helpers/GoogleApi';
+import { GAPI_API_KEY, GAPI_CLIENT_ID, GAPI_SCOPE } from './config';
+import {
+  Action,
+  ActionCategory,
+  ActionType,
+  DB,
+  initialDB,
+} from './helpers/DBValidator';
+import {
+  loadGapiClient,
+  loadGISClient,
+  requestGapiAccessToken,
+} from './helpers/GoogleApi';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [value, setValue] = useState<string>();
-  const [popup, setPopup] = useState<
-    | { action: 'add'; actionType: ActionType }
-    | { action: 'show'; actionType: ActionType }
-  >();
+  const [popup, setPopup] = useState<{
+    action: 'add' | 'show' | 'showCategories';
+    actionType: ActionType;
+  }>();
   const [gapi, setGapi] = useState<typeof globalThis.gapi>();
   const [google, setGoogle] = useState<typeof globalThis.google>();
+  const [accessToken, setAccessToken] = useState<string>();
   const [db, setDB] = useState<DB>();
 
   const closePopup = () => setPopup(undefined);
@@ -31,32 +46,40 @@ export default function App() {
     attrs: {
       gapi?: typeof globalThis.gapi;
       google?: typeof globalThis.google;
+      accessToken?: string;
     },
     fn?: (attrs: {
       gapi: typeof globalThis.gapi;
       google: typeof globalThis.google;
+      accessToken: string;
     }) => Promise<T>
   ): Promise<T | undefined> {
-    const { gapi, google } = attrs;
+    try {
+      const { gapi, google, accessToken } = attrs;
 
-    if (!gapi || !google) return;
+      if (!gapi || !google || !accessToken) return;
 
-    setIsLoading(true);
+      setIsLoading(true);
 
-    const fnResp = await fn?.({ gapi, google });
-    setDB(await getDB({ gapi, google }));
-    setIsLoading(false);
+      const fnResp = await fn?.({ gapi, google, accessToken });
+      setDB(await getDB({ gapi, google, accessToken }));
 
-    return fnResp;
+      return fnResp;
+    } catch (err: any) {
+      alert(err?.message || 'Error desconocido');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAddActionFormSubmit = async (values: Action) => {
     await performAsyncActionWithApi(
-      { gapi, google },
-      async ({ gapi, google }) => {
+      {},
+      async ({ gapi, google, accessToken }) => {
         await addAction({
           gapi,
           google,
+          accessToken,
           newAction: {
             incomeCategory: values.incomeCategory,
             expenseCategory: values.expenseCategory,
@@ -73,19 +96,35 @@ export default function App() {
   };
 
   const handleActionDelete = async (actionId: string) => {
-    await performAsyncActionWithApi(
-      { gapi, google },
-      async ({ gapi, google }) => {
-        await deleteAction({ gapi, google, actionId });
-        closePopup();
-      }
+    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
+      deleteAction({ gapi, google, accessToken, actionId })
     );
   };
 
   const handleEditActionSubmit = async (action: Action) => {
-    await performAsyncActionWithApi(
-      { gapi, google },
-      async ({ gapi, google }) => editAction({ action, gapi, google })
+    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
+      editAction({ action, gapi, google, accessToken })
+    );
+  };
+
+  const handleCategoryDelete = async (categoryId: string) => {
+    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
+      deleteCategory({ categoryId, gapi, google, accessToken })
+    );
+  };
+
+  const handleAddCategorySubmit = async (
+    category: ActionCategory,
+    type: ActionType
+  ) => {
+    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
+      addCategory({ category, type, gapi, google, accessToken })
+    );
+  };
+
+  const handleEditCategorySubmit = async (category: ActionCategory) => {
+    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
+      editCategory({ category, gapi, google, accessToken })
     );
   };
 
@@ -104,10 +143,22 @@ export default function App() {
         loadGapiClient({ apiKey: GAPI_API_KEY }),
         loadGISClient(),
       ]);
+
+      const accessToken = (
+        await requestGapiAccessToken({
+          gapi,
+          google,
+          clientId: GAPI_CLIENT_ID,
+          scope: GAPI_SCOPE,
+          skipConsentOnNoToken: true,
+        })
+      ).access_token;
+
+      await performAsyncActionWithApi({ gapi, google, accessToken });
+
       setGapi(gapi);
       setGoogle(google);
-
-      await performAsyncActionWithApi({ gapi, google });
+      setAccessToken(accessToken);
     };
 
     loadDBGapiGISClientsD().catch((el) => {
@@ -141,18 +192,32 @@ export default function App() {
         <button
           onClick={() => setPopup({ action: 'show', actionType: 'expense' })}
         >
-          Ver gastos
+          Gastos
         </button>
         <button
           onClick={() => setPopup({ action: 'show', actionType: 'income' })}
         >
-          Ver ingresos
+          Ingresos
+        </button>
+        <button
+          onClick={() =>
+            setPopup({ action: 'showCategories', actionType: 'expense' })
+          }
+        >
+          Categorías de gastos
+        </button>
+        <button
+          onClick={() =>
+            setPopup({ action: 'showCategories', actionType: 'income' })
+          }
+        >
+          Categorías de ingresos
         </button>
         <button
           onClick={async () => {
-            if (!gapi || !google) return;
+            if (!gapi || !google || !accessToken) return;
             if (!window.confirm('Reiniciar la base de datos?')) return;
-            await updateDB({ db: initialDB, gapi, google });
+            await updateDB({ db: initialDB, gapi, google, accessToken });
           }}
         >
           Reiniciar DB
@@ -165,8 +230,19 @@ export default function App() {
           db={db}
           actionType={popup.actionType}
           onClose={() => setPopup(undefined)}
-          onActionDelete={handleActionDelete}
-          onEditActionSubmit={handleEditActionSubmit}
+          onItemDelete={handleActionDelete}
+          onEditItemSubmit={handleEditActionSubmit}
+        />
+      )}
+
+      {db && popup?.action === 'showCategories' && (
+        <PopupCategories
+          db={db}
+          actionType={popup.actionType}
+          onClose={() => setPopup(undefined)}
+          onItemDelete={handleCategoryDelete}
+          onEditItemSubmit={handleEditCategorySubmit}
+          onNewItemSubmit={handleAddCategorySubmit}
         />
       )}
 
