@@ -6,11 +6,10 @@
   "type": "module",
   "homepage": "https://goerwin.github.io/react-finances",
   "scripts": {
-    "predeploy": "npm run test -- --run && npm run build",
+    "build": "tsc && vite build",
     "deploy": "gh-pages -d dist",
     "dev": "vite",
     "test": "vitest",
-    "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
