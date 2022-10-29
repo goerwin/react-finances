@@ -75,7 +75,7 @@ export default function App() {
 
   const handleAddActionFormSubmit = async (values: Action) => {
     await performAsyncActionWithApi(
-      {},
+      { accessToken, gapi, google },
       async ({ gapi, google, accessToken }) => {
         await addAction({
           gapi,
@@ -97,20 +97,26 @@ export default function App() {
   };
 
   const handleActionDelete = async (actionId: string) => {
-    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
-      deleteAction({ gapi, google, accessToken, actionId })
+    await performAsyncActionWithApi(
+      { accessToken, gapi, google },
+      async ({ gapi, google, accessToken }) =>
+        deleteAction({ gapi, google, accessToken, actionId })
     );
   };
 
   const handleEditActionSubmit = async (action: Action) => {
-    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
-      editAction({ action, gapi, google, accessToken })
+    await performAsyncActionWithApi(
+      { accessToken, gapi, google },
+      async ({ gapi, google, accessToken }) =>
+        editAction({ action, gapi, google, accessToken })
     );
   };
 
   const handleCategoryDelete = async (categoryId: string) => {
-    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
-      deleteCategory({ categoryId, gapi, google, accessToken })
+    await performAsyncActionWithApi(
+      { accessToken, gapi, google },
+      async ({ gapi, google, accessToken }) =>
+        deleteCategory({ categoryId, gapi, google, accessToken })
     );
   };
 
@@ -118,14 +124,18 @@ export default function App() {
     category: ActionCategory,
     type: ActionType
   ) => {
-    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
-      addCategory({ category, type, gapi, google, accessToken })
+    await performAsyncActionWithApi(
+      { accessToken, gapi, google },
+      async ({ gapi, google, accessToken }) =>
+        addCategory({ category, type, gapi, google, accessToken })
     );
   };
 
   const handleEditCategorySubmit = async (category: ActionCategory) => {
-    await performAsyncActionWithApi({}, async ({ gapi, google, accessToken }) =>
-      editCategory({ category, gapi, google, accessToken })
+    await performAsyncActionWithApi(
+      { accessToken, gapi, google },
+      async ({ gapi, google, accessToken }) =>
+        editCategory({ category, gapi, google, accessToken })
     );
   };
 
@@ -171,9 +181,8 @@ export default function App() {
     };
 
     loadDBGapiGISClientsD().catch((el) => {
-      if (el.message === 'DB Bad Format') {
-        console.log(el.message);
-      }
+      console.log(el);
+      alert(el.message);
     });
   }, []);
 
