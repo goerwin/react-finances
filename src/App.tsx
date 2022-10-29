@@ -42,6 +42,7 @@ export default function App() {
 
   const closePopup = () => setPopup(undefined);
 
+  // it refetches the db on every request
   const performAsyncActionWithApi = async function <T>(
     attrs: {
       gapi?: typeof globalThis.gapi;
@@ -139,26 +140,34 @@ export default function App() {
 
   useEffect(() => {
     const loadDBGapiGISClientsD = async () => {
-      const [gapi, google] = await Promise.all([
-        loadGapiClient({ apiKey: GAPI_API_KEY }),
-        loadGISClient(),
-      ]);
+      try {
+        const [gapi, google] = await Promise.all([
+          loadGapiClient({ apiKey: GAPI_API_KEY }),
+          loadGISClient(),
+        ]);
 
-      const accessToken = (
-        await requestGapiAccessToken({
+        // token valid for 1 hour, after that refresh the page
+        const gapiAccessToken = await requestGapiAccessToken({
           gapi,
           google,
           clientId: GAPI_CLIENT_ID,
           scope: GAPI_SCOPE,
           skipConsentOnNoToken: true,
-        })
-      ).access_token;
+        });
 
-      await performAsyncActionWithApi({ gapi, google, accessToken });
+        const accessToken = gapiAccessToken.access_token;
 
-      setGapi(gapi);
-      setGoogle(google);
-      setAccessToken(accessToken);
+        await performAsyncActionWithApi({ gapi, google, accessToken });
+
+        setGapi(gapi);
+        setGoogle(google);
+        setAccessToken(accessToken);
+      } catch (err: any) {
+        console.log(err);
+        alert(err?.message);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadDBGapiGISClientsD().catch((el) => {

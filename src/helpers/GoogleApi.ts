@@ -77,11 +77,15 @@ export async function requestGapiAccessToken(attrs: {
     const tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: attrs.clientId,
       scope: attrs.scope,
+
       callback: (resp) => {
         if (resp.error !== undefined) return rej(resp);
         res(resp);
       },
-    });
+      error_callback: (resp: any) => {
+        rej(resp);
+      },
+    } as google.accounts.oauth2.TokenClientConfig);
 
     if (attrs.gapi.client.getToken() === null)
       tokenClient.requestAccessToken({
