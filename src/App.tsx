@@ -2,18 +2,16 @@ import { useEffect, useState } from 'react';
 import {
   addAction,
   deleteAction,
+  editAction,
   getDB,
-  NewAction,
   updateDB,
 } from './api/actions';
-import Calculator, {
-  removeCurrencyFormattingToValue,
-} from './components/Calculator';
+import Calculator from './components/Calculator';
 import Loading from './components/Loading';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import { GAPI_API_KEY } from './config';
-import { ActionType, DB, initialDB } from './helpers/DBValidator';
+import { Action, ActionType, DB, initialDB } from './helpers/DBValidator';
 import { loadGapiClient, loadGISClient } from './helpers/GoogleApi';
 
 export default function App() {
@@ -29,41 +27,69 @@ export default function App() {
 
   const closePopup = () => setPopup(undefined);
 
-  const handleFormSubmit = async (values: any) => {
+  const performAsyncActionWithApi = async function <T>(
+    attrs: {
+      gapi?: typeof globalThis.gapi;
+      google?: typeof globalThis.google;
+    },
+    fn?: (attrs: {
+      gapi: typeof globalThis.gapi;
+      google: typeof globalThis.google;
+    }) => Promise<T>
+  ): Promise<T | undefined> {
+    const { gapi, google } = attrs;
+
     if (!gapi || !google) return;
 
     setIsLoading(true);
 
-    const newAction: NewAction = {
-      incomeCategory: values.incomeCategory,
-      expenseCategory: values.expenseCategory,
-      type: values.type,
-      description: values.description,
-      value: Number(removeCurrencyFormattingToValue(values.value)),
-    };
-
-    await addAction({ gapi, google, newAction });
-
-    setValue(undefined);
+    const fnResp = await fn?.({ gapi, google });
     setDB(await getDB({ gapi, google }));
-    closePopup();
     setIsLoading(false);
+
+    return fnResp;
+  };
+
+  const handleAddActionFormSubmit = async (values: Action) => {
+    await performAsyncActionWithApi(
+      { gapi, google },
+      async ({ gapi, google }) => {
+        await addAction({
+          gapi,
+          google,
+          newAction: {
+            incomeCategory: values.incomeCategory,
+            expenseCategory: values.expenseCategory,
+            type: values.type,
+            description: values.description,
+            value: values.value,
+          },
+        });
+
+        setValue(undefined);
+        closePopup();
+      }
+    );
   };
 
   const handleActionDelete = async (actionId: string) => {
-    if (!gapi || !google) return;
-
-    setIsLoading(true);
-
-    await deleteAction({ gapi, google, actionId });
-
-    setValue(undefined);
-    setDB(await getDB({ gapi, google }));
-    closePopup();
-    setIsLoading(false);
+    await performAsyncActionWithApi(
+      { gapi, google },
+      async ({ gapi, google }) => {
+        await deleteAction({ gapi, google, actionId });
+        closePopup();
+      }
+    );
   };
 
-  const handleButtonClick = (value: string) => {
+  const handleEditActionSubmit = async (action: Action) => {
+    await performAsyncActionWithApi(
+      { gapi, google },
+      async ({ gapi, google }) => editAction({ action, gapi, google })
+    );
+  };
+
+  const handleCalcButtonClick = (value: string) => {
     setValue(value);
   };
 
@@ -81,9 +107,7 @@ export default function App() {
       setGapi(gapi);
       setGoogle(google);
 
-      const db = await getDB({ gapi, google });
-      setDB(db);
-      setIsLoading(false);
+      await performAsyncActionWithApi({ gapi, google });
     };
 
     loadDBGapiGISClientsD().catch((el) => {
@@ -96,7 +120,7 @@ export default function App() {
   return (
     <div>
       {isLoading && <Loading />}
-      <Calculator value={value} onButtonClick={handleButtonClick} />
+      <Calculator value={value} onButtonClick={handleCalcButtonClick} />
       <div className="flex gap-2 p-4 ch:grow ch:text-xl">
         <button
           className="bg-green-700"
@@ -142,6 +166,7 @@ export default function App() {
           actionType={popup.actionType}
           onClose={() => setPopup(undefined)}
           onActionDelete={handleActionDelete}
+          onEditActionSubmit={handleEditActionSubmit}
         />
       )}
 
@@ -150,7 +175,7 @@ export default function App() {
           db={db}
           value={value}
           actionType={popup.actionType}
-          onSubmit={handleFormSubmit}
+          onSubmit={handleAddActionFormSubmit}
           onClose={() => setPopup(undefined)}
         />
       )}

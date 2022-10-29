@@ -1,22 +1,17 @@
 import { useForm } from 'react-hook-form';
-import { ActionType, DB } from '../helpers/DBValidator';
+import { Action, ActionType, DB } from '../helpers/DBValidator';
+import { removeCurrencyFormattingToValue } from './Calculator';
 
 export interface Props {
   db: DB;
   actionType: ActionType;
   value?: string;
   onClose: () => void;
-  onSubmit: (value: any) => void;
+  onSubmit: (value: Action) => void;
 }
 
 export default function PopupIncomeExpenseForm(props: Props) {
-  const { handleSubmit, register } = useForm<{
-    value: string;
-    type: ActionType;
-    expenseCategory?: string;
-    incomeCategory?: string;
-    description: string;
-  }>({
+  const { handleSubmit, register } = useForm<Action>({
     defaultValues: {
       expenseCategory: undefined,
       incomeCategory: undefined,
@@ -36,7 +31,13 @@ export default function PopupIncomeExpenseForm(props: Props) {
         </h2>
 
         <form onSubmit={handleSubmit(props.onSubmit)}>
-          <input type="hidden" {...register('value', { value: props.value })} />
+          <input
+            type="hidden"
+            {...register('value', {
+              value: Number(removeCurrencyFormattingToValue(props.value || '')),
+              valueAsNumber: true,
+            })}
+          />
           <input
             type="hidden"
             {...register('type', { value: props.actionType })}

@@ -43,7 +43,6 @@ let dummyDb: DB = {
     //   date: '2022-10-28T23:27:28.878Z',
     // },
     {
-      expenseCategory: '19dba5fc-d071-41f7-8d24-835b7bac02bb',
       type: 'expense',
       value: 3000000,
       id: 'e7cd88eb-e4fc-4a2c-8ae8-bdde1dbab972',
@@ -214,8 +213,31 @@ export async function deleteAction(attrs: {
 }) {
   const db = await getDB({ gapi: attrs.gapi, google: attrs.google });
   const date = new Date().toISOString();
-
   const newActions = db.actions.filter((el) => el.id !== attrs.actionId);
+
+  return updateDB({
+    gapi,
+    google,
+    db: { ...db, updatedAt: date, actions: newActions },
+  });
+}
+
+export async function editAction(attrs: {
+  action: Action;
+  gapi: typeof gapi;
+  google: typeof google;
+}) {
+  const db = await getDB({ gapi: attrs.gapi, google: attrs.google });
+  const date = new Date().toISOString();
+  const newActions = db.actions.map((el) =>
+    el.id !== attrs.action.id
+      ? el
+      : {
+          ...el,
+          ...attrs.action,
+        }
+  );
+
   return updateDB({
     gapi,
     google,

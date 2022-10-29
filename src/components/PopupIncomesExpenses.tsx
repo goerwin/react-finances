@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Action, ActionType, DB } from '../helpers/DBValidator';
-import { getLocalFormattedDate } from '../helpers/time';
+import {
+  getLocalFormattedDate,
+  getLocalFormattedInputDate,
+  getNextMonthDate,
+  getPreviousMonthDate,
+} from '../helpers/time';
 import { formatNumberValueToCurrency } from './Calculator';
 
 export interface Props {
   db: DB;
   actionType: ActionType;
   onActionDelete: (actionId: Action['id']) => void;
+  onEditActionSubmit: (action: Action) => void;
   onClose: () => void;
 }
 
@@ -18,53 +25,19 @@ function getCategoryName(db: DB, action: Action) {
     (el) => el.id === (type === 'expense' ? expenseCategory : incomeCategory)
   );
 
-  return category?.name || '';
-}
-
-function getPreviousMonthDate(date: Date) {
-  const localMonth = date.getMonth();
-  const localYear = date.getFullYear();
-
-  const newDate = new Date();
-  const newLocalMonth = localMonth === 0 ? 11 : localMonth - 1;
-  const newLocalYear = localMonth === 0 ? localYear - 1 : localYear;
-
-  newDate.setHours(0);
-  newDate.setMinutes(0);
-  newDate.setSeconds(0);
-  newDate.setDate(1);
-  newDate.setMonth(newLocalMonth);
-  newDate.setFullYear(newLocalYear);
-
-  return newDate;
-}
-
-function getNextMonthDate(date: Date) {
-  const localMonth = date.getMonth();
-  const localYear = date.getFullYear();
-
-  const newDate = new Date();
-  const newLocalMonth = localMonth === 11 ? 0 : localMonth + 1;
-  const newLocalYear = localMonth === 11 ? localYear + 1 : localYear;
-
-  newDate.setHours(0);
-  newDate.setMinutes(0);
-  newDate.setSeconds(0);
-  newDate.setDate(1);
-  newDate.setMonth(newLocalMonth);
-  newDate.setFullYear(newLocalYear);
-
-  return newDate;
+  return category?.name || '-';
 }
 
 export default function PopupIncomesExpenses({ db, ...props }: Props) {
-  const title = props.actionType === 'expense' ? 'Gastos' : 'Ingresos';
-
+  const editingFormRef = useRef<HTMLFormElement | null>(null);
   const [date, setDate] = useState(new Date());
+  const [editingActionId, setEditingActionId] = useState<string>();
 
   const localMonth = date.getMonth();
   const localMonthStr = date.toLocaleString('default', { month: 'long' });
   const localYear = date.getFullYear();
+
+  const title = props.actionType === 'expense' ? 'Gastos' : 'Ingresos';
 
   const filteredActions = db.actions
     .filter((action) => {
@@ -80,50 +53,144 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
 
   const filteredTotal = filteredActions.reduce((acc, el) => acc + el.value, 0);
 
+  const manuallySubmitForm = () => {
+    editingFormRef.current?.dispatchEvent(
+      new Event('submit', {
+        cancelable: true,
+        bubbles: true,
+      })
+    );
+  };
+
+  const handleFormSubmit = (action: Action) => {
+    setEditingActionId(undefined);
+    editingFormRef.current = null;
+    props.onEditActionSubmit(action);
+  };
+
+  const getEditingForm = (action: Action) => {
+    const { register, handleSubmit } = useForm<Action>({
+      shouldUnregister: true,
+    });
+
+    const { id, value, type, expenseCategory, incomeCategory, date } = action;
+
+    if (editingActionId !== id) return;
+
+    const expenseIncomeCategoryName =
+      type === 'expense' ? 'expenseCategory' : 'incomeCategory';
+    const expenseIncomeCategoryVal =
+      type === 'expense' ? expenseCategory : incomeCategory;
+    const selectOptions =
+      db[type === 'expense' ? 'expenseCategories' : 'incomeCategories'];
+
+    return (
+      <form
+        name={new Date().toISOString()}
+        onSubmit={handleSubmit(handleFormSubmit)}
+        ref={editingFormRef}
+      >
+        <input type="hidden" {...register('id', { value: id })} />
+        <input
+          {...register('value', { value, valueAsNumber: true })}
+          type="number"
+        />
+        <select
+          {...register(expenseIncomeCategoryName, {
+            value: expenseIncomeCategoryVal,
+          })}
+        >
+          <option key="empty" value="">
+            -
+          </option>
+          {selectOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}
+            </option>
+          ))}
+        </select>
+        <input
+          {...register('date', { value: getLocalFormattedInputDate(date) })}
+          type="datetime-local"
+        />
+      </form>
+    );
+  };
   return (
     <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-4">
       <div className="bg-gray-800 py-4 px-5 rounded-lg text-center w-full">
         <h2 className="text-3xl mt-4 mb-4 font-bold">{title}</h2>
 
         <div className="h-80 overflow-auto">
-          {filteredActions.map((el) => (
+          {filteredActions.map((act) => (
             <div
-              key={el.id}
+              key={act.id}
               className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center"
             >
               <div className="grow mr-2 break-words min-w-0">
-                <span className="block">
-                  {formatNumberValueToCurrency(String(el.value))}
-                </span>
-                <span className="block">{getCategoryName(db, el)}</span>
-                <span className="block">{getLocalFormattedDate(el.date)}</span>
-                {el.description && (
-                  <span className="block">{el.description}</span>
+                {editingActionId !== act.id && (
+                  <>
+                    <span className="block">
+                      {formatNumberValueToCurrency(String(act.value))}
+                    </span>
+                    <span className="block">{getCategoryName(db, act)}</span>
+                    <span className="block">
+                      {getLocalFormattedDate(act.date)}
+                    </span>
+                    {act.description && (
+                      <span className="block">{act.description}</span>
+                    )}
+                  </>
                 )}
+
+                {getEditingForm(act)}
               </div>
 
               <div className="flex gap-2 max-h-10">
-                <button className="btn-success p-0 text-2xl h-10 aspect-square">
-                  ✎
-                </button>
-                <button
-                  className="btn-danger p-0 text-2xl h-10 aspect-square"
-                  onClick={async () => {
-                    const resp = window.confirm(
-                      `Seguro que quieres eliminar este ingreso (${getCategoryName(
-                        db,
-                        el
-                      )} - ${formatNumberValueToCurrency(
-                        String(el.value)
-                      )} - ${getLocalFormattedDate(el.date)})?`
-                    );
+                {editingActionId !== act.id && (
+                  <>
+                    <button
+                      className="btn-success p-0 text-2xl h-10 aspect-square"
+                      onClick={() => setEditingActionId(act.id)}
+                    >
+                      ✎
+                    </button>
+                    <button
+                      className="btn-danger p-0 text-2xl h-10 aspect-square"
+                      onClick={async () => {
+                        const resp = window.confirm(
+                          `Seguro que quieres eliminar este ingreso (${getCategoryName(
+                            db,
+                            act
+                          )} - ${formatNumberValueToCurrency(
+                            String(act.value)
+                          )} - ${getLocalFormattedDate(act.date)})?`
+                        );
 
-                    if (!resp) return;
-                    props.onActionDelete(el.id);
-                  }}
-                >
-                  🗑
-                </button>
+                        if (!resp) return;
+                        props.onActionDelete(act.id);
+                      }}
+                    >
+                      🗑
+                    </button>
+                  </>
+                )}
+
+                {editingActionId === act.id && (
+                  <>
+                    <button
+                      className="btn-success p-0 text-2xl h-10 aspect-square"
+                      onClick={manuallySubmitForm}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="btn-danger p-0 text-2xl h-10 aspect-square"
+                      onClick={() => setEditingActionId(undefined)}
+                      dangerouslySetInnerHTML={{ __html: '&times;' }}
+                    />
+                  </>
+                )}
               </div>
             </div>
           ))}
