@@ -173,13 +173,11 @@ export default function App() {
   return (
     <div>
       {isLoading && <Loading />}
-      <Calculator value={value} onButtonClick={setValue} />
-
-      <div className="mx-4 mb-2">
-        <button className="block w-full" onClick={() => setValue(undefined)}>
-          Limpiar
-        </button>
-      </div>
+      <Calculator
+        value={value}
+        onButtonClick={setValue}
+        onBackspaceLongPress={() => setValue(undefined)}
+      />
 
       <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl">
         <button
@@ -196,8 +194,8 @@ export default function App() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2 justify-center p-2 ch:flex-grow ch:basis-0">
-        <div className="flex gap-4 !basis-full ch:basis-1/2 h-16">
+      <div className="flex flex-wrap gap-2 justify-center px-2 ch:flex-grow ch:basis-0">
+        <div className="flex gap-4 !basis-full ch:basis-1/2">
           <button
             className="btn-success bg-opacity-50"
             onClick={() => setPopup({ action: 'show', actionType: 'income' })}

@@ -1,4 +1,5 @@
 import { MutableRefObject, useRef } from 'react';
+import { useLongPress } from 'use-long-press';
 
 const items: { name: string | number; value: string | number }[] = [
   { name: 1, value: 1 },
@@ -50,10 +51,13 @@ type Item = typeof items[0];
 export interface Props {
   value?: string;
   onButtonClick: (value: string) => void;
+  onBackspaceLongPress?: () => void;
 }
 
 export default function Calculator(props: Props) {
   const spanValueRef: MutableRefObject<HTMLInputElement | null> = useRef(null);
+
+  const backspaceBind = useLongPress(() => props.onBackspaceLongPress?.());
 
   const handleButtonClick = (val: Item) => {
     if (!spanValueRef.current) return;
@@ -84,6 +88,7 @@ export default function Calculator(props: Props) {
             className="active:outline-2 active:outline-white focus:outline-none"
             key={el.value}
             onClick={() => handleButtonClick(el)}
+            {...(el.value === 'backspace' ? backspaceBind() : {})}
             dangerouslySetInnerHTML={{ __html: String(el.name) }}
           />
         ))}

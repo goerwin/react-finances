@@ -126,6 +126,12 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
         </select>
 
         <input
+          className="mb-1"
+          type="text"
+          placeholder="Descripción"
+          {...register('description', { value: description })}
+        />
+        <input
           className="mb-1 w-full"
           {...register('date', {
             value: getLocalFormattedInputDate(date),
@@ -133,11 +139,6 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
               (val ? new Date(val) : new Date()).toISOString(),
           })}
           type="datetime-local"
-        />
-        <input
-          type="text"
-          placeholder='Descripción'
-          {...register('description', { value: description })}
         />
         <button type="submit" hidden />
       </form>
@@ -159,15 +160,15 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
                   <>
                     <span className="block">
                       {formatNumberValueToCurrency(String(item.value))}
-                    </span>
-                    <span className="block c-description">
-                      {getCategoryName(db, item)}
-                    </span>
-                    <span className="block">
-                      {getLocalFormattedDate(item.date)}
+                      <span className="c-description">
+                        <span> - </span> {getCategoryName(db, item)}
+                      </span>
                     </span>
                     <span className="block c-description">
                       {item.description}
+                    </span>
+                    <span className="block c-description not-italic">
+                      {getLocalFormattedDate(item.date)}
                     </span>
                   </>
                 )}

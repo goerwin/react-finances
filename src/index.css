@@ -34,7 +34,7 @@
   }
 
   .c-description {
-    @apply block text-sm italic text-white/50
+    @apply text-sm italic text-white/50
   }
 }
 
