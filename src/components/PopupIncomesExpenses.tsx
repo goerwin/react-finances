@@ -161,7 +161,7 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
                     <span className="block">
                       {formatNumberValueToCurrency(String(item.value))}
                       <span className="c-description">
-                        <span> - </span> {getCategoryName(db, item)}
+                        <span> </span> {getCategoryName(db, item)}
                       </span>
                     </span>
                     <span className="block c-description">
