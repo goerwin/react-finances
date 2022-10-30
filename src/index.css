@@ -14,13 +14,15 @@
     color: #eee;
     cursor: pointer;
     transition: border-color 0.25s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
-  button:hover {
-    border-color: #646cff;
-  }
-  button:focus,
-  button:focus-visible {
+
+  button:active {
     outline: 4px auto -webkit-focus-ring-color;
+  }
+  button:focus {
+    outline: none;
   }
 }
 
@@ -34,7 +36,7 @@
   }
 
   .c-description {
-    @apply text-sm italic text-white/50
+    @apply text-sm italic text-white/50;
   }
 }
 
