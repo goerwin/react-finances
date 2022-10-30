@@ -74,7 +74,15 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
   };
 
   const getEditingItemForm = (action: Action) => {
-    const { id, value, type, expenseCategory, incomeCategory, date } = action;
+    const {
+      id,
+      value,
+      type,
+      expenseCategory,
+      incomeCategory,
+      date,
+      description,
+    } = action;
 
     if (editingItemId !== id) return;
 
@@ -117,6 +125,10 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
               (val ? new Date(val) : new Date()).toISOString(),
           })}
           type="datetime-local"
+        />
+        <input
+          type="text"
+          {...register('description', { value: description })}
         />
         <button type="submit" hidden />
       </form>
