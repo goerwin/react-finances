@@ -212,17 +212,17 @@ export default function App() {
 
         <button
           onClick={() =>
-            setPopup({ action: 'showCategories', actionType: 'expense' })
-          }
-        >
-          Categorías gastos
-        </button>
-        <button
-          onClick={() =>
             setPopup({ action: 'showCategories', actionType: 'income' })
           }
         >
           Categorías ingresos
+        </button>
+        <button
+          onClick={() =>
+            setPopup({ action: 'showCategories', actionType: 'expense' })
+          }
+        >
+          Categorías gastos
         </button>
         <button
           onClick={async () => {
