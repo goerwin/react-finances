@@ -89,32 +89,22 @@ export default function App() {
     });
   };
 
-  const handleActionDelete = async (actionId: string) => {
-    await asyncDBTask(async (attrs) => deleteAction({ ...attrs, actionId }));
-  };
+  const handleActionDelete = (actionId: string) =>
+    asyncDBTask(async (attrs) => deleteAction({ ...attrs, actionId }));
 
-  const handleEditActionSubmit = async (action: Action) => {
-    await asyncDBTask(async (attrs) => editAction({ ...attrs, action }));
-  };
+  const handleEditActionSubmit = (action: Action) =>
+    asyncDBTask(async (attrs) => editAction({ ...attrs, action }));
 
-  const handleCategoryDelete = async (categoryId: string) => {
-    await asyncDBTask(async (attrs) =>
-      deleteCategory({ ...attrs, categoryId })
-    );
-  };
+  const handleCategoryDelete = (categoryId: string) =>
+    asyncDBTask(async (attrs) => deleteCategory({ ...attrs, categoryId }));
 
-  const handleAddCategorySubmit = async (
+  const handleAddCategorySubmit = (
     category: ActionCategory,
     type: ActionType
-  ) => {
-    await asyncDBTask(async (attrs) =>
-      addCategory({ ...attrs, category, type })
-    );
-  };
+  ) => asyncDBTask(async (attrs) => addCategory({ ...attrs, category, type }));
 
-  const handleEditCategorySubmit = async (category: ActionCategory) => {
-    await asyncDBTask(async (attrs) => editCategory({ ...attrs, category }));
-  };
+  const handleEditCategorySubmit = (category: ActionCategory) =>
+    asyncDBTask(async (attrs) => editCategory({ ...attrs, category }));
 
   const handleActionClick = (actionType: ActionType) => {
     if (!value) return;

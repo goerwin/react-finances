@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { Action, ActionType, DB } from '../helpers/DBValidator';
+import { sortByDateFnCreator } from '../helpers/general';
 import { removeCurrencyFormattingToValue } from './Calculator';
 
 export interface Props {
@@ -18,6 +19,12 @@ export default function PopupIncomeExpenseForm(props: Props) {
       description: '',
     },
   });
+
+  const categories = [
+    ...props.db[
+      props.actionType === 'income' ? 'incomeCategories' : 'expenseCategories'
+    ],
+  ].sort(sortByDateFnCreator('name'));
 
   return (
     // TODO: Refactor popup div containers
@@ -44,11 +51,7 @@ export default function PopupIncomeExpenseForm(props: Props) {
           />
 
           <div>
-            {props.db[
-              props.actionType === 'income'
-                ? 'incomeCategories'
-                : 'expenseCategories'
-            ].map(({ id, name }) => (
+            {categories.map(({ id, name }) => (
               <label key={id} className="relative cursor-pointer">
                 <input
                   className="opacity-0 w-1 h-1 absolute top-0 left-0 peer"

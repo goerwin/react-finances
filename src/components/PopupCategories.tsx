@@ -20,9 +20,7 @@ export default function PopupCategories({ db, ...props }: Props) {
   });
 
   const title =
-    props.actionType === 'expense'
-      ? 'Categorías Gastos'
-      : 'Categorías Ingresos';
+    props.actionType === 'expense' ? 'Categoría Gastos' : 'Categoría Ingresos';
 
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
@@ -165,7 +163,14 @@ export default function PopupCategories({ db, ...props }: Props) {
           <button onClick={props.onClose}>Cerrar</button>
           <button
             className="btn-success ml-4"
-            onClick={() => setFormItemId('new')}
+            onClick={() => {
+              setFormItemId('new');
+              setTimeout(() =>
+                itemFormRef.current
+                  ?.querySelector<HTMLInputElement>('input[name="name"]')
+                  ?.focus()
+              );
+            }}
           >
             Agregar
           </button>

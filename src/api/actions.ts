@@ -27,9 +27,6 @@ export async function getDB(attrs: DBApiRequiredAttrs) {
 
   if (!validateDB(db)) throw new Error('DB Bad Format');
 
-  db.expenseCategories.reverse();
-  db.incomeCategories.reverse();
-
   return db;
 }
 
@@ -111,12 +108,12 @@ export async function addCategory(
       ...db,
       updatedAt: date,
       incomeCategories: [
-        ...db.incomeCategories,
         ...(attrs.type === 'income' ? [{ ...attrs.category, id }] : []),
+        ...db.incomeCategories,
       ],
       expenseCategories: [
-        ...db.expenseCategories,
         ...(attrs.type === 'expense' ? [{ ...attrs.category, id }] : []),
+        ...db.expenseCategories,
       ],
     },
   });

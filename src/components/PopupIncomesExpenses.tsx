@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Action, ActionType, DB } from '../helpers/DBValidator';
+import { sortByDateFnCreator } from '../helpers/general';
 import {
   getLocalFormattedDate,
   getLocalFormattedInputDate,
@@ -53,7 +54,7 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
         localYear === actionDate.getFullYear()
       );
     })
-    .sort((el1, el2) => (el1.date <= el2.date ? 1 : -1));
+    .sort(sortByDateFnCreator('date', false));
 
   const filteredTotal = filteredActions.reduce((acc, el) => acc + el.value, 0);
 
@@ -112,7 +113,8 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
         <input
           {...register('date', {
             value: getLocalFormattedInputDate(date),
-            valueAsDate: true,
+            setValueAs: (val) =>
+              (val ? new Date(val) : new Date()).toISOString(),
           })}
           type="datetime-local"
         />
