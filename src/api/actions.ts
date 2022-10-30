@@ -1,34 +1,29 @@
-import { GAPI_DB_PATH } from '../config';
 import {
   Action,
   ActionCategory,
   ActionType,
   DB,
-  validateDB
+  validateDB,
 } from '../helpers/DBValidator';
 
 // https://github.com/uuidjs/uuid/pull/654
 import { v4 as uuidv4 } from 'uuid';
 
 import {
-  getGoogleDriveElementInfo,
-  getGoogleDriveFileContent, updateGoogleDriveFile
+  getGoogleDriveFileContent,
+  updateGoogleDriveFile,
 } from '../helpers/GoogleApi';
 
 export type NewAction = Omit<Action, 'date' | 'id'>;
 
-export async function getDB(attrs: {
-  gapi: typeof gapi;
-  google: typeof google;
+type DBApiRequiredAttrs = {
   accessToken: string;
-}) {
-  const fileContent = await getGoogleDriveFileContent({
-    gapi: attrs.gapi,
-    path: GAPI_DB_PATH,
-    accessToken: attrs.accessToken,
-  });
+  gdFileId: string;
+};
 
-  const db = await fileContent?.json();
+export async function getDB(attrs: DBApiRequiredAttrs) {
+  const fileContent = await getGoogleDriveFileContent(attrs);
+  const db = await fileContent.json();
 
   if (!validateDB(db)) throw new Error('DB Bad Format');
 
@@ -38,22 +33,7 @@ export async function getDB(attrs: {
   return db;
 }
 
-export async function updateDB(attrs: {
-  gapi: typeof gapi;
-  google: typeof google;
-  db: DB;
-  accessToken: string;
-}) {
-  const dbElInfo = await getGoogleDriveElementInfo({
-    path: GAPI_DB_PATH,
-    gapi: attrs.gapi,
-    accessToken: attrs.accessToken,
-  });
-
-  const dbFileId = dbElInfo?.id;
-
-  if (!dbFileId) throw new Error(`DB Does not exist in ${GAPI_DB_PATH}`);
-
+export async function updateDB(attrs: DBApiRequiredAttrs & { db: DB }) {
   const newDB: DB = {
     ...attrs.db,
     updatedAt: new Date().toISOString(),
@@ -61,32 +41,24 @@ export async function updateDB(attrs: {
 
   const resp = await updateGoogleDriveFile({
     accessToken: attrs.accessToken,
+    gdFileId: attrs.gdFileId,
     blob: new Blob([JSON.stringify(newDB, undefined, 2)]),
-    fileId: dbFileId,
   });
 
-  return resp.json();
+  if (!resp.ok) throw new Error(resp.statusText);
+
+  return newDB;
 }
 
-export async function addAction(attrs: {
-  newAction: NewAction;
-  gapi: typeof gapi;
-  google: typeof google;
-  accessToken: string;
-}) {
-  const db = await getDB({
-    gapi: attrs.gapi,
-    google: attrs.google,
-    accessToken: attrs.accessToken,
-  });
-
+export async function addAction(
+  attrs: DBApiRequiredAttrs & { newAction: NewAction }
+) {
+  const db = await getDB(attrs);
   const date = new Date().toISOString();
   const id = uuidv4();
 
   return updateDB({
-    gapi,
-    google,
-    accessToken: attrs.accessToken,
+    ...attrs,
     db: {
       ...db,
       updatedAt: date,
@@ -95,77 +67,46 @@ export async function addAction(attrs: {
   });
 }
 
-export async function deleteAction(attrs: {
-  actionId: string;
-  gapi: typeof gapi;
-  google: typeof google;
-  accessToken: string;
-}) {
-  const db = await getDB({
-    gapi: attrs.gapi,
-    google: attrs.google,
-    accessToken: attrs.accessToken,
-  });
+export async function deleteAction(
+  attrs: DBApiRequiredAttrs & { actionId: string }
+) {
+  const db = await getDB(attrs);
   const date = new Date().toISOString();
   const newActions = db.actions.filter((el) => el.id !== attrs.actionId);
 
   return updateDB({
-    gapi,
-    google,
-    accessToken: attrs.accessToken,
+    ...attrs,
     db: { ...db, updatedAt: date, actions: newActions },
   });
 }
 
-export async function editAction(attrs: {
-  action: Action;
-  gapi: typeof gapi;
-  google: typeof google;
-  accessToken: string;
-}) {
-  const db = await getDB({
-    gapi: attrs.gapi,
-    google: attrs.google,
-    accessToken: attrs.accessToken,
-  });
+export async function editAction(
+  attrs: DBApiRequiredAttrs & { action: Action }
+) {
+  const db = await getDB(attrs);
   const date = new Date().toISOString();
-  const newActions = db.actions.map((el) =>
-    el.id !== attrs.action.id
-      ? el
-      : {
-          ...el,
-          ...attrs.action,
-        }
-  );
 
   return updateDB({
-    gapi,
-    google,
-    accessToken: attrs.accessToken,
-    db: { ...db, updatedAt: date, actions: newActions },
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      actions: db.actions.map((el) =>
+        el.id !== attrs.action.id ? el : { ...el, ...attrs.action }
+      ),
+    },
   });
 }
 
-export async function addCategory(attrs: {
-  category: ActionCategory;
-  type: ActionType;
-  gapi: typeof gapi;
-  google: typeof google;
-  accessToken: string;
-}) {
-  const db = await getDB({
-    gapi: attrs.gapi,
-    google: attrs.google,
-    accessToken: attrs.accessToken,
-  });
-
+export async function addCategory(
+  attrs: DBApiRequiredAttrs & { category: ActionCategory; type: ActionType }
+) {
+  const db = await getDB(attrs);
   const date = new Date().toISOString();
   const id = uuidv4();
 
   return updateDB({
-    gapi,
-    google,
-    accessToken: attrs.accessToken,
+    ...attrs,
     db: {
       ...db,
       updatedAt: date,
@@ -181,70 +122,44 @@ export async function addCategory(attrs: {
   });
 }
 
-export async function editCategory(attrs: {
-  category: ActionCategory;
-  gapi: typeof gapi;
-  google: typeof google;
-  accessToken: string;
-}) {
-  const db = await getDB({
-    gapi: attrs.gapi,
-    google: attrs.google,
-    accessToken: attrs.accessToken,
-  });
+export async function editCategory(
+  attrs: DBApiRequiredAttrs & { category: ActionCategory }
+) {
+  const db = await getDB(attrs);
   const date = new Date().toISOString();
 
-  const newIncomeCategories = db.incomeCategories.map((it) =>
-    it.id === attrs.category.id ? { ...attrs.category } : it
-  );
-
-  const newExpenseCategories = db.expenseCategories.map((it) =>
-    it.id === attrs.category.id ? { ...attrs.category } : it
-  );
-
   return updateDB({
-    gapi,
-    google,
-    accessToken: attrs.accessToken,
+    ...attrs,
     db: {
       ...db,
       updatedAt: date,
-      incomeCategories: newIncomeCategories,
-      expenseCategories: newExpenseCategories,
+      incomeCategories: db.incomeCategories.map((it) =>
+        it.id === attrs.category.id ? { ...attrs.category } : it
+      ),
+      expenseCategories: db.expenseCategories.map((it) =>
+        it.id === attrs.category.id ? { ...attrs.category } : it
+      ),
     },
   });
 }
 
-export async function deleteCategory(attrs: {
-  categoryId: string;
-  gapi: typeof gapi;
-  google: typeof google;
-  accessToken: string;
-}) {
-  const db = await getDB({
-    gapi: attrs.gapi,
-    google: attrs.google,
-    accessToken: attrs.accessToken,
-  });
+export async function deleteCategory(
+  attrs: DBApiRequiredAttrs & { categoryId: string }
+) {
+  const db = await getDB(attrs);
   const date = new Date().toISOString();
 
-  const newIncomeCategories = db.incomeCategories.filter(
-    (it) => it.id !== attrs.categoryId
-  );
-
-  const newExpenseCategories = db.expenseCategories.filter(
-    (it) => it.id !== attrs.categoryId
-  );
-
   return updateDB({
-    gapi,
-    google,
-    accessToken: attrs.accessToken,
+    ...attrs,
     db: {
       ...db,
       updatedAt: date,
-      incomeCategories: newIncomeCategories,
-      expenseCategories: newExpenseCategories,
+      incomeCategories: db.incomeCategories.filter(
+        (it) => it.id !== attrs.categoryId
+      ),
+      expenseCategories: db.expenseCategories.filter(
+        (it) => it.id !== attrs.categoryId
+      ),
     },
   });
 }

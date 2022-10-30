@@ -60,6 +60,7 @@ export default function PopupCategories({ db, ...props }: Props) {
           type="text"
           placeholder="Descripción"
         />
+        <button type="submit" hidden />
       </form>
     );
   };

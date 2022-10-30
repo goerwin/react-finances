@@ -116,6 +116,7 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
           })}
           type="datetime-local"
         />
+        <button type="submit" hidden />
       </form>
     );
   };

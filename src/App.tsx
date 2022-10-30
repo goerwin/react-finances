@@ -14,7 +14,12 @@ import Loading from './components/Loading';
 import PopupCategories from './components/PopupCategories';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
-import { GAPI_API_KEY, GAPI_CLIENT_ID, GAPI_SCOPE } from './config';
+import {
+  GAPI_API_KEY,
+  GAPI_CLIENT_ID,
+  GAPI_DB_PATH,
+  GAPI_SCOPE,
+} from './config';
 import {
   Action,
   ActionCategory,
@@ -23,10 +28,15 @@ import {
   initialDB,
 } from './helpers/DBValidator';
 import {
+  getGoogleDriveElementInfo,
   loadGapiClient,
   loadGISClient,
   requestGapiAccessToken,
 } from './helpers/GoogleApi';
+import {
+  getGDFileId as LSGetGDFileId,
+  setGDFileId as LSSetGDFileId,
+} from './helpers/localStorage';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -35,88 +45,61 @@ export default function App() {
     action: 'add' | 'show' | 'showCategories';
     actionType: ActionType;
   }>();
-  const [gapi, setGapi] = useState<typeof globalThis.gapi>();
-  const [google, setGoogle] = useState<typeof globalThis.google>();
   const [accessToken, setAccessToken] = useState<string>();
+  const [gdFileId, setGDFileId] = useState<Optional<string>>(LSGetGDFileId());
   const [db, setDB] = useState<DB>();
 
-  const closePopup = () => setPopup(undefined);
-
-  // it refetches the db on every request
-  const performAsyncActionWithApi = async function <T>(
-    attrs: {
-      gapi?: typeof globalThis.gapi;
-      google?: typeof globalThis.google;
-      accessToken?: string;
-    },
-    fn?: (attrs: {
-      gapi: typeof globalThis.gapi;
-      google: typeof globalThis.google;
-      accessToken: string;
-    }) => Promise<T>
-  ): Promise<T | undefined> {
+  // Perform a database operation, sync it and update it locally
+  const asyncDBTask = async function (
+    fn: (attrs: { accessToken: string; gdFileId: string }) => Promise<DB>
+  ) {
     try {
-      const { gapi, google, accessToken } = attrs;
-
-      if (!gapi || !google || !accessToken) return;
+      if (!accessToken) throw new Error('Missing accessToken');
+      if (!gdFileId) throw new Error('Missing Google Drive FileId');
 
       setIsLoading(true);
+      const db = await fn({ accessToken, gdFileId });
+      setDB(db);
 
-      const fnResp = await fn?.({ gapi, google, accessToken });
-      setDB(await getDB({ gapi, google, accessToken }));
-
-      return fnResp;
+      return db;
     } catch (err: any) {
-      alert(err?.message || 'Error desconocido');
+      alert(err?.message || 'Ocurrió un error.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleAddActionFormSubmit = async (values: Action) => {
-    await performAsyncActionWithApi(
-      { accessToken, gapi, google },
-      async ({ gapi, google, accessToken }) => {
-        await addAction({
-          gapi,
-          google,
-          accessToken,
-          newAction: {
-            incomeCategory: values.incomeCategory,
-            expenseCategory: values.expenseCategory,
-            type: values.type,
-            description: values.description,
-            value: values.value,
-          },
-        });
+    await asyncDBTask(async (attrs) => {
+      const db = await addAction({
+        ...attrs,
+        newAction: {
+          incomeCategory: values.incomeCategory,
+          expenseCategory: values.expenseCategory,
+          type: values.type,
+          description: values.description,
+          value: values.value,
+        },
+      });
 
-        setValue(undefined);
-        closePopup();
-      }
-    );
+      setValue(undefined);
+      setPopup(undefined);
+
+      return db;
+    });
   };
 
   const handleActionDelete = async (actionId: string) => {
-    await performAsyncActionWithApi(
-      { accessToken, gapi, google },
-      async ({ gapi, google, accessToken }) =>
-        deleteAction({ gapi, google, accessToken, actionId })
-    );
+    await asyncDBTask(async (attrs) => deleteAction({ ...attrs, actionId }));
   };
 
   const handleEditActionSubmit = async (action: Action) => {
-    await performAsyncActionWithApi(
-      { accessToken, gapi, google },
-      async ({ gapi, google, accessToken }) =>
-        editAction({ action, gapi, google, accessToken })
-    );
+    await asyncDBTask(async (attrs) => editAction({ ...attrs, action }));
   };
 
   const handleCategoryDelete = async (categoryId: string) => {
-    await performAsyncActionWithApi(
-      { accessToken, gapi, google },
-      async ({ gapi, google, accessToken }) =>
-        deleteCategory({ categoryId, gapi, google, accessToken })
+    await asyncDBTask(async (attrs) =>
+      deleteCategory({ ...attrs, categoryId })
     );
   };
 
@@ -124,23 +107,13 @@ export default function App() {
     category: ActionCategory,
     type: ActionType
   ) => {
-    await performAsyncActionWithApi(
-      { accessToken, gapi, google },
-      async ({ gapi, google, accessToken }) =>
-        addCategory({ category, type, gapi, google, accessToken })
+    await asyncDBTask(async (attrs) =>
+      addCategory({ ...attrs, category, type })
     );
   };
 
   const handleEditCategorySubmit = async (category: ActionCategory) => {
-    await performAsyncActionWithApi(
-      { accessToken, gapi, google },
-      async ({ gapi, google, accessToken }) =>
-        editCategory({ category, gapi, google, accessToken })
-    );
-  };
-
-  const handleCalcButtonClick = (value: string) => {
-    setValue(value);
+    await asyncDBTask(async (attrs) => editCategory({ ...attrs, category }));
   };
 
   const handleActionClick = (actionType: ActionType) => {
@@ -149,28 +122,44 @@ export default function App() {
   };
 
   useEffect(() => {
+    // TODO: To avoid the duplicated call due to React Strict, you should
+    // return from useEffect "cleaning up/canceling" the ongoing one
+    // This is considered the correct behavior
     const loadDBGapiGISClientsD = async () => {
       try {
-        const [gapi, google] = await Promise.all([
+        const [gapiClient, googleClient] = await Promise.all([
           loadGapiClient({ apiKey: GAPI_API_KEY }),
           loadGISClient(),
         ]);
 
         // token valid for 1 hour, after that refresh the page
         const gapiAccessToken = await requestGapiAccessToken({
-          gapi,
-          google,
+          gapiClient,
+          googleClient,
           clientId: GAPI_CLIENT_ID,
           scope: GAPI_SCOPE,
           skipConsentOnNoToken: true,
         });
 
         const accessToken = gapiAccessToken.access_token;
+        let newGdFileId = gdFileId;
 
-        await performAsyncActionWithApi({ gapi, google, accessToken });
+        // Get the gdFileId if not already saved in LocalStorage
+        if (!newGdFileId) {
+          const dbElInfo = await getGoogleDriveElementInfo({
+            path: GAPI_DB_PATH,
+            accessToken,
+          });
 
-        setGapi(gapi);
-        setGoogle(google);
+          newGdFileId = dbElInfo?.id;
+          if (!newGdFileId) throw new Error('No Google Drive FileID Found');
+        }
+
+        const db = await getDB({ accessToken, gdFileId: newGdFileId });
+
+        LSSetGDFileId(newGdFileId);
+        setGDFileId(newGdFileId);
+        setDB(db);
         setAccessToken(accessToken);
       } catch (err: any) {
         console.log(err);
@@ -189,7 +178,7 @@ export default function App() {
   return (
     <div>
       {isLoading && <Loading />}
-      <Calculator value={value} onButtonClick={handleCalcButtonClick} />
+      <Calculator value={value} onButtonClick={setValue} />
       <div className="flex gap-2 p-4 ch:grow ch:text-xl">
         <button
           className="bg-green-700"
@@ -233,9 +222,9 @@ export default function App() {
         </button>
         <button
           onClick={async () => {
-            if (!gapi || !google || !accessToken) return;
             if (!window.confirm('Reiniciar la base de datos?')) return;
-            await updateDB({ db: initialDB, gapi, google, accessToken });
+
+            await asyncDBTask((attrs) => updateDB({ ...attrs, db: initialDB }));
           }}
         >
           Reiniciar DB

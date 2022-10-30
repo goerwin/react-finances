@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => {
   return {
     base,
     plugins: [react()],
+    server: {
+      hmr: false,
+    },
     test: {},
   };
 });

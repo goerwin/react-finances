@@ -6,7 +6,7 @@ const GOOGLE_DRIVE_UPLOAD_API_URL =
 
 let loadScriptPromises: Record<
   string,
-  { promise: Promise<any>; domEl: HTMLElement } | undefined
+  Optional<{ promise: Promise<any>; domEl: HTMLElement }>
 > = {};
 
 /** Loads any script via Promises */
@@ -67,14 +67,14 @@ export async function loadGISClient() {
 }
 
 export async function requestGapiAccessToken(attrs: {
-  gapi: typeof gapi;
-  google: typeof google;
+  gapiClient: typeof gapi;
+  googleClient: typeof google;
   clientId: string;
   scope: string;
   skipConsentOnNoToken?: true;
 }) {
   return new Promise<google.accounts.oauth2.TokenResponse>((res, rej) => {
-    const tokenClient = google.accounts.oauth2.initTokenClient({
+    const tokenClient = attrs.googleClient.accounts.oauth2.initTokenClient({
       client_id: attrs.clientId,
       scope: attrs.scope,
 
@@ -87,7 +87,7 @@ export async function requestGapiAccessToken(attrs: {
       },
     } as google.accounts.oauth2.TokenClientConfig);
 
-    if (attrs.gapi.client.getToken() === null)
+    if (attrs.gapiClient.client.getToken() === null)
       tokenClient.requestAccessToken({
         prompt: attrs.skipConsentOnNoToken ? '' : 'consent',
       });
@@ -116,10 +116,9 @@ export async function requestGapiAccessToken(attrs: {
  */
 export async function getGoogleDriveElementInfo(attrs: {
   path: string;
-  gapi: typeof gapi;
   accessToken: string;
 }) {
-  const { path, gapi, accessToken } = attrs;
+  const { path, accessToken } = attrs;
 
   if (!accessToken) return new Error('accessToken required');
   if (path === '') return { id: 'root' };
@@ -132,29 +131,28 @@ export async function getGoogleDriveElementInfo(attrs: {
     const parentDirId = dirIds?.[i]?.id;
     if (!parentDirId) return null;
     const q = `'${parentDirId}' in parents and name = '${newDirs[i + 1]}'`;
-    const response = await (gapi.client as any).drive.files.list({ q });
-    dirIds[i + 1] = response.result.files[0];
+
+    const resp = await fetch(`${GAPI_API_URL}/drive/v3/files/?q=${q}`, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer ' + accessToken },
+    });
+
+    if (!resp.ok) throw new Error(resp.statusText);
+
+    const jsonResp = await resp.json();
+    dirIds[i + 1] = jsonResp.files[0];
   }
 
   return dirIds.at(-1);
 }
 
 export async function getGoogleDriveFileContent(attrs: {
-  path: string;
-  gapi: typeof gapi;
   accessToken: string;
+  gdFileId: string;
 }) {
-  const { path, accessToken } = attrs;
-
-  const gdElInfo = await getGoogleDriveElementInfo({ path, gapi, accessToken });
-
-  const fileId: string | undefined = gdElInfo?.id;
-
-  if (!fileId) return;
-
-  return fetch(`${GAPI_API_URL}/drive/v3/files/${fileId}?alt=media`, {
+  return fetch(`${GAPI_API_URL}/drive/v3/files/${attrs.gdFileId}?alt=media`, {
     method: 'GET',
-    headers: { Authorization: 'Bearer ' + accessToken },
+    headers: { Authorization: 'Bearer ' + attrs.accessToken },
   });
 }
 
@@ -192,13 +190,13 @@ export async function uploadGoogleDriveFile(attrs: {
 
 export async function updateGoogleDriveFile(attrs: {
   accessToken: string;
-  fileId: string;
+  gdFileId: string;
   blob: Blob;
   metadata?: Record<string, string>;
 }) {
-  const { fileId, accessToken, metadata, blob } = attrs;
+  const { gdFileId, accessToken, metadata, blob } = attrs;
   let body: RequestInit['body'] = blob;
-  const url = `${GOOGLE_DRIVE_UPLOAD_API_URL}/files/${fileId}?uploadType=${
+  const url = `${GOOGLE_DRIVE_UPLOAD_API_URL}/files/${gdFileId}?uploadType=${
     metadata ? 'multipart' : 'media'
   }`;
 
