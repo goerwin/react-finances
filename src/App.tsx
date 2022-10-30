@@ -179,7 +179,7 @@ export default function App() {
         onBackspaceLongPress={() => setValue(undefined)}
       />
 
-      <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl">
+      <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl ch:basis-1/2">
         <button
           className="bg-green-700"
           onClick={handleActionClick.bind(null, 'income')}
