@@ -117,6 +117,8 @@ export default function App() {
     // This is considered the correct behavior
     const loadDBGapiGISClientsD = async () => {
       try {
+        if (accessToken) return;
+
         const [gapiClient, googleClient] = await Promise.all([
           loadGapiClient({ apiKey: GAPI_API_KEY }),
           loadGISClient(),
@@ -131,26 +133,29 @@ export default function App() {
           skipConsentOnNoToken: true,
         });
 
-        const accessToken = gapiAccessToken.access_token;
+        const newAccessToken = gapiAccessToken.access_token;
         let newGdFileId = gdFileId;
 
         // Get the gdFileId if not already saved in LocalStorage
         if (!newGdFileId) {
           const dbElInfo = await getGoogleDriveElementInfo({
             path: GAPI_DB_PATH,
-            accessToken,
+            accessToken: newAccessToken,
           });
 
           newGdFileId = dbElInfo?.id;
           if (!newGdFileId) throw new Error('No Google Drive FileID Found');
         }
 
-        const db = await getDB({ accessToken, gdFileId: newGdFileId });
+        const db = await getDB({
+          accessToken: newAccessToken,
+          gdFileId: newGdFileId,
+        });
 
         LSSetGDFileId(newGdFileId);
         setGDFileId(newGdFileId);
         setDB(db);
-        setAccessToken(accessToken);
+        setAccessToken(newAccessToken);
       } catch (err: any) {
         console.log(err);
         alert(err?.message);
@@ -169,7 +174,14 @@ export default function App() {
     <div>
       {isLoading && <Loading />}
       <Calculator value={value} onButtonClick={setValue} />
-      <div className="flex gap-2 p-4 ch:grow ch:text-xl">
+
+      <div className="mx-4 mb-2">
+        <button className="block w-full" onClick={() => setValue(undefined)}>
+          Limpiar
+        </button>
+      </div>
+
+      <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl">
         <button
           className="bg-green-700"
           onClick={handleActionClick.bind(null, 'income')}
@@ -184,31 +196,35 @@ export default function App() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2 justify-center p-2 ch:flex-grow ch:flex-shrink ch:basis-0">
-        <button onClick={() => setValue(undefined)}>Limpiar</button>
-        <button
-          onClick={() => setPopup({ action: 'show', actionType: 'expense' })}
-        >
-          Gastos
-        </button>
-        <button
-          onClick={() => setPopup({ action: 'show', actionType: 'income' })}
-        >
-          Ingresos
-        </button>
+      <div className="flex flex-wrap gap-2 justify-center p-2 ch:flex-grow ch:basis-0">
+        <div className="flex gap-4 !basis-full ch:basis-1/2 h-16">
+          <button
+            className="btn-success bg-opacity-50"
+            onClick={() => setPopup({ action: 'show', actionType: 'income' })}
+          >
+            Ingresos
+          </button>
+          <button
+            className="btn-danger bg-opacity-50"
+            onClick={() => setPopup({ action: 'show', actionType: 'expense' })}
+          >
+            Gastos
+          </button>
+        </div>
+
         <button
           onClick={() =>
             setPopup({ action: 'showCategories', actionType: 'expense' })
           }
         >
-          Categorías de gastos
+          Categorías gastos
         </button>
         <button
           onClick={() =>
             setPopup({ action: 'showCategories', actionType: 'income' })
           }
         >
-          Categorías de ingresos
+          Categorías ingresos
         </button>
         <button
           onClick={async () => {

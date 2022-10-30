@@ -49,11 +49,13 @@ export default function PopupCategories({ db, ...props }: Props) {
       <form onSubmit={handleSubmit(handleItemFormSubmit)} ref={itemFormRef}>
         <input type="hidden" {...register('id', { value: id })} />
         <input
+          className="mb-1"
           {...register('name', { value: name })}
           type="text"
           placeholder="Nombre"
         />
         <input
+          className="mb-1"
           {...register('description', { value: description })}
           type="text"
           placeholder="Descripción"
@@ -105,7 +107,9 @@ export default function PopupCategories({ db, ...props }: Props) {
                 {formItemId !== item.id && (
                   <>
                     <span className="block">{item.name}</span>
-                    <span className="block">{item.description}</span>
+                    <span className="block c-description">
+                      {item.description}
+                    </span>
                   </>
                 )}
                 {formItemId === item.id && getItemForm(item)}

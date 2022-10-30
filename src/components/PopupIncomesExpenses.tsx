@@ -99,12 +99,18 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
         onSubmit={handleSubmit(handleItemFormSubmit)}
         ref={itemFormRef}
       >
-        <input type="hidden" {...register('id', { value: id })} />
         <input
+          className="mb-1"
+          type="hidden"
+          {...register('id', { value: id })}
+        />
+        <input
+          className="mb-1"
           {...register('value', { value, valueAsNumber: true })}
           type="number"
         />
         <select
+          className="mb-1"
           {...register(expenseIncomeCategoryName, {
             value: expenseIncomeCategoryVal,
           })}
@@ -118,7 +124,9 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
             </option>
           ))}
         </select>
+
         <input
+          className="mb-1 w-full"
           {...register('date', {
             value: getLocalFormattedInputDate(date),
             setValueAs: (val) =>
@@ -128,6 +136,7 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
         />
         <input
           type="text"
+          placeholder='Descripción'
           {...register('description', { value: description })}
         />
         <button type="submit" hidden />
@@ -151,13 +160,15 @@ export default function PopupIncomesExpenses({ db, ...props }: Props) {
                     <span className="block">
                       {formatNumberValueToCurrency(String(item.value))}
                     </span>
-                    <span className="block">{getCategoryName(db, item)}</span>
+                    <span className="block c-description">
+                      {getCategoryName(db, item)}
+                    </span>
                     <span className="block">
                       {getLocalFormattedDate(item.date)}
                     </span>
-                    {item.description && (
-                      <span className="block">{item.description}</span>
-                    )}
+                    <span className="block c-description">
+                      {item.description}
+                    </span>
                   </>
                 )}
 

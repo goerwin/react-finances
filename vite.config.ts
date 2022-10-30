@@ -12,9 +12,10 @@ export default defineConfig(({ mode }) => {
   return {
     base,
     plugins: [react()],
-    server: {
-      hmr: false,
-    },
+    // NOTE: hmr disabled makes tailwind to not work properly
+    // server: {
+    // hmr: false,
+    // },
     test: {},
   };
 });
