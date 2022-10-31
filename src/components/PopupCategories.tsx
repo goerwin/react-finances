@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ActionCategory, ActionType, DB } from '../helpers/DBValidator';
+import { sortByDateFnCreator } from '../helpers/general';
 
 export interface Props {
   db: DB;
@@ -65,10 +66,11 @@ export default function PopupCategories({ db, ...props }: Props) {
     );
   };
 
-  const categories =
-    db[
+  const categories = [
+    ...db[
       props.actionType === 'expense' ? 'expenseCategories' : 'incomeCategories'
-    ];
+    ],
+  ].sort(sortByDateFnCreator('name'));
 
   return (
     <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-4">
