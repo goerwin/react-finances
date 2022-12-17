@@ -3,6 +3,10 @@ import { useForm, UseFormReset } from 'react-hook-form';
 import { Action, ActionType, DB, ActionCategory } from '../helpers/DBValidator';
 import { sortByDateFnCreator } from '../helpers/general';
 import {
+  getFilteredBy as lsGetFilteredBy,
+  setFilteredBy as lsSetFilteredBy,
+} from '../helpers/localStorage';
+import {
   getLocalFormattedDate,
   getLocalFormattedInputDate,
   getNextMonthDate,
@@ -146,7 +150,7 @@ export default function PopupIncomesExpenses(props: Props) {
   const itemFormRef = useRef<HTMLFormElement | null>(null);
   const [date, setDate] = useState(new Date());
   const [editingItemId, setEditingItemId] = useState<string>();
-  const [filterBy, setFilterBy] = useState<'date' | 'categories'>('date');
+  const [filterBy, setFilterBy] = useState(lsGetFilteredBy());
 
   const { register, handleSubmit, reset } = useForm<Action>({
     shouldUnregister: true,
@@ -370,9 +374,11 @@ export default function PopupIncomesExpenses(props: Props) {
         <div className="pt-4">
           <button
             className="mr-2"
-            onClick={() =>
-              setFilterBy(filterBy === 'date' ? 'categories' : 'date')
-            }
+            onClick={() => {
+              const newFilterBy = filterBy === 'date' ? 'categories' : 'date';
+              setFilterBy(newFilterBy);
+              lsSetFilteredBy(newFilterBy);
+            }}
           >
             Filtro: {filterBy === 'date' ? 'fecha' : 'categorías'}
           </button>
