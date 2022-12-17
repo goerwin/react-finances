@@ -3,7 +3,7 @@ import {
   ActionCategory,
   ActionType,
   DB,
-  validateDB,
+  dbSchema,
 } from '../helpers/DBValidator';
 
 // https://github.com/uuidjs/uuid/pull/654
@@ -24,10 +24,7 @@ type DBApiRequiredAttrs = {
 export async function getDB(attrs: DBApiRequiredAttrs) {
   const fileContent = await getGoogleDriveFileContent(attrs);
   const db = await fileContent.json();
-
-  if (!validateDB(db)) throw new Error('DB Bad Format');
-
-  return db;
+  return dbSchema.parse(db);
 }
 
 export async function updateDB(attrs: DBApiRequiredAttrs & { db: DB }) {
@@ -51,6 +48,7 @@ export async function addAction(
   attrs: DBApiRequiredAttrs & { newAction: NewAction }
 ) {
   const db = await getDB(attrs);
+
   const date = new Date().toISOString();
   const id = uuidv4();
 
@@ -69,7 +67,9 @@ export async function deleteAction(
 ) {
   const db = await getDB(attrs);
   const date = new Date().toISOString();
-  const newActions = db.actions.filter((el) => el.id !== attrs.actionId);
+  const newActions = db.actions.filter(
+    (action) => action.id !== attrs.actionId
+  );
 
   return updateDB({
     ...attrs,

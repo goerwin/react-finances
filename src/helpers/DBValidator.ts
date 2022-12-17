@@ -1,86 +1,35 @@
-import Ajv, { JSONSchemaType } from 'ajv';
+import { z } from 'zod';
 
-export type ActionType = 'expense' | 'income';
+const actionCategorySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+});
 
-export type ActionCategory = {
-  id: string;
-  name: string;
-  description?: string;
-};
+const actionTypeSchema = z.enum(['expense', 'income']);
 
-export type Action = {
-  id: string;
-  date: string;
-  type: ActionType;
-  value: number;
-  expenseCategory?: string;
-  incomeCategory?: string;
-  description?: string;
-};
+const actionSchema = z.object({
+  id: z.string(),
+  date: z.string().datetime(),
+  value: z.number(),
+  type: actionTypeSchema,
+  expenseCategory: z.string().optional(),
+  incomeCategory: z.string().optional(),
+  description: z.string().optional(),
+});
 
-export interface DB {
-  updatedAt: string;
-  expenseCategories: ActionCategory[];
-  incomeCategories: ActionCategory[];
-  nextPage?: string;
-  actions: Action[];
-}
+export const dbSchema = z.object({
+  updatedAt: z.string().datetime(),
+  nextPage: z.string().optional(),
+  expenseCategories: z.array(actionCategorySchema),
+  incomeCategories: z.array(actionCategorySchema),
+  actions: z.array(actionSchema),
+});
 
-const schema: JSONSchemaType<DB> = {
-  type: 'object',
-  required: [],
-  additionalProperties: false,
-  definitions: {
-    actionCategory: {
-      type: 'object',
-      additionalProperties: false,
-      required: [],
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        description: { type: 'string', nullable: true },
-      },
-    },
-  },
-  properties: {
-    updatedAt: { type: 'string' },
-    nextPage: { type: 'string', nullable: true },
-
-    expenseCategories: {
-      type: 'array',
-      items: {
-        type: 'object',
-        $ref: '#/definitions/actionCategory',
-        required: [],
-      },
-    },
-    incomeCategories: {
-      type: 'array',
-      items: {
-        type: 'object',
-        $ref: '#/definitions/actionCategory',
-        required: [],
-      },
-    },
-
-    actions: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: [],
-        properties: {
-          id: { type: 'string' },
-          date: { type: 'string' },
-          value: { type: 'number' },
-          type: { type: 'string', enum: ['expense', 'income'] },
-          expenseCategory: { type: 'string', nullable: true },
-          incomeCategory: { type: 'string', nullable: true },
-          description: { type: 'string', nullable: true },
-        },
-      },
-    },
-  },
-};
+export type DB = z.infer<typeof dbSchema>;
+export type ActionType = z.infer<typeof actionTypeSchema>;
+export type Action = z.infer<typeof actionSchema>;
+export type ActionCategory = z.infer<typeof actionCategorySchema>;
 
 export const initialDB: DB = {
   updatedAt: new Date().toISOString(),
@@ -88,9 +37,3 @@ export const initialDB: DB = {
   expenseCategories: [],
   incomeCategories: [],
 };
-
-export function validateDB(data: any): data is DB {
-  const ajv = new Ajv();
-  const validate = ajv.compile<DB>(schema);
-  return validate(data);
-}
