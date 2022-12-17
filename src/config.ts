@@ -6,6 +6,6 @@ export const GAPI_CLIENT_ID =
 
 // Authorization scopes required by the API; multiple scopes can be
 // included, separated by spaces.
-export const GAPI_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+export const GAPI_SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 
 export const GAPI_DB_PATH = 'Databases/expensesIncomes.json';
