@@ -321,7 +321,7 @@ export default function PopupIncomesExpenses(props: Props) {
                   </p>
                 </div>
 
-                <div className="pl-8 mb-5 hidden peer-checked:block">
+                <div className="pl-2 mb-5 hidden peer-checked:block">
                   {item.actions.map((item) =>
                     getAction({
                       action: item,
@@ -369,12 +369,12 @@ export default function PopupIncomesExpenses(props: Props) {
 
         <div className="pt-4">
           <button
-            className="mr-4"
+            className="mr-2"
             onClick={() =>
               setFilterBy(filterBy === 'date' ? 'categories' : 'date')
             }
           >
-            Filtrado por {filterBy === 'date' ? 'fecha' : 'categorías'}
+            Filtro: {filterBy === 'date' ? 'fecha' : 'categorías'}
           </button>
           <button onClick={props.onClose}>Cerrar</button>
         </div>
