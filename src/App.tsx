@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   addAction,
   addCategory,
@@ -51,7 +53,12 @@ export default function App() {
 
   // Perform a database operation, sync it and update it locally
   const asyncDBTask = async function (
-    fn: (attrs: { accessToken: string; gdFileId: string }) => Promise<DB>
+    fn: (attrs: {
+      accessToken: string;
+      gdFileId: string;
+      successMsg?: string;
+    }) => Promise<DB>,
+    attrs?: { alertMsg?: string }
   ) {
     try {
       if (!accessToken) throw new Error('Missing accessToken');
@@ -61,50 +68,69 @@ export default function App() {
       const db = await fn({ accessToken, gdFileId });
       setDB(db);
 
+      attrs?.alertMsg && toast(attrs.alertMsg, { type: 'success' });
+
       return db;
     } catch (err: any) {
-      alert(err?.message || 'Ocurrió un error.');
+      toast(err?.message || 'Ocurrió un error.', {
+        type: 'error',
+        autoClose: false,
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleAddActionFormSubmit = async (values: Action) => {
-    await asyncDBTask(async (attrs) => {
-      const db = await addAction({
-        ...attrs,
-        newAction: {
-          incomeCategory: values.incomeCategory,
-          expenseCategory: values.expenseCategory,
-          type: values.type,
-          description: values.description,
-          value: values.value,
-        },
-      });
+    await asyncDBTask(
+      async (attrs) => {
+        const db = await addAction({
+          ...attrs,
+          newAction: {
+            incomeCategory: values.incomeCategory,
+            expenseCategory: values.expenseCategory,
+            type: values.type,
+            description: values.description,
+            value: values.value,
+          },
+        });
 
-      setValue(undefined);
-      setPopup(undefined);
+        setValue(undefined);
+        setPopup(undefined);
 
-      return db;
-    });
+        return db;
+      },
+      { alertMsg: 'Entrada agregada' }
+    );
   };
 
   const handleActionDelete = (actionId: string) =>
-    asyncDBTask(async (attrs) => deleteAction({ ...attrs, actionId }));
+    asyncDBTask(async (attrs) => deleteAction({ ...attrs, actionId }), {
+      alertMsg: 'Entrada eliminada',
+    });
 
   const handleEditActionSubmit = (action: Action) =>
-    asyncDBTask(async (attrs) => editAction({ ...attrs, action }));
+    asyncDBTask(async (attrs) => editAction({ ...attrs, action }), {
+      alertMsg: 'Entrada editada',
+    });
 
   const handleCategoryDelete = (categoryId: string) =>
-    asyncDBTask(async (attrs) => deleteCategory({ ...attrs, categoryId }));
+    asyncDBTask(async (attrs) => deleteCategory({ ...attrs, categoryId }), {
+      alertMsg: 'Categoría eliminada',
+    });
 
   const handleAddCategorySubmit = (
     category: ActionCategory,
     type: ActionType
-  ) => asyncDBTask(async (attrs) => addCategory({ ...attrs, category, type }));
+  ) =>
+    asyncDBTask(async (attrs) => addCategory({ ...attrs, category, type }), {
+      alertMsg: 'Categoría agregada',
+    });
 
   const handleEditCategorySubmit = (category: ActionCategory) =>
-    asyncDBTask(async (attrs) => editCategory({ ...attrs, category }));
+    asyncDBTask(async (attrs) => editCategory({ ...attrs, category }), {
+      alertMsg: 'Categoría editada',
+    });
 
   const handleActionClick = (actionType: ActionType) => {
     if (!value) return;
@@ -158,7 +184,7 @@ export default function App() {
         setAccessToken(newAccessToken);
       } catch (err: any) {
         console.log(err);
-        alert(err?.message);
+        toast(err?.message, { type: 'error', autoClose: false });
       } finally {
         setIsLoading(false);
       }
@@ -166,7 +192,7 @@ export default function App() {
 
     loadDBGapiGISClientsD().catch((el) => {
       console.log(el);
-      alert(el.message);
+      toast(el.message, { type: 'error', autoClose: false });
     });
   }, []);
 
@@ -266,6 +292,7 @@ export default function App() {
           onClose={() => setPopup(undefined)}
         />
       )}
+      <ToastContainer />
     </div>
   );
 }
