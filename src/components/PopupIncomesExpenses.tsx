@@ -306,9 +306,9 @@ export default function PopupIncomesExpenses(props: Props) {
 
                 <div className="text-left">
                   <p className="border-b border-b-white/10 mb-2 pb-2">
-                    <span>{item.name} - </span>
+                    <span>{item.name} </span>
                     <span className="text-xs c-description">
-                      <span>Entradas: {item.actions.length} - </span>
+                      <span>Items: {item.actions.length}, </span>
                       <span>
                         Total:{' '}
                         {formatNumberValueToCurrency(
