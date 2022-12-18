@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const actionCategorySchema = z.object({
   id: z.string(),
+  sortPriority: z.number(),
   name: z.string(),
   description: z.string().optional(),
 });

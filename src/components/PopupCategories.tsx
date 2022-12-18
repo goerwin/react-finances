@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ActionCategory, ActionType, DB } from '../helpers/DBValidator';
+import { ActionCategory, ActionType, DB } from '../helpers/DBHelpers';
 import { sortByDateFnCreator } from '../helpers/general';
 
 export interface Props {
@@ -42,7 +42,7 @@ export default function PopupCategories({ db, ...props }: Props) {
   };
 
   const getItemForm = (item?: ActionCategory) => {
-    const { id, name, description } = item || {};
+    const { id, name, description, sortPriority } = item || {};
 
     if (!formItemId) return;
 
@@ -54,6 +54,15 @@ export default function PopupCategories({ db, ...props }: Props) {
           {...register('name', { value: name })}
           type="text"
           placeholder="Nombre"
+        />
+        <input
+          className="mb-1"
+          {...register('sortPriority', {
+            value: sortPriority,
+            valueAsNumber: true,
+          })}
+          type="number"
+          placeholder="Prioridad de orden"
         />
         <input
           className="mb-1"
@@ -70,7 +79,9 @@ export default function PopupCategories({ db, ...props }: Props) {
     ...db[
       props.actionType === 'expense' ? 'expenseCategories' : 'incomeCategories'
     ],
-  ].sort(sortByDateFnCreator('name'));
+  ]
+    .sort(sortByDateFnCreator('name'))
+    .sort(sortByDateFnCreator('sortPriority', false));
 
   return (
     <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-4">
@@ -108,7 +119,26 @@ export default function PopupCategories({ db, ...props }: Props) {
               <div className="grow mr-2 break-words min-w-0">
                 {formItemId !== item.id && (
                   <>
-                    <span className="block">{item.name}</span>
+                    <span className="block">
+                      {item.name}{' '}
+                      <span className="c-description text-xs">
+                        Items:{' '}
+                        {db.actions.reduce(
+                          (count, action) =>
+                            action[
+                              props.actionType === 'expense'
+                                ? 'expenseCategory'
+                                : 'incomeCategory'
+                            ] === item.id
+                              ? count + 1
+                              : count,
+                          0
+                        )}
+                      </span>
+                    </span>
+                    <span className="block c-description">
+                      Prioridad de orden: {item.sortPriority}
+                    </span>
                     <span className="block c-description">
                       {item.description}
                     </span>

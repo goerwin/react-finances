@@ -30,16 +30,17 @@ export function applyCalcString(current: string, input: string) {
 }
 
 export function formatNumberValueToCurrency(value: string) {
-  const [integer, decimal] = value.split('.');
+  const [integerStr, decimalStr] = value.split('.');
+  const parsedValueStr = Number(
+    integerStr + (decimalStr ? `.${decimalStr}` : '')
+  ).toFixed(2);
 
-  const integerFormatted = `${new Intl.NumberFormat('en-US', {
+  return `${new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     currencyDisplay: 'narrowSymbol',
     minimumFractionDigits: 0,
-  }).format(Number(integer))}`;
-
-  return `${integerFormatted}${decimal === undefined ? '' : `.${decimal}`}`;
+  }).format(Number(parsedValueStr))}`;
 }
 
 export function removeCurrencyFormattingToValue(value: string) {

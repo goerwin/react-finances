@@ -4,7 +4,7 @@ import {
   ActionType,
   DB,
   dbSchema,
-} from '../helpers/DBValidator';
+} from '../helpers/DBHelpers';
 
 // https://github.com/uuidjs/uuid/pull/654
 import { v4 as uuidv4 } from 'uuid';
@@ -28,10 +28,10 @@ export async function getDB(attrs: DBApiRequiredAttrs) {
 }
 
 export async function updateDB(attrs: DBApiRequiredAttrs & { db: DB }) {
-  const newDB: DB = {
+  const newDB: DB = dbSchema.parse({
     ...attrs.db,
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   const resp = await updateGoogleDriveFile({
     accessToken: attrs.accessToken,

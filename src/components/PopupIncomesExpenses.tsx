@@ -1,26 +1,29 @@
 import { useRef, useState } from 'react';
 import { useForm, UseFormReset } from 'react-hook-form';
-import { Action, ActionType, DB, ActionCategory } from '../helpers/DBValidator';
+import { Action, ActionType, DB, ActionCategory } from '../helpers/DBHelpers';
 import { sortByDateFnCreator } from '../helpers/general';
 import {
   getFilteredBy as lsGetFilteredBy,
   setFilteredBy as lsSetFilteredBy,
 } from '../helpers/localStorage';
 import {
+  getFirstDayOfMonthDate,
+  getLastDayOfMonthDate,
   getLocalFormattedDate,
-  getLocalFormattedInputDate,
-  getNextMonthDate,
-  getPreviousMonthDate,
+  getDatetimeLocalFormattedForInputDate,
+  getNextMonthFirstDayDate,
+  getPreviousMonthFirstDayDate,
 } from '../helpers/time';
 import { formatNumberValueToCurrency } from './Calculator';
+import PopupFilterByDates from './PopupFilterByDates';
 
-export interface Props {
+export type Props = {
   db: DB;
   actionType: ActionType;
   onItemDelete: (actionId: Action['id']) => void;
   onEditItemSubmit: (action: Action) => void;
   onClose: () => void;
-}
+};
 
 function getCategoryName(db: DB, action: Action) {
   const { type, expenseCategory, incomeCategory } = action;
@@ -129,36 +132,33 @@ function getAction({
   );
 }
 
-function filterActionsByMonth(
-  attrs: {
-    actionType: ActionType;
-    localMonth: number;
-    localYear: number;
-  },
+function filterActionsByTypeAndStartEndDates(
+  attrs: { actionType: ActionType; startDate: Date; endDate: Date },
   action: Action
 ) {
   const actionDate = new Date(action.date);
 
   return (
     action.type === attrs.actionType &&
-    actionDate.getMonth() === attrs.localMonth &&
-    attrs.localYear === actionDate.getFullYear()
+    actionDate >= attrs.startDate &&
+    actionDate <= attrs.endDate
   );
 }
 
 export default function PopupIncomesExpenses(props: Props) {
+  const today = new Date();
   const itemFormRef = useRef<HTMLFormElement | null>(null);
-  const [date, setDate] = useState(new Date());
-  const [editingItemId, setEditingItemId] = useState<string>();
+  const [showFilterByDatesPopup, setShowFilterByDatesPopup] = useState(false);
   const [filterBy, setFilterBy] = useState(lsGetFilteredBy());
+  const [editingItemId, setEditingItemId] = useState<string>();
+  const [{ filterStartDate, filterEndDate }, setFilterDates] = useState({
+    filterStartDate: getFirstDayOfMonthDate(today),
+    filterEndDate: getLastDayOfMonthDate(today),
+  });
 
   const { register, handleSubmit, reset } = useForm<Action>({
     shouldUnregister: true,
   });
-
-  const localMonth = date.getMonth();
-  const localMonthStr = date.toLocaleString('default', { month: 'long' });
-  const localYear = date.getFullYear();
 
   const categories =
     props.actionType === 'expense'
@@ -169,19 +169,17 @@ export default function PopupIncomesExpenses(props: Props) {
 
   const filteredActions = props.db.actions
     .filter(
-      filterActionsByMonth.bind(null, {
+      filterActionsByTypeAndStartEndDates.bind(null, {
         actionType: props.actionType,
-        localMonth,
-        localYear,
+        startDate: filterStartDate,
+        endDate: filterEndDate,
       })
     )
     .sort(sortByDateFnCreator('date', false));
 
   const filteredTotal = filteredActions.reduce((acc, el) => acc + el.value, 0);
 
-  let filteredByCaterogies: (ActionCategory & {
-    actions: Action[];
-  })[] = [];
+  let filteredByCaterogies: (ActionCategory & { actions: Action[] })[] = [];
 
   if (filterBy === 'categories')
     filteredByCaterogies = categories
@@ -197,15 +195,16 @@ export default function PopupIncomesExpenses(props: Props) {
               ] === cat.id
           )
           .filter(
-            filterActionsByMonth.bind(null, {
+            filterActionsByTypeAndStartEndDates.bind(null, {
               actionType: props.actionType,
-              localMonth,
-              localYear,
+              startDate: filterStartDate,
+              endDate: filterEndDate,
             })
           )
           .sort(sortByDateFnCreator('date', false)),
       }))
-      .sort(sortByDateFnCreator('name'));
+      .sort(sortByDateFnCreator('name'))
+      .sort(sortByDateFnCreator('sortPriority', false));
 
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
@@ -254,11 +253,13 @@ export default function PopupIncomesExpenses(props: Props) {
           {...register('id', { value: id })}
         />
         <input
-          className="mb-1"
+          className="mb-1 block"
+          placeholder="Valor"
           {...register('value', { value, valueAsNumber: true })}
           type="number"
         />
         <select
+          placeholder="Categoría"
           className="mb-1"
           {...register(expenseIncomeCategoryName, {
             value: expenseIncomeCategoryVal,
@@ -275,15 +276,15 @@ export default function PopupIncomesExpenses(props: Props) {
         </select>
 
         <input
-          className="mb-1"
+          className="mb-1 block"
           type="text"
           placeholder="Descripción"
           {...register('description', { value: description })}
         />
         <input
-          className="mb-1 w-full"
+          className="mb-1 block w-full"
           {...register('date', {
-            value: getLocalFormattedInputDate(date),
+            value: getDatetimeLocalFormattedForInputDate(new Date(date)),
             setValueAs: (val) =>
               (val ? new Date(val) : new Date()).toISOString(),
           })}
@@ -297,12 +298,15 @@ export default function PopupIncomesExpenses(props: Props) {
   return (
     <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-4">
       <div className="bg-gray-800 py-4 px-5 rounded-lg text-center w-full">
-        <h2 className="text-3xl mt-4 mb-4 font-bold">{title}</h2>
+        <h2 className="text-3xl mb-4 font-bold">{title}</h2>
 
         {filterBy === 'categories' && (
           <div className="h-80 overflow-auto">
             {filteredByCaterogies.map((item) => (
-              <div key={item.id + localMonth + localYear} className="relative">
+              <div
+                key={item.id + filterStartDate + filterEndDate}
+                className="relative"
+              >
                 <input
                   type="checkbox"
                   className="absolute w-full left-0 top-0 h-8 peer opacity-0"
@@ -364,11 +368,35 @@ export default function PopupIncomesExpenses(props: Props) {
         </div>
 
         <div className="flex items-center gap-2 justify-between capitalize">
-          <button onClick={() => setDate(getPreviousMonthDate(date))}>←</button>
-          <span>
-            {localMonthStr} {localYear}
-          </span>
-          <button onClick={() => setDate(getNextMonthDate(date))}>→</button>
+          <button
+            onClick={() =>
+              setFilterDates({
+                filterStartDate: getPreviousMonthFirstDayDate(filterStartDate),
+                filterEndDate: getLastDayOfMonthDate(
+                  getPreviousMonthFirstDayDate(filterStartDate)
+                ),
+              })
+            }
+          >
+            ←
+          </button>
+          <button type="button" onClick={() => setShowFilterByDatesPopup(true)}>
+            {filterStartDate.toDateString()}
+            <br />
+            {filterEndDate.toDateString()}
+          </button>
+          <button
+            onClick={() =>
+              setFilterDates({
+                filterStartDate: getNextMonthFirstDayDate(filterStartDate),
+                filterEndDate: getLastDayOfMonthDate(
+                  getNextMonthFirstDayDate(filterStartDate)
+                ),
+              })
+            }
+          >
+            →
+          </button>
         </div>
 
         <div className="pt-4">
@@ -385,6 +413,25 @@ export default function PopupIncomesExpenses(props: Props) {
           <button onClick={props.onClose}>Cerrar</button>
         </div>
       </div>
+
+      {showFilterByDatesPopup && (
+        <PopupFilterByDates
+          startDate={filterStartDate}
+          endDate={filterEndDate}
+          onCancelClick={() => setShowFilterByDatesPopup(false)}
+          onCurrentMonthClick={() => {
+            setShowFilterByDatesPopup(false);
+            setFilterDates({
+              filterStartDate: getFirstDayOfMonthDate(today),
+              filterEndDate: getLastDayOfMonthDate(today),
+            });
+          }}
+          onSubmit={(filterStartDate, filterEndDate) => {
+            setFilterDates({ filterStartDate, filterEndDate });
+            setShowFilterByDatesPopup(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -28,7 +28,7 @@ import {
   ActionType,
   DB,
   initialDB,
-} from './helpers/DBValidator';
+} from './helpers/DBHelpers';
 import {
   getGoogleDriveElementInfo,
   loadGapiClient,
