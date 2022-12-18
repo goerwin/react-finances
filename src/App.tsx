@@ -68,7 +68,8 @@ export default function App() {
       const db = await fn({ accessToken, gdFileId });
       setDB(db);
 
-      attrs?.alertMsg && toast(attrs.alertMsg, { type: 'success' });
+      attrs?.alertMsg &&
+        toast(attrs.alertMsg, { type: 'success', autoClose: 1000 });
 
       return db;
     } catch (err: any) {

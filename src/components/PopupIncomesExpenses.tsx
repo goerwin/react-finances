@@ -9,10 +9,11 @@ import {
 import {
   getFirstDayOfMonthDate,
   getLastDayOfMonthDate,
-  getLocalFormattedDate,
+  getFormattedLocalDatetime,
   getDatetimeLocalFormattedForInputDate,
   getNextMonthFirstDayDate,
   getPreviousMonthFirstDayDate,
+  getFormattedLocalDate,
 } from '../helpers/time';
 import { formatNumberValueToCurrency } from './Calculator';
 import PopupFilterByDates from './PopupFilterByDates';
@@ -69,7 +70,7 @@ function getAction({
             </span>
             <span className="block c-description">{action.description}</span>
             <span className="block c-description not-italic">
-              {getLocalFormattedDate(action.date)}
+              {getFormattedLocalDatetime(new Date(action.date))}
             </span>
           </>
         )}
@@ -100,7 +101,7 @@ function getAction({
                     action
                   )} - ${formatNumberValueToCurrency(
                     String(action.value)
-                  )} - ${getLocalFormattedDate(action.date)})?`
+                  )} - ${getFormattedLocalDatetime(new Date(action.date))})?`
                 );
 
                 if (!resp) return;
@@ -380,10 +381,14 @@ export default function PopupIncomesExpenses(props: Props) {
           >
             ←
           </button>
-          <button type="button" onClick={() => setShowFilterByDatesPopup(true)}>
-            {filterStartDate.toDateString()}
+          <button
+            type="button"
+            className="!px-2"
+            onClick={() => setShowFilterByDatesPopup(true)}
+          >
+            {getFormattedLocalDate(filterStartDate)}
             <br />
-            {filterEndDate.toDateString()}
+            {getFormattedLocalDate(filterEndDate)}
           </button>
           <button
             onClick={() =>
