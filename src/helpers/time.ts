@@ -50,7 +50,13 @@ export function getLastDayOfMonthDate(date: Date) {
   const newDate2 = new Date(date);
 
   // get last day of month
+  // set date to 1 to avoid jumping months accidentaly
+  newDate2.setDate(1);
+
+  // set next month
   newDate2.setMonth(newDate2.getMonth() + 1);
+
+  // set previous day
   newDate2.setDate(0);
   const lastDayOfMonth = newDate2.getDate();
 
