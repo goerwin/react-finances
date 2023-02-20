@@ -16,7 +16,8 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         manifest: {
-          theme_color: '#ffffff',
+          theme_color: '#242424',
+          background_color: '#242424',
           icons: [
             {
               src: `${base}android-chrome-192x192.png`,
