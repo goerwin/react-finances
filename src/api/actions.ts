@@ -29,9 +29,20 @@ export const TokenInfoSchema = z.object({
 
 export type TokenInfo = z.infer<typeof TokenInfoSchema>;
 
-export async function getDB(tokenInfo: TokenInfo, attrs: DBApiRequiredAttrs) {
+export async function getDBWithAccessToken(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs
+) {
   const fileContent = await getGoogleDriveFileContent(tokenInfo, attrs);
-  return dbSchema.parse(fileContent.data.data);
+  return {
+    accessToken: fileContent.accessToken,
+    db: dbSchema.parse(fileContent.data.data),
+  };
+}
+
+export async function getDB(tokenInfo: TokenInfo, attrs: DBApiRequiredAttrs) {
+  const resp = await getDBWithAccessToken(tokenInfo, attrs);
+  return resp.db;
 }
 
 export async function updateDB(

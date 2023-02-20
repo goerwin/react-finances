@@ -9,41 +9,24 @@ import {
   editAction,
   editCategory,
   getDB,
+  getDBWithAccessToken,
   TokenInfo,
   TokenInfoSchema,
-  updateDB,
 } from './api/actions';
 import Calculator from './components/Calculator';
 import Loading from './components/Loading';
 import PopupCategories from './components/PopupCategories';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
-import {
-  // GAPI_API_KEY,
-  GAPI_CLIENT_ID,
-  GAPI_DB_PATH,
-  GAPI_SCOPE,
-} from './config';
-import {
-  Action,
-  ActionCategory,
-  ActionType,
-  DB,
-  initialDB,
-} from './helpers/DBHelpers';
+import { GAPI_CLIENT_ID, GAPI_DB_PATH, GAPI_SCOPE } from './config';
+import { Action, ActionCategory, ActionType, DB } from './helpers/DBHelpers';
 import { loadScript } from './helpers/general';
-import {
-  getGoogleDriveElementInfo,
-  getNewAccessToken,
-  loadGapiClient,
-  loadGISClient,
-  requestGapiAccessToken,
-} from './helpers/GoogleApi';
+import { getGoogleDriveElementInfo } from './helpers/GoogleApi';
 import {
   getGDFileId as LSGetGDFileId,
+  getTokenInfo as LSGetTokenInfo,
   setGDFileId as LSSetGDFileId,
   setTokenInfo as LSSetTokenInfo,
-  getTokenInfo as LSGetTokenInfo,
 } from './helpers/localStorage';
 
 export default function App() {
@@ -53,7 +36,6 @@ export default function App() {
     action: 'add' | 'show' | 'showCategories';
     actionType: ActionType;
   }>();
-  const [accessToken, setAccessToken] = useState<string>();
   const [gdFileId, setGDFileId] = useState(LSGetGDFileId());
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
   const [db, setDB] = useState<DB>();
@@ -159,17 +141,13 @@ export default function App() {
     (async () => {
       try {
         if (tokenInfo) {
-          const {
-            at: accessToken,
-            rt: refreshToken,
-            cs: clientSecret,
-          } = tokenInfo;
+          const { at, rt, cs } = tokenInfo;
           let newGdFileId = gdFileId;
 
           // Get the gdFileId if not already saved in LocalStorage
           if (!newGdFileId) {
             const dbElInfo = await getGoogleDriveElementInfo(
-              { at: accessToken, rt: refreshToken, cs: clientSecret },
+              { at, rt, cs },
               { path: GAPI_DB_PATH }
             );
 
@@ -177,7 +155,16 @@ export default function App() {
               throw new Error('No Google Drive FileID Found');
           }
 
-          const db = await getDB(tokenInfo, { gdFileId: newGdFileId });
+          const { db, accessToken } = await getDBWithAccessToken(tokenInfo, {
+            gdFileId: newGdFileId,
+          });
+
+          // if accessToken return that means it was updated
+          if (accessToken) {
+            const newTokenInfo = { ...tokenInfo, at: accessToken };
+            LSSetTokenInfo(newTokenInfo);
+            setTokenInfo(newTokenInfo);
+          }
 
           LSSetGDFileId(newGdFileId);
           setGDFileId(newGdFileId);
@@ -187,15 +174,15 @@ export default function App() {
         }
 
         const sp = new URLSearchParams(window.location.search);
-        const newTokenInfo = TokenInfoSchema.safeParse({
+        const newTokenInfoRes = TokenInfoSchema.safeParse({
           rt: sp.get('rt'),
           at: sp.get('at'),
           cs: sp.get('cs'),
         });
 
-        if (newTokenInfo.success) {
-          setTokenInfo(newTokenInfo.data);
-          LSSetTokenInfo(newTokenInfo.data);
+        if (newTokenInfoRes.success) {
+          setTokenInfo(newTokenInfoRes.data);
+          LSSetTokenInfo(newTokenInfoRes.data);
           window.location.href = '/';
           return;
         }

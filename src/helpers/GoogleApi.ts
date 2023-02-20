@@ -88,7 +88,7 @@ function renewAccessTokenRetrier<T>(
 ): (
   attrs: { at: string; rt: string; cs: string },
   ...args: any[]
-) => Promise<{ data: T; accessToken: string }> {
+) => Promise<{ data: T; accessToken?: string }> {
   return async (
     { at: accessToken, rt: refreshToken, cs: clientSecret },
     ...args
@@ -98,7 +98,11 @@ function renewAccessTokenRetrier<T>(
     for (let i = 0; i < tries; i++) {
       try {
         const resp = await fn.call(null, newAccessToken, ...args);
-        return { data: resp, accessToken: newAccessToken };
+        return {
+          data: resp,
+          accessToken:
+            newAccessToken !== accessToken ? newAccessToken : undefined,
+        };
       } catch (e: unknown) {
         if (!(e instanceof AxiosError)) break;
         if (e.response?.status !== 401) break;
@@ -216,14 +220,6 @@ export const uploadGoogleDriveFile = renewAccessTokenRetrier(
         },
       }
     );
-    // return await fetch(
-    //   `${GOOGLE_DRIVE_UPLOAD_API_URL}/files?uploadType=multipart`,
-    //   {
-    //     method: 'POST',
-    //     headers: { Authorization: 'Bearer ' + accessToken },
-    //     body: form,
-    //   }
-    // );
   }
 );
 
@@ -256,10 +252,5 @@ export const updateGoogleDriveFile = renewAccessTokenRetrier(
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
-    // return fetch(url, {
-    //   method: 'PATCH',
-    //   headers: { Authorization: 'Bearer ' + accessToken },
-    //   body,
-    // });
   }
 );
