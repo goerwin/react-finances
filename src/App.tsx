@@ -8,7 +8,6 @@ import {
   deleteCategory,
   editAction,
   editCategory,
-  getDB,
   getDBWithAccessToken,
   TokenInfo,
   TokenInfoSchema,
@@ -18,7 +17,12 @@ import Loading from './components/Loading';
 import PopupCategories from './components/PopupCategories';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
-import { GAPI_CLIENT_ID, GAPI_DB_PATH, GAPI_SCOPE } from './config';
+import {
+  GOOGLE_CLIENT_ID,
+  GOOGLE_DRIVE_DB_PATH,
+  GOOGLE_REDIRECT_URL,
+  GOOGLE_SCOPE,
+} from './config';
 import { Action, ActionCategory, ActionType, DB } from './helpers/DBHelpers';
 import { loadScript } from './helpers/general';
 import { getGoogleDriveElementInfo } from './helpers/GoogleApi';
@@ -28,6 +32,10 @@ import {
   setGDFileId as LSSetGDFileId,
   setTokenInfo as LSSetTokenInfo,
 } from './helpers/localStorage';
+
+function redirectToCleanHomePage() {
+  window.location.href = window.location.pathname;
+}
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -148,8 +156,10 @@ export default function App() {
           if (!newGdFileId) {
             const dbElInfo = await getGoogleDriveElementInfo(
               { at, rt, cs },
-              { path: GAPI_DB_PATH }
+              { path: GOOGLE_DRIVE_DB_PATH }
             );
+
+            newGdFileId = dbElInfo.data?.id;
 
             if (!newGdFileId || typeof dbElInfo.data?.id !== 'string')
               throw new Error('No Google Drive FileID Found');
@@ -183,17 +193,17 @@ export default function App() {
         if (newTokenInfoRes.success) {
           setTokenInfo(newTokenInfoRes.data);
           LSSetTokenInfo(newTokenInfoRes.data);
-          window.location.href = '/';
+          redirectToCleanHomePage();
           return;
         }
 
         await loadScript('gsiClient', 'https://accounts.google.com/gsi/client');
 
         const client = google.accounts.oauth2.initCodeClient({
-          client_id: GAPI_CLIENT_ID,
+          client_id: GOOGLE_CLIENT_ID,
           ux_mode: 'redirect',
-          redirect_uri: 'http://localhost:3000/oauth2callback/google',
-          scope: GAPI_SCOPE,
+          redirect_uri: GOOGLE_REDIRECT_URL,
+          scope: GOOGLE_SCOPE,
           state: window.location.href,
         });
 
@@ -277,7 +287,9 @@ export default function App() {
 
             LSSetTokenInfo(undefined);
             setTokenInfo(undefined);
-            window.location.href = '/';
+            LSSetGDFileId(undefined);
+            setGDFileId(undefined);
+            redirectToCleanHomePage();
           }}
         >
           Logout
