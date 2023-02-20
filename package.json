@@ -4,7 +4,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "http://localhost:3000",
+  "homepage": "https://goerwin.github.io/react-finances",
   "scripts": {
     "build": "tsc && vite build",
     "deploy": "gh-pages -d dist",
