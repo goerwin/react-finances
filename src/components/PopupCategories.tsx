@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ActionCategory, ActionType, DB } from '../helpers/DBHelpers';
 import { sortByDateFnCreator } from '../helpers/general';
+import Popup from './Popup';
 
 export interface Props {
   db: DB;
@@ -84,118 +85,10 @@ export default function PopupCategories({ db, ...props }: Props) {
     .sort(sortByDateFnCreator('sortPriority', false));
 
   return (
-    <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-4">
-      <div className="bg-gray-800 py-4 px-5 rounded-lg text-center w-full">
-        <h2 className="text-3xl mt-4 mb-4 font-bold">{title}</h2>
-
-        <div className="h-80 overflow-auto">
-          {formItemId === 'new' && (
-            <div className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center">
-              <div className="grow mr-2 break-words min-w-0">
-                {getItemForm()}
-              </div>
-
-              <div className="flex gap-2 max-h-10">
-                <button
-                  className="btn-success p-0 text-2xl h-10 aspect-square"
-                  onClick={manuallySubmitForm}
-                >
-                  ✓
-                </button>
-                <button
-                  className="btn-danger p-0 text-2xl h-10 aspect-square"
-                  onClick={() => setFormItemId(undefined)}
-                  dangerouslySetInnerHTML={{ __html: '&times;' }}
-                />
-              </div>
-            </div>
-          )}
-
-          {categories.map((item) => (
-            <div
-              key={item.id}
-              className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center"
-            >
-              <div className="grow mr-2 break-words min-w-0">
-                {formItemId !== item.id && (
-                  <>
-                    <span className="block">
-                      {item.name}{' '}
-                      <span className="c-description text-xs">
-                        Items:{' '}
-                        {db.actions.reduce(
-                          (count, action) =>
-                            action[
-                              props.actionType === 'expense'
-                                ? 'expenseCategory'
-                                : 'incomeCategory'
-                            ] === item.id
-                              ? count + 1
-                              : count,
-                          0
-                        )}
-                      </span>
-                    </span>
-                    <span className="block c-description">
-                      Prioridad de orden: {item.sortPriority}
-                    </span>
-                    <span className="block c-description">
-                      {item.description}
-                    </span>
-                  </>
-                )}
-                {formItemId === item.id && getItemForm(item)}
-              </div>
-
-              <div className="flex gap-2 max-h-10">
-                {formItemId !== item.id && (
-                  <>
-                    <button
-                      className="btn-success p-0 text-2xl h-10 aspect-square"
-                      onClick={() => {
-                        reset();
-                        setFormItemId(item.id);
-                      }}
-                    >
-                      ✎
-                    </button>
-                    <button
-                      className="btn-danger p-0 text-2xl h-10 aspect-square"
-                      onClick={async () => {
-                        const resp = window.confirm(
-                          `Seguro que quieres eliminar esta categoría (${item.name})?`
-                        );
-
-                        if (!resp) return;
-                        props.onItemDelete(item.id);
-                      }}
-                    >
-                      🗑
-                    </button>
-                  </>
-                )}
-
-                {formItemId === item.id && (
-                  <>
-                    <button
-                      className="btn-success p-0 text-2xl h-10 aspect-square"
-                      onClick={manuallySubmitForm}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      className="btn-danger p-0 text-2xl h-10 aspect-square"
-                      onClick={() => setFormItemId(undefined)}
-                      dangerouslySetInnerHTML={{ __html: '&times;' }}
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="relative pt-4 mb-4 text-lg font-bold before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)]">
+    <Popup
+      title={title}
+      bottomArea={
+        <>
           <button onClick={props.onClose}>Cerrar</button>
           <button
             className="btn-success ml-4"
@@ -210,8 +103,109 @@ export default function PopupCategories({ db, ...props }: Props) {
           >
             Agregar
           </button>
+        </>
+      }
+    >
+      {formItemId === 'new' && (
+        <div className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center">
+          <div className="grow mr-2 break-words min-w-0">{getItemForm()}</div>
+
+          <div className="flex gap-2 max-h-10">
+            <button
+              className="btn-success p-0 text-2xl h-10 aspect-square"
+              onClick={manuallySubmitForm}
+            >
+              ✓
+            </button>
+            <button
+              className="btn-danger p-0 text-2xl h-10 aspect-square"
+              onClick={() => setFormItemId(undefined)}
+              dangerouslySetInnerHTML={{ __html: '&times;' }}
+            />
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+
+      {categories.map((item) => (
+        <div
+          key={item.id}
+          className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center"
+        >
+          <div className="grow mr-2 break-words min-w-0">
+            {formItemId !== item.id && (
+              <>
+                <span className="block">
+                  {item.name}{' '}
+                  <span className="c-description text-xs">
+                    Items:{' '}
+                    {db.actions.reduce(
+                      (count, action) =>
+                        action[
+                          props.actionType === 'expense'
+                            ? 'expenseCategory'
+                            : 'incomeCategory'
+                        ] === item.id
+                          ? count + 1
+                          : count,
+                      0
+                    )}
+                  </span>
+                </span>
+                <span className="block c-description">
+                  Prioridad de orden: {item.sortPriority}
+                </span>
+                <span className="block c-description">{item.description}</span>
+              </>
+            )}
+            {formItemId === item.id && getItemForm(item)}
+          </div>
+
+          <div className="flex gap-2 max-h-10">
+            {formItemId !== item.id && (
+              <>
+                <button
+                  className="btn-success p-0 text-2xl h-10 aspect-square"
+                  onClick={() => {
+                    reset();
+                    setFormItemId(item.id);
+                  }}
+                >
+                  ✎
+                </button>
+                <button
+                  className="btn-danger p-0 text-2xl h-10 aspect-square"
+                  onClick={async () => {
+                    const resp = window.confirm(
+                      `Seguro que quieres eliminar esta categoría (${item.name})?`
+                    );
+
+                    if (!resp) return;
+                    props.onItemDelete(item.id);
+                  }}
+                >
+                  🗑
+                </button>
+              </>
+            )}
+
+            {formItemId === item.id && (
+              <>
+                <button
+                  className="btn-success p-0 text-2xl h-10 aspect-square"
+                  onClick={manuallySubmitForm}
+                >
+                  ✓
+                </button>
+                <button
+                  className="btn-danger p-0 text-2xl h-10 aspect-square"
+                  onClick={() => setFormItemId(undefined)}
+                  dangerouslySetInnerHTML={{ __html: '&times;' }}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      ))}
+    </Popup>
   );
 }

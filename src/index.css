@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  [role='button'] {
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   button,
   button[type='button'] {
     border-radius: 8px;

@@ -83,7 +83,8 @@ export default function Calculator(props: Props) {
         value={props.value || '$0'}
       />
 
-      <div className="grid grid-cols-3 grid-rows-4 p-2 gap-2 mx-auto max-w-[250px] ch:select-none ch:bg-calculatorBtn ch:rounded-full ch:aspect-square ch:text-3xl ch:p-0 ch:border-0 ch:font-bold">
+      {/* <div className="grid grid-cols-3 grid-rows-4 p-2 gap-px mx-auto max-w-[250px] ch:select-none ch:bg-calculatorBtn ch:rounded-full ch:text-3xl ch:py-2 ch:px-1 ch:text-center ch:border-0 ch:font-bold"> */}
+      <div className="grid grid-cols-3 grid-rows-4 p-2 gap-px mx-auto max-w-[200px] w-full ch:select-none ch:bg-calculatorBtn ch:rounded-md ch:text-3xl ch:py-2 ch:px-1 ch:text-center ch:border-0 ch:font-bold">
         {items.map((el) => (
           <button
             className="active:outline-2 active:outline-white focus:outline-none"

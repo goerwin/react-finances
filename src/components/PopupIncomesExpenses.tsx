@@ -16,6 +16,7 @@ import {
   getFormattedLocalDate,
 } from '../helpers/time';
 import { formatNumberValueToCurrency } from './Calculator';
+import Popup from './Popup';
 import PopupFilterByDates from './PopupFilterByDates';
 
 export type Props = {
@@ -297,12 +298,71 @@ export default function PopupIncomesExpenses(props: Props) {
   };
 
   return (
-    <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-4">
-      <div className="bg-gray-800 py-4 px-5 rounded-lg text-center w-full">
-        <h2 className="text-3xl mb-4 font-bold">{title}</h2>
+    <>
+      <Popup
+        title={title}
+        bottomArea={
+          <>
+            <div className="mb-4 text-lg font-bold">
+              Total: {formatNumberValueToCurrency(String(filteredTotal))}
+            </div>
 
+            <div className="flex items-center gap-2 justify-between capitalize">
+              <button
+                onClick={() =>
+                  setFilterDates({
+                    filterStartDate:
+                      getPreviousMonthFirstDayDate(filterStartDate),
+                    filterEndDate: getLastDayOfMonthDate(
+                      getPreviousMonthFirstDayDate(filterStartDate)
+                    ),
+                  })
+                }
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                className="!px-2"
+                onClick={() => setShowFilterByDatesPopup(true)}
+              >
+                {getFormattedLocalDate(filterStartDate)}
+                <br />
+                {getFormattedLocalDate(filterEndDate)}
+              </button>
+              <button
+                onClick={() =>
+                  setFilterDates({
+                    filterStartDate: getNextMonthFirstDayDate(filterStartDate),
+                    filterEndDate: getLastDayOfMonthDate(
+                      getNextMonthFirstDayDate(filterStartDate)
+                    ),
+                  })
+                }
+              >
+                →
+              </button>
+            </div>
+
+            <div className="pt-4">
+              <button
+                className="mr-2"
+                onClick={() => {
+                  const newFilterBy =
+                    filterBy === 'date' ? 'categories' : 'date';
+                  setFilterBy(newFilterBy);
+                  lsSetFilteredBy(newFilterBy);
+                }}
+              >
+                Filtro: {filterBy === 'date' ? 'fecha' : 'categorías'}
+              </button>
+              <button onClick={props.onClose}>Cerrar</button>
+            </div>
+          </>
+        }
+      >
         {filterBy === 'categories' && (
-          <div className="h-80 overflow-auto">
+          <>
             {filteredByCaterogies.map((item) => (
               <div
                 key={item.id + filterStartDate + filterEndDate}
@@ -345,11 +405,11 @@ export default function PopupIncomesExpenses(props: Props) {
                 </div>
               </div>
             ))}
-          </div>
+          </>
         )}
 
         {filterBy === 'date' && (
-          <div className="h-80 overflow-auto">
+          <>
             {filteredActions.map((item) =>
               getAction({
                 action: item,
@@ -361,63 +421,9 @@ export default function PopupIncomesExpenses(props: Props) {
                 editingItemId,
               })
             )}
-          </div>
+          </>
         )}
-
-        <div className="relative pt-4 mb-4 text-lg font-bold before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)]">
-          Total: {formatNumberValueToCurrency(String(filteredTotal))}
-        </div>
-
-        <div className="flex items-center gap-2 justify-between capitalize">
-          <button
-            onClick={() =>
-              setFilterDates({
-                filterStartDate: getPreviousMonthFirstDayDate(filterStartDate),
-                filterEndDate: getLastDayOfMonthDate(
-                  getPreviousMonthFirstDayDate(filterStartDate)
-                ),
-              })
-            }
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            className="!px-2"
-            onClick={() => setShowFilterByDatesPopup(true)}
-          >
-            {getFormattedLocalDate(filterStartDate)}
-            <br />
-            {getFormattedLocalDate(filterEndDate)}
-          </button>
-          <button
-            onClick={() =>
-              setFilterDates({
-                filterStartDate: getNextMonthFirstDayDate(filterStartDate),
-                filterEndDate: getLastDayOfMonthDate(
-                  getNextMonthFirstDayDate(filterStartDate)
-                ),
-              })
-            }
-          >
-            →
-          </button>
-        </div>
-
-        <div className="pt-4">
-          <button
-            className="mr-2"
-            onClick={() => {
-              const newFilterBy = filterBy === 'date' ? 'categories' : 'date';
-              setFilterBy(newFilterBy);
-              lsSetFilteredBy(newFilterBy);
-            }}
-          >
-            Filtro: {filterBy === 'date' ? 'fecha' : 'categorías'}
-          </button>
-          <button onClick={props.onClose}>Cerrar</button>
-        </div>
-      </div>
+      </Popup>
 
       {showFilterByDatesPopup && (
         <PopupFilterByDates
@@ -437,6 +443,6 @@ export default function PopupIncomesExpenses(props: Props) {
           }}
         />
       )}
-    </div>
+    </>
   );
 }

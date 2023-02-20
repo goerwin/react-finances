@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc && vite build",
     "deploy": "gh-pages -d dist",
-    "dev": "vite",
+    "dev": "vite --host",
     "test": "vitest --run",
     "test-watch": "vitest",
     "preview": "vite preview"

@@ -223,17 +223,43 @@ export default function App() {
   }, []);
 
   return (
-    <div>
+    <div
+      className="h-screen flex flex-col direct-first-child:mt-auto overflow-auto"
+      style={{ height: window.innerHeight }}
+    >
       {client ? (
         <button
-          className="block mx-auto mt-5"
+          className="block mx-auto mt-5 mb-2"
           onClick={() => client.requestCode()}
         >
-          Login with Google
+          Iniciar sesión con Google
         </button>
-      ) : null}
+      ) : (
+        <button
+          className="block mx-auto mt-5 mb-2"
+          onClick={async () => {
+            if (!window.confirm('Cerrar sesión?')) return;
 
-      {isLoading && <Loading />}
+            LSSetTokenInfo(undefined);
+            setTokenInfo(undefined);
+            LSSetGDFileId(undefined);
+            setGDFileId(undefined);
+            redirectToCleanHomePage();
+          }}
+        >
+          Cerrar sesión
+        </button>
+      )}
+
+      <button
+        className="block mx-auto"
+        onClick={() => window.location.reload()}
+      >
+        Recargar
+      </button>
+
+      <div className='w-1/2 mx-auto mt-7 mb-2 border-b-4 border-b-[#333]'/>
+
       <Calculator
         value={value}
         onButtonClick={setValue}
@@ -255,51 +281,39 @@ export default function App() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2 justify-center px-2 ch:flex-grow ch:basis-0">
-        <div className="flex gap-4 !basis-full ch:basis-1/2">
-          <button
-            className="btn-success bg-opacity-50"
-            onClick={() => setPopup({ action: 'show', actionType: 'income' })}
+      <div className="h-14 bg-black/20 grid grid-cols-4 gap-px shrink-0">
+        {[
+          {
+            label: 'Categoría ingresos',
+            onClick: () =>
+              setPopup({ action: 'showCategories', actionType: 'income' }),
+          },
+          {
+            label: 'Categoría gastos',
+            onClick: () =>
+              setPopup({ action: 'showCategories', actionType: 'expense' }),
+          },
+          {
+            label: 'Ingresos',
+            onClick: () => setPopup({ action: 'show', actionType: 'income' }),
+          },
+          {
+            label: 'Gastos',
+            onClick: () => setPopup({ action: 'show', actionType: 'expense' }),
+          },
+        ].map((it) => (
+          <div
+            role="button"
+            key={it.label}
+            onClick={it.onClick}
+            className="text-xs bg-black/30 flex items-center justify-center px-2 text-center"
           >
-            Ingresos
-          </button>
-          <button
-            className="btn-danger bg-opacity-50"
-            onClick={() => setPopup({ action: 'show', actionType: 'expense' })}
-          >
-            Gastos
-          </button>
-        </div>
-
-        <button
-          onClick={() =>
-            setPopup({ action: 'showCategories', actionType: 'income' })
-          }
-        >
-          Categorías ingresos
-        </button>
-        <button
-          onClick={() =>
-            setPopup({ action: 'showCategories', actionType: 'expense' })
-          }
-        >
-          Categorías gastos
-        </button>
-        <button
-          onClick={async () => {
-            if (!window.confirm('Logout?')) return;
-
-            LSSetTokenInfo(undefined);
-            setTokenInfo(undefined);
-            LSSetGDFileId(undefined);
-            setGDFileId(undefined);
-            redirectToCleanHomePage();
-          }}
-        >
-          Logout
-        </button>
-        <button onClick={() => window.location.reload()}>Recargar</button>
+            {it.label}
+          </div>
+        ))}
       </div>
+
+      <div className="h-14 bg-black/80 shrink-0" />
 
       {db && popup?.action === 'show' && (
         <PopupIncomesExpenses
@@ -331,6 +345,8 @@ export default function App() {
           onClose={() => setPopup(undefined)}
         />
       )}
+
+      {isLoading && <Loading />}
       <ToastContainer />
     </div>
   );

@@ -6,7 +6,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        calculatorBtn: 'rgb(18, 129, 185)',
+        calculatorBtn: 'transparent',
       },
     },
   },
@@ -14,6 +14,7 @@ module.exports = {
     plugin(function ({ addVariant }) {
       // children
       addVariant('ch', '& > *');
+      addVariant('direct-first-child', '& > :first-child');
     }),
   ],
 };
