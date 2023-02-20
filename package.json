@@ -2,16 +2,15 @@
   "name": "react-finances",
   "description": "PWA Finances made with React/Vite/Tailwindcss",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
-  "homepage": "https://goerwin.github.io/react-finances",
   "scripts": {
     "build": "tsc && vite build",
     "deploy": "gh-pages -d dist",
     "dev": "vite --host",
     "test": "vitest --run",
     "test-watch": "vitest",
-    "preview": "vite preview"
+    "preview": "npm run build && vite preview"
   },
   "dependencies": {
     "@tanstack/react-query": "^4.13.0",

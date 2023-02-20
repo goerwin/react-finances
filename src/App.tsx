@@ -227,6 +227,9 @@ export default function App() {
       className="h-screen flex flex-col direct-first-child:mt-auto overflow-auto"
       style={{ height: window.innerHeight }}
     >
+      <div className="text-sm text-center text-neutral-500">
+        Version: {APP_VERSION}
+      </div>
       {client ? (
         <button
           className="block mx-auto mt-5 mb-2"
@@ -258,7 +261,7 @@ export default function App() {
         Recargar
       </button>
 
-      <div className='w-1/2 mx-auto mt-7 mb-2 border-b-4 border-b-[#333]'/>
+      <div className="w-1/2 mx-auto mt-7 mb-2 border-b-4 border-b-[#333]" />
 
       <Calculator
         value={value}

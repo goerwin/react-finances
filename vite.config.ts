@@ -8,10 +8,13 @@ import packageJson from './package.json';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development';
-  const base = isDev ? '/' : `${packageJson.homepage}/`;
+  const base = isDev ? '/' : `/react-finances/`;
 
   return {
     base,
+    define: {
+      APP_VERSION: JSON.stringify(packageJson.version),
+    },
     plugins: [
       react(),
       VitePWA({
