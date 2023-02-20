@@ -20,7 +20,7 @@ import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import {
   GOOGLE_CLIENT_ID,
   GOOGLE_DRIVE_DB_PATH,
-  GOOGLE_REDIRECT_URL,
+  GOOGLE_REDIRECT_SERVER_URL,
   GOOGLE_SCOPE,
   GOOGLE_SERVICE_IDENTITY_CLIENT,
 } from './config';
@@ -203,9 +203,12 @@ export default function App() {
         const client = google.accounts.oauth2.initCodeClient({
           client_id: GOOGLE_CLIENT_ID,
           ux_mode: 'redirect',
-          redirect_uri: GOOGLE_REDIRECT_URL,
+          redirect_uri: GOOGLE_REDIRECT_SERVER_URL,
           scope: GOOGLE_SCOPE,
-          state: window.location.href,
+          state: JSON.stringify({
+            redirectFrontendUri: window.location.href,
+            redirectUri: GOOGLE_REDIRECT_SERVER_URL,
+          }),
         });
 
         setClient(client);

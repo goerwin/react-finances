@@ -4,8 +4,8 @@ export const LOCAL_STORAGE_NAMESPACE = 'reactFinances_';
 export const GOOGLE_CLIENT_ID =
   '922815291850-m6cji61b4197qdutd14o8mt8s7cpp9e8.apps.googleusercontent.com';
 
-export const GOOGLE_REDIRECT_URL =
-  'http://localhost:3000/oauth2callback/google';
+// export const GOOGLE_REDIRECT_SERVER_URL = `http://localhost:3000/api/oauth2Google`;
+export const GOOGLE_REDIRECT_SERVER_URL = `https://serverless-google-refresh-token.vercel.app/api/oauth2Google`;
 
 // Authorization scopes required by the API; multiple scopes can be
 // included, separated by spaces.
