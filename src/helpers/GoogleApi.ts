@@ -1,40 +1,13 @@
 // https://developers.google.com/drive/api/v3/reference/files/get
 
+import { GAPI_CLIENT_ID } from '../config';
+import { loadScript } from './general';
+import axios, { AxiosError } from 'axios';
+import { z } from 'zod';
+
 const GAPI_API_URL = 'https://www.googleapis.com';
 const GOOGLE_DRIVE_UPLOAD_API_URL =
   'https://www.googleapis.com/upload/drive/v3';
-
-let loadScriptPromises: Record<
-  string,
-  Optional<{ promise: Promise<any>; domEl: HTMLElement }>
-> = {};
-
-/** Loads any script via Promises */
-async function loadScript(scriptId: string, scriptUrl: string) {
-  // if script promise already set, return it
-
-  if (loadScriptPromises[scriptId])
-    return loadScriptPromises[scriptId]?.promise;
-
-  // add script to the body
-  const scriptDomEl = document.createElement('script');
-  scriptDomEl.id = scriptId;
-  document.body.appendChild(scriptDomEl);
-  scriptDomEl.src = scriptUrl;
-
-  const promise = new Promise((resolve, reject) => {
-    scriptDomEl.onload = resolve;
-    scriptDomEl.onerror = (err) => {
-      loadScriptPromises[scriptId] = undefined;
-      document.getElementById(scriptId);
-      scriptDomEl.remove();
-      reject(err);
-    };
-  });
-
-  loadScriptPromises[scriptId] = { domEl: scriptDomEl, promise };
-  return promise;
-}
 
 /**
  * Callback after the API client is loaded. Loads the
@@ -95,6 +68,53 @@ export async function requestGapiAccessToken(attrs: {
   });
 }
 
+export async function getNewAccessToken(
+  clientSecret: string,
+  refreshToken: string
+) {
+  return axios.post('https://oauth2.googleapis.com/token', {
+    client_id: GAPI_CLIENT_ID,
+    client_secret: clientSecret,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+  });
+}
+
+// This function will retry functions that require accessTokens which can be expired,
+// in that case, we will try to get a new accessToken using the refresh token in n tries
+function renewAccessTokenRetrier<T>(
+  tries: number,
+  fn: (at: string, ...args: any[]) => Promise<T>
+): (
+  attrs: { at: string; rt: string; cs: string },
+  ...args: any[]
+) => Promise<{ data: T; accessToken: string }> {
+  return async (
+    { at: accessToken, rt: refreshToken, cs: clientSecret },
+    ...args
+  ) => {
+    let newAccessToken = accessToken;
+
+    for (let i = 0; i < tries; i++) {
+      try {
+        const resp = await fn.call(null, newAccessToken, ...args);
+        return { data: resp, accessToken: newAccessToken };
+      } catch (e: unknown) {
+        if (!(e instanceof AxiosError)) break;
+        if (e.response?.status !== 401) break;
+
+        // it is an unauthorized 401 error, try get new accesstoken with refresh token
+        newAccessToken = String(
+          (await getNewAccessToken(clientSecret, refreshToken)).data
+            .access_token
+        );
+      }
+    }
+
+    throw new Error('Max. number of tries attempted');
+  };
+}
+
 /**
  * You need to recursively navigate using the query syntax
  * provided by google drive api.
@@ -114,106 +134,132 @@ export async function requestGapiAccessToken(attrs: {
  * https://stackoverflow.com/a/17276092/1623282
  *
  */
-export async function getGoogleDriveElementInfo(attrs: {
-  path: string;
-  accessToken: string;
-}) {
-  const { path, accessToken } = attrs;
+export const getGoogleDriveElementInfo = renewAccessTokenRetrier(
+  2,
+  async function getGoogleDriveElementInfo(
+    accessToken: string,
+    attrs: { path: string }
+  ): Promise<{ [x: string]: any } | null> {
+    const { path } = attrs;
 
-  if (!accessToken) return new Error('accessToken required');
-  if (path === '') return { id: 'root' };
+    if (!accessToken) return new Error('accessToken required');
+    if (path === '') return { id: 'root' };
 
-  const dirs = path.split('/');
-  const newDirs = ['root', ...dirs];
-  const dirIds = new Array(newDirs.length).fill({ id: 'root' });
+    const dirs = path.split('/');
+    const newDirs = ['root', ...dirs];
+    const dirIds = new Array(newDirs.length).fill({ id: 'root' });
 
-  for (let i = 0; i < newDirs.length - 1; i++) {
-    const parentDirId = dirIds?.[i]?.id;
-    if (!parentDirId) return null;
-    const q = `'${parentDirId}' in parents and name = '${newDirs[i + 1]}'`;
+    for (let i = 0; i < newDirs.length - 1; i++) {
+      const parentDirId = dirIds?.[i]?.id;
+      if (!parentDirId) return null;
+      const q = `'${parentDirId}' in parents and name = '${newDirs[i + 1]}'`;
 
-    const resp = await fetch(`${GAPI_API_URL}/drive/v3/files/?q=${q}`, {
-      method: 'GET',
-      headers: { Authorization: 'Bearer ' + accessToken },
-    });
+      const jsonResp = await axios.get(
+        `${GAPI_API_URL}/drive/v3/files/?q=${q}`,
+        {
+          headers: { Authorization: 'Bearer ' + accessToken },
+        }
+      );
+      // const resp = await fetch(`${GAPI_API_URL}/drive/v3/files/?q=${q}`, {
+      //   method: 'GET',
+      //   headers: { Authorization: 'Bearer ' + accessToken },
+      // });
 
-    if (!resp.ok) throw new Error(resp.statusText);
+      dirIds[i + 1] = jsonResp.data.files[0];
+    }
 
-    const jsonResp = await resp.json();
-    dirIds[i + 1] = jsonResp.files[0];
+    return dirIds.at(-1);
   }
+);
 
-  return dirIds.at(-1);
-}
-
-export async function getGoogleDriveFileContent(attrs: {
-  accessToken: string;
-  gdFileId: string;
-}) {
-  return fetch(`${GAPI_API_URL}/drive/v3/files/${attrs.gdFileId}?alt=media`, {
-    method: 'GET',
-    headers: { Authorization: 'Bearer ' + attrs.accessToken },
-  });
-}
+export const getGoogleDriveFileContent = renewAccessTokenRetrier(
+  2,
+  async function getGoogleDriveFileContentss(
+    accessToken: string,
+    attrs: { gdFileId: string }
+  ) {
+    return axios.get(
+      `${GAPI_API_URL}/drive/v3/files/${attrs.gdFileId}?alt=media`,
+      { headers: { Authorization: 'Bearer ' + accessToken } }
+    );
+  }
+);
 
 /**
  * Note: File inherits from Blob, meaning File is a Blob!
  */
-export async function uploadGoogleDriveFile(attrs: {
-  accessToken: string;
-  parents?: string[];
-  blob: Blob;
-  name: string;
-  mimeType: string;
-}) {
-  const { accessToken, parents, blob, name, mimeType } = attrs;
-  const metadata = JSON.stringify({
-    name, // Filename at Google Drive
-    mimeType, // mimeType at Google Drive
-    parents, // Folder IDs at Google Drive
-  });
+export const uploadGoogleDriveFile = renewAccessTokenRetrier(
+  2,
+  async function uploadGoogleDriveFile(
+    accessToken: string,
+    attrs: { parents?: string[]; blob: Blob; name: string; mimeType: string }
+  ) {
+    const { parents, blob, name, mimeType } = attrs;
+    const metadata = JSON.stringify({
+      name, // Filename at Google Drive
+      mimeType, // mimeType at Google Drive
+      parents, // Folder IDs at Google Drive
+    });
 
-  // NOTE: order is important (Metadata first then media)
-  const form = new FormData();
-  form.append('Metadata', new Blob([metadata], { type: 'application/json' }));
-  form.append('Media', blob);
-
-  return await fetch(
-    `${GOOGLE_DRIVE_UPLOAD_API_URL}/files?uploadType=multipart`,
-    {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + accessToken },
-      body: form,
-    }
-  );
-}
-
-export async function updateGoogleDriveFile(attrs: {
-  accessToken: string;
-  gdFileId: string;
-  blob: Blob;
-  metadata?: Record<string, string>;
-}) {
-  const { gdFileId, accessToken, metadata, blob } = attrs;
-  let body: RequestInit['body'] = blob;
-  const url = `${GOOGLE_DRIVE_UPLOAD_API_URL}/files/${gdFileId}?uploadType=${
-    metadata ? 'multipart' : 'media'
-  }`;
-
-  if (metadata) {
     // NOTE: order is important (Metadata first then media)
     const form = new FormData();
-    form.append(
-      'Metadata',
-      new Blob([JSON.stringify(metadata)], { type: 'application/json' })
-    );
+    form.append('Metadata', new Blob([metadata], { type: 'application/json' }));
     form.append('Media', blob);
-    body = form;
-  }
 
-  return fetch(url, {
-    method: 'PATCH',
-    headers: { Authorization: 'Bearer ' + accessToken },
-    body,
-  });
-}
+    return axios.post(
+      `${GOOGLE_DRIVE_UPLOAD_API_URL}/files?uploadType=multipart`,
+      form,
+      {
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+    // return await fetch(
+    //   `${GOOGLE_DRIVE_UPLOAD_API_URL}/files?uploadType=multipart`,
+    //   {
+    //     method: 'POST',
+    //     headers: { Authorization: 'Bearer ' + accessToken },
+    //     body: form,
+    //   }
+    // );
+  }
+);
+
+export const updateGoogleDriveFile = renewAccessTokenRetrier(
+  2,
+  async function updateGoogleDriveFile(
+    accessToken: string,
+    attrs: { gdFileId: string; blob: Blob; metadata?: Record<string, string> }
+  ) {
+    const { gdFileId, metadata, blob } = attrs;
+    let body: RequestInit['body'] = blob;
+    const url = `${GOOGLE_DRIVE_UPLOAD_API_URL}/files/${gdFileId}?uploadType=${
+      metadata ? 'multipart' : 'media'
+    }`;
+
+    if (metadata) {
+      // NOTE: order is important (Metadata first then media)
+      const form = new FormData();
+      form.append(
+        'Metadata',
+        new Blob([JSON.stringify(metadata)], { type: 'application/json' })
+      );
+      form.append('Media', blob);
+      body = form;
+    }
+
+    return axios.patch(url, body, {
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+    // return fetch(url, {
+    //   method: 'PATCH',
+    //   headers: { Authorization: 'Bearer ' + accessToken },
+    //   body,
+    // });
+  }
+);

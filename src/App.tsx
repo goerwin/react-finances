@@ -9,6 +9,8 @@ import {
   editAction,
   editCategory,
   getDB,
+  TokenInfo,
+  TokenInfoSchema,
   updateDB,
 } from './api/actions';
 import Calculator from './components/Calculator';
@@ -17,7 +19,7 @@ import PopupCategories from './components/PopupCategories';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import {
-  GAPI_API_KEY,
+  // GAPI_API_KEY,
   GAPI_CLIENT_ID,
   GAPI_DB_PATH,
   GAPI_SCOPE,
@@ -29,8 +31,10 @@ import {
   DB,
   initialDB,
 } from './helpers/DBHelpers';
+import { loadScript } from './helpers/general';
 import {
   getGoogleDriveElementInfo,
+  getNewAccessToken,
   loadGapiClient,
   loadGISClient,
   requestGapiAccessToken,
@@ -38,6 +42,8 @@ import {
 import {
   getGDFileId as LSGetGDFileId,
   setGDFileId as LSSetGDFileId,
+  setTokenInfo as LSSetTokenInfo,
+  getTokenInfo as LSGetTokenInfo,
 } from './helpers/localStorage';
 
 export default function App() {
@@ -48,24 +54,24 @@ export default function App() {
     actionType: ActionType;
   }>();
   const [accessToken, setAccessToken] = useState<string>();
-  const [gdFileId, setGDFileId] = useState<Optional<string>>(LSGetGDFileId());
+  const [gdFileId, setGDFileId] = useState(LSGetGDFileId());
+  const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
   const [db, setDB] = useState<DB>();
 
   // Perform a database operation, sync it and update it locally
   const asyncDBTask = async function (
-    fn: (attrs: {
-      accessToken: string;
-      gdFileId: string;
-      successMsg?: string;
-    }) => Promise<DB>,
+    fn: (
+      tokenInfo: TokenInfo,
+      attrs: { gdFileId: string; successMsg?: string }
+    ) => Promise<DB>,
     attrs?: { alertMsg?: string }
   ) {
     try {
-      if (!accessToken) throw new Error('Missing accessToken');
+      if (!tokenInfo) throw new Error('Missing tokenInfo');
       if (!gdFileId) throw new Error('Missing Google Drive FileId');
 
       setIsLoading(true);
-      const db = await fn({ accessToken, gdFileId });
+      const db = await fn(tokenInfo, { gdFileId });
       setDB(db);
 
       attrs?.alertMsg &&
@@ -84,8 +90,8 @@ export default function App() {
 
   const handleAddActionFormSubmit = async (values: Action) => {
     await asyncDBTask(
-      async (attrs) => {
-        const db = await addAction({
+      async (tokenInfo, attrs) => {
+        const db = await addAction(tokenInfo, {
           ...attrs,
           newAction: {
             incomeCategory: values.incomeCategory,
@@ -106,99 +112,126 @@ export default function App() {
   };
 
   const handleActionDelete = (actionId: string) =>
-    asyncDBTask(async (attrs) => deleteAction({ ...attrs, actionId }), {
-      alertMsg: 'Entrada eliminada',
-    });
+    asyncDBTask(
+      async (tokenInfo, attrs) =>
+        deleteAction(tokenInfo, { ...attrs, actionId }),
+      { alertMsg: 'Entrada eliminada' }
+    );
 
   const handleEditActionSubmit = (action: Action) =>
-    asyncDBTask(async (attrs) => editAction({ ...attrs, action }), {
-      alertMsg: 'Entrada editada',
-    });
+    asyncDBTask(
+      async (tokenInfo, attrs) => editAction(tokenInfo, { ...attrs, action }),
+      { alertMsg: 'Entrada editada' }
+    );
 
   const handleCategoryDelete = (categoryId: string) =>
-    asyncDBTask(async (attrs) => deleteCategory({ ...attrs, categoryId }), {
-      alertMsg: 'Categoría eliminada',
-    });
+    asyncDBTask(
+      async (tokenInfo, attrs) =>
+        deleteCategory(tokenInfo, { ...attrs, categoryId }),
+      { alertMsg: 'Categoría eliminada' }
+    );
 
   const handleAddCategorySubmit = (
     category: ActionCategory,
     type: ActionType
   ) =>
-    asyncDBTask(async (attrs) => addCategory({ ...attrs, category, type }), {
-      alertMsg: 'Categoría agregada',
-    });
+    asyncDBTask(
+      async (tokenInfo, attrs) =>
+        addCategory(tokenInfo, { ...attrs, category, type }),
+      { alertMsg: 'Categoría agregada' }
+    );
 
   const handleEditCategorySubmit = (category: ActionCategory) =>
-    asyncDBTask(async (attrs) => editCategory({ ...attrs, category }), {
-      alertMsg: 'Categoría editada',
-    });
+    asyncDBTask(
+      async (tokenInfo, attrs) =>
+        editCategory(tokenInfo, { ...attrs, category }),
+      { alertMsg: 'Categoría editada' }
+    );
 
   const handleActionClick = (actionType: ActionType) => {
     if (!value) return;
     setPopup({ action: 'add', actionType });
   };
 
+  const [client, setClient] = useState<google.accounts.oauth2.CodeClient>();
+
   useEffect(() => {
-    // TODO: To avoid the duplicated call due to React Strict, you should
-    // return from useEffect "cleaning up/canceling" the ongoing one
-    // This is considered the correct behavior
-    const loadDBGapiGISClientsD = async () => {
+    (async () => {
       try {
-        if (accessToken) return;
+        if (tokenInfo) {
+          const {
+            at: accessToken,
+            rt: refreshToken,
+            cs: clientSecret,
+          } = tokenInfo;
+          let newGdFileId = gdFileId;
 
-        const [gapiClient, googleClient] = await Promise.all([
-          loadGapiClient({ apiKey: GAPI_API_KEY }),
-          loadGISClient(),
-        ]);
+          // Get the gdFileId if not already saved in LocalStorage
+          if (!newGdFileId) {
+            const dbElInfo = await getGoogleDriveElementInfo(
+              { at: accessToken, rt: refreshToken, cs: clientSecret },
+              { path: GAPI_DB_PATH }
+            );
 
-        // token valid for 1 hour, after that refresh the page
-        const gapiAccessToken = await requestGapiAccessToken({
-          gapiClient,
-          googleClient,
-          clientId: GAPI_CLIENT_ID,
-          scope: GAPI_SCOPE,
-          skipConsentOnNoToken: true,
-        });
+            if (!newGdFileId || typeof dbElInfo.data?.id !== 'string')
+              throw new Error('No Google Drive FileID Found');
+          }
 
-        const newAccessToken = gapiAccessToken.access_token;
-        let newGdFileId = gdFileId;
+          const db = await getDB(tokenInfo, { gdFileId: newGdFileId });
 
-        // Get the gdFileId if not already saved in LocalStorage
-        if (!newGdFileId) {
-          const dbElInfo = await getGoogleDriveElementInfo({
-            path: GAPI_DB_PATH,
-            accessToken: newAccessToken,
-          });
+          LSSetGDFileId(newGdFileId);
+          setGDFileId(newGdFileId);
+          setDB(db);
 
-          newGdFileId = dbElInfo?.id;
-          if (!newGdFileId) throw new Error('No Google Drive FileID Found');
+          return;
         }
 
-        const db = await getDB({
-          accessToken: newAccessToken,
-          gdFileId: newGdFileId,
+        const sp = new URLSearchParams(window.location.search);
+        const newTokenInfo = TokenInfoSchema.safeParse({
+          rt: sp.get('rt'),
+          at: sp.get('at'),
+          cs: sp.get('cs'),
         });
 
-        LSSetGDFileId(newGdFileId);
-        setGDFileId(newGdFileId);
-        setDB(db);
-        setAccessToken(newAccessToken);
+        if (newTokenInfo.success) {
+          setTokenInfo(newTokenInfo.data);
+          LSSetTokenInfo(newTokenInfo.data);
+          window.location.href = '/';
+          return;
+        }
+
+        await loadScript('gsiClient', 'https://accounts.google.com/gsi/client');
+
+        const client = google.accounts.oauth2.initCodeClient({
+          client_id: GAPI_CLIENT_ID,
+          ux_mode: 'redirect',
+          redirect_uri: 'http://localhost:3000/oauth2callback/google',
+          scope: GAPI_SCOPE,
+          state: window.location.href,
+        });
+
+        setClient(client);
       } catch (err: any) {
-        console.log(err);
-        toast(err?.message, { type: 'error', autoClose: false });
+        console.log(err?.stack);
+
+        toast(err?.message || 'Error.', { type: 'error', autoClose: false });
       } finally {
         setIsLoading(false);
       }
-    };
-
-    loadDBGapiGISClientsD().catch((el) => {
-      console.log(el);
-      toast(el.message, { type: 'error', autoClose: false });
-    });
+    })();
   }, []);
 
   return (
     <div>
+      {client ? (
+        <button
+          className="block mx-auto mt-5"
+          onClick={() => client.requestCode()}
+        >
+          Login with Google
+        </button>
+      ) : null}
+
       {isLoading && <Loading />}
       <Calculator
         value={value}
@@ -253,12 +286,14 @@ export default function App() {
         </button>
         <button
           onClick={async () => {
-            if (!window.confirm('Reiniciar la base de datos?')) return;
+            if (!window.confirm('Logout?')) return;
 
-            await asyncDBTask((attrs) => updateDB({ ...attrs, db: initialDB }));
+            LSSetTokenInfo(undefined);
+            setTokenInfo(undefined);
+            window.location.href = '/';
           }}
         >
-          Reiniciar DB
+          Logout
         </button>
         <button onClick={() => window.location.reload()}>Recargar</button>
       </div>

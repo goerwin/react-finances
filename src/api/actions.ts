@@ -5,6 +5,7 @@ import {
   DB,
   dbSchema,
 } from '../helpers/DBHelpers';
+import { z } from 'zod';
 
 // https://github.com/uuidjs/uuid/pull/654
 import { v4 as uuidv4 } from 'uuid';
@@ -17,42 +18,49 @@ import {
 export type NewAction = Omit<Action, 'date' | 'id'>;
 
 type DBApiRequiredAttrs = {
-  accessToken: string;
   gdFileId: string;
 };
 
-export async function getDB(attrs: DBApiRequiredAttrs) {
-  const fileContent = await getGoogleDriveFileContent(attrs);
-  const db = await fileContent.json();
-  return dbSchema.parse(db);
+export const TokenInfoSchema = z.object({
+  rt: z.string(),
+  at: z.string(),
+  cs: z.string(),
+});
+
+export type TokenInfo = z.infer<typeof TokenInfoSchema>;
+
+export async function getDB(tokenInfo: TokenInfo, attrs: DBApiRequiredAttrs) {
+  const fileContent = await getGoogleDriveFileContent(tokenInfo, attrs);
+  return dbSchema.parse(fileContent.data.data);
 }
 
-export async function updateDB(attrs: DBApiRequiredAttrs & { db: DB }) {
+export async function updateDB(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & { db: DB }
+) {
   const newDB: DB = dbSchema.parse({
     ...attrs.db,
     updatedAt: new Date().toISOString(),
   });
 
-  const resp = await updateGoogleDriveFile({
-    accessToken: attrs.accessToken,
+  await updateGoogleDriveFile(tokenInfo, {
     gdFileId: attrs.gdFileId,
     blob: new Blob([JSON.stringify(newDB, undefined, 2)]),
   });
-
-  if (!resp.ok) throw new Error(resp.statusText);
 
   return newDB;
 }
 
 export async function addAction(
+  tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & { newAction: NewAction }
 ) {
-  const db = await getDB(attrs);
+  const db = await getDB(tokenInfo, attrs);
 
   const date = new Date().toISOString();
   const id = uuidv4();
 
-  return updateDB({
+  return updateDB(tokenInfo, {
     ...attrs,
     db: {
       ...db,
@@ -63,27 +71,29 @@ export async function addAction(
 }
 
 export async function deleteAction(
+  tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & { actionId: string }
 ) {
-  const db = await getDB(attrs);
+  const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
   const newActions = db.actions.filter(
     (action) => action.id !== attrs.actionId
   );
 
-  return updateDB({
+  return updateDB(tokenInfo, {
     ...attrs,
     db: { ...db, updatedAt: date, actions: newActions },
   });
 }
 
 export async function editAction(
+  tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & { action: Action }
 ) {
-  const db = await getDB(attrs);
+  const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
 
-  return updateDB({
+  return updateDB(tokenInfo, {
     ...attrs,
     db: {
       ...db,
@@ -96,13 +106,14 @@ export async function editAction(
 }
 
 export async function addCategory(
+  tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & { category: ActionCategory; type: ActionType }
 ) {
-  const db = await getDB(attrs);
+  const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
   const id = uuidv4();
 
-  return updateDB({
+  return updateDB(tokenInfo, {
     ...attrs,
     db: {
       ...db,
@@ -120,12 +131,13 @@ export async function addCategory(
 }
 
 export async function editCategory(
+  tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & { category: ActionCategory }
 ) {
-  const db = await getDB(attrs);
+  const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
 
-  return updateDB({
+  return updateDB(tokenInfo, {
     ...attrs,
     db: {
       ...db,
@@ -141,12 +153,13 @@ export async function editCategory(
 }
 
 export async function deleteCategory(
+  tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & { categoryId: string }
 ) {
-  const db = await getDB(attrs);
+  const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
 
-  return updateDB({
+  return updateDB(tokenInfo, {
     ...attrs,
     db: {
       ...db,
