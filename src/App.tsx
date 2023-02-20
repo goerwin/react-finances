@@ -22,6 +22,7 @@ import {
   GOOGLE_DRIVE_DB_PATH,
   GOOGLE_REDIRECT_URL,
   GOOGLE_SCOPE,
+  GOOGLE_SERVICE_IDENTITY_CLIENT,
 } from './config';
 import { Action, ActionCategory, ActionType, DB } from './helpers/DBHelpers';
 import { loadScript } from './helpers/general';
@@ -197,7 +198,7 @@ export default function App() {
           return;
         }
 
-        await loadScript('gsiClient', 'https://accounts.google.com/gsi/client');
+        await loadScript('gsiClient', GOOGLE_SERVICE_IDENTITY_CLIENT);
 
         const client = google.accounts.oauth2.initCodeClient({
           client_id: GOOGLE_CLIENT_ID,
