@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
+import { Slide, toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
   addAction,
@@ -368,7 +368,7 @@ export default function App() {
       )}
 
       {isLoading && <Loading />}
-      <ToastContainer />
+      <ToastContainer transition={Slide} position="top-center" />
     </div>
   );
 }
