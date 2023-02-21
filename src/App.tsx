@@ -8,7 +8,7 @@ import {
   deleteCategory,
   editAction,
   editCategory,
-  getDBWithAccessToken,
+  getDB,
   TokenInfo,
   TokenInfoSchema,
 } from './api/actions';
@@ -32,6 +32,8 @@ import {
   getTokenInfo as LSGetTokenInfo,
   setGDFileId as LSSetGDFileId,
   setTokenInfo as LSSetTokenInfo,
+  setDB as LSSetDB,
+  getDB as LSGetDB,
 } from './helpers/localStorage';
 
 function redirectToCleanHomePage() {
@@ -47,14 +49,14 @@ export default function App() {
   }>();
   const [gdFileId, setGDFileId] = useState(LSGetGDFileId());
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
-  const [db, setDB] = useState<DB>();
+  const [db, setDB] = useState<DB | undefined>(LSGetDB());
 
   // Perform a database operation, sync it and update it locally
   const asyncDBTask = async function (
     fn: (
       tokenInfo: TokenInfo,
       attrs: { gdFileId: string; successMsg?: string }
-    ) => Promise<DB>,
+    ) => Promise<{ accessToken?: string; db: DB }>,
     attrs?: { alertMsg?: string }
   ) {
     try {
@@ -62,8 +64,11 @@ export default function App() {
       if (!gdFileId) throw new Error('Missing Google Drive FileId');
 
       setIsLoading(true);
-      const db = await fn(tokenInfo, { gdFileId });
-      setDB(db);
+
+      const { db, accessToken } = await fn(tokenInfo, { gdFileId });
+      syncDB(db);
+
+      if (accessToken) syncTokenInfo({ ...tokenInfo, at: accessToken });
 
       attrs?.alertMsg &&
         toast(attrs.alertMsg, { type: 'success', autoClose: 1000 });
@@ -77,6 +82,21 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const syncTokenInfo = (newTokenInfo?: TokenInfo) => {
+    setTokenInfo(newTokenInfo);
+    LSSetTokenInfo(newTokenInfo);
+  };
+
+  const syncDB = (newDB?: DB) => {
+    setDB(newDB);
+    LSSetDB(newDB);
+  };
+
+  const syncGdFileId = (newGdFileId?: string) => {
+    setGDFileId(newGdFileId);
+    LSSetGDFileId(newGdFileId);
   };
 
   const handleAddActionFormSubmit = async (values: Action) => {
@@ -149,41 +169,37 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        if (tokenInfo) {
+        if (tokenInfo && gdFileId && db) return;
+
+        if (tokenInfo && gdFileId && !db) {
+          syncGdFileId();
+          redirectToCleanHomePage();
+          return;
+        }
+
+        if (tokenInfo && !gdFileId) {
           const { at, rt, cs } = tokenInfo;
-          let newGdFileId = gdFileId;
+          const { data } = await getGoogleDriveElementInfo(
+            { at, rt, cs },
+            { path: GOOGLE_DRIVE_DB_PATH }
+          );
 
-          // Get the gdFileId if not already saved in LocalStorage
-          if (!newGdFileId) {
-            const dbElInfo = await getGoogleDriveElementInfo(
-              { at, rt, cs },
-              { path: GOOGLE_DRIVE_DB_PATH }
-            );
+          const newGdFileId = data?.id;
+          if (!newGdFileId || typeof data?.id !== 'string')
+            throw new Error('No Google Drive FileID Found');
 
-            newGdFileId = dbElInfo.data?.id;
+          syncGdFileId(newGdFileId);
 
-            if (!newGdFileId || typeof dbElInfo.data?.id !== 'string')
-              throw new Error('No Google Drive FileID Found');
-          }
-
-          const { db, accessToken } = await getDBWithAccessToken(tokenInfo, {
+          const { db, accessToken } = await getDB(tokenInfo, {
             gdFileId: newGdFileId,
           });
-
-          // if accessToken return that means it was updated
-          if (accessToken) {
-            const newTokenInfo = { ...tokenInfo, at: accessToken };
-            LSSetTokenInfo(newTokenInfo);
-            setTokenInfo(newTokenInfo);
-          }
-
-          LSSetGDFileId(newGdFileId);
-          setGDFileId(newGdFileId);
-          setDB(db);
+          syncDB(db);
+          if (accessToken) syncTokenInfo({ ...tokenInfo, at: accessToken });
 
           return;
         }
 
+        // no session, try to get info from search params
         const sp = new URLSearchParams(window.location.search);
         const newTokenInfoRes = TokenInfoSchema.safeParse({
           rt: sp.get('rt'),
@@ -192,13 +208,16 @@ export default function App() {
         });
 
         if (newTokenInfoRes.success) {
-          setTokenInfo(newTokenInfoRes.data);
-          LSSetTokenInfo(newTokenInfoRes.data);
+          const newTokenInfo = newTokenInfoRes.data;
+          syncTokenInfo(newTokenInfo);
+          syncGdFileId();
           redirectToCleanHomePage();
           return;
         }
 
-        await loadScript('gsiClient', GOOGLE_SERVICE_IDENTITY_CLIENT);
+        // no session, try to get info from sp
+
+        void (await loadScript('gsiClient', GOOGLE_SERVICE_IDENTITY_CLIENT));
 
         const client = google.accounts.oauth2.initCodeClient({
           client_id: GOOGLE_CLIENT_ID,
@@ -243,10 +262,9 @@ export default function App() {
           onClick={async () => {
             if (!window.confirm('Cerrar sesión?')) return;
 
-            LSSetTokenInfo(undefined);
-            setTokenInfo(undefined);
-            LSSetGDFileId(undefined);
-            setGDFileId(undefined);
+            syncTokenInfo();
+            syncGdFileId();
+            syncDB();
             redirectToCleanHomePage();
           }}
         >
@@ -256,7 +274,7 @@ export default function App() {
 
       <button
         className="block mx-auto"
-        onClick={() => window.location.reload()}
+        onClick={() => redirectToCleanHomePage()}
       >
         Recargar
       </button>
