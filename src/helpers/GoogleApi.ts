@@ -1,6 +1,6 @@
 // https://developers.google.com/drive/api/v3/reference/files/get
 
-import { GOOGLE_CLIENT_ID, GOOGLE_SERVICE_IDENTITY_CLIENT } from '../config';
+import { GOOGLE_CLIENT_ID } from '../config';
 import { loadScript } from './general';
 import axios, { AxiosError } from 'axios';
 import { z } from 'zod';
@@ -32,11 +32,6 @@ export async function loadGapiClient(attrs: { apiKey: string }) {
       }
     });
   });
-}
-
-export async function loadGISClient() {
-  await loadScript('gisScript', GOOGLE_SERVICE_IDENTITY_CLIENT);
-  return google;
 }
 
 export async function requestGapiAccessToken(attrs: {
@@ -73,6 +68,7 @@ export async function getNewAccessToken(
   refreshToken: string
 ) {
   return axios.post('https://oauth2.googleapis.com/token', {
+    // TODO: GOOGLE_CLIENT_ID should be passed by the client
     client_id: GOOGLE_CLIENT_ID,
     client_secret: clientSecret,
     grant_type: 'refresh_token',
