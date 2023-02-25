@@ -56,7 +56,7 @@ export default function App() {
     fn: (
       tokenInfo: TokenInfo,
       attrs: { gdFileId: string; successMsg?: string }
-    ) => Promise<{ accessToken?: string; db: DB }>,
+    ) => Promise<DB>,
     attrs?: { alertMsg?: string }
   ) {
     try {
@@ -65,10 +65,8 @@ export default function App() {
 
       setIsLoading(true);
 
-      const { db, accessToken } = await fn(tokenInfo, { gdFileId });
+      const db = await fn(tokenInfo, { gdFileId });
       syncDB(db);
-
-      if (accessToken) syncTokenInfo({ ...tokenInfo, at: accessToken });
 
       attrs?.alertMsg &&
         toast(attrs.alertMsg, { type: 'success', autoClose: 1000 });
@@ -178,11 +176,9 @@ export default function App() {
         }
 
         if (tokenInfo && !gdFileId) {
-          const { at, rt, cs } = tokenInfo;
-          const { data } = await getGoogleDriveElementInfo(
-            { at, rt, cs },
-            { path: GOOGLE_DRIVE_DB_PATH }
-          );
+          const data = await getGoogleDriveElementInfo(tokenInfo, {
+            path: GOOGLE_DRIVE_DB_PATH,
+          });
 
           const newGdFileId = data?.id;
           if (!newGdFileId || typeof data?.id !== 'string')
@@ -190,11 +186,8 @@ export default function App() {
 
           syncGdFileId(newGdFileId);
 
-          const { db, accessToken } = await getDB(tokenInfo, {
-            gdFileId: newGdFileId,
-          });
+          const db = await getDB(tokenInfo, { gdFileId: newGdFileId });
           syncDB(db);
-          if (accessToken) syncTokenInfo({ ...tokenInfo, at: accessToken });
 
           return;
         }
@@ -203,8 +196,8 @@ export default function App() {
         const sp = new URLSearchParams(window.location.search);
         const newTokenInfoRes = TokenInfoSchema.safeParse({
           rt: sp.get('rt'),
-          at: sp.get('at'),
           cs: sp.get('cs'),
+          cid: GOOGLE_CLIENT_ID,
         });
 
         if (newTokenInfoRes.success) {
@@ -215,8 +208,7 @@ export default function App() {
           return;
         }
 
-        // no session, try to get info from sp
-
+        // no session, load the sign in button
         void (await loadScript('gsiClient', GOOGLE_SERVICE_IDENTITY_CLIENT));
 
         const client = google.accounts.oauth2.initCodeClient({
