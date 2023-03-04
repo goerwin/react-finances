@@ -17,16 +17,19 @@ import Loading from './components/Loading';
 import PopupCategories from './components/PopupCategories';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
+import PopupManageDB from './components/PopupManageDB';
 import {
   GOOGLE_CLIENT_ID,
-  GOOGLE_DRIVE_DB_PATH,
   GOOGLE_REDIRECT_SERVER_URL,
   GOOGLE_SCOPE,
   GOOGLE_SERVICE_IDENTITY_CLIENT,
 } from './config';
 import { Action, ActionCategory, ActionType, DB } from './helpers/DBHelpers';
 import { loadScript } from './helpers/general';
-import { getGoogleDriveElementInfo } from './helpers/GoogleApi';
+import {
+  getGoogleDriveElementInfo,
+  uploadGoogleDriveFile,
+} from './helpers/GoogleApi';
 import {
   getGDFileId as LSGetGDFileId,
   getTokenInfo as LSGetTokenInfo,
@@ -35,10 +38,13 @@ import {
   setDB as LSSetDB,
   getDB as LSGetDB,
 } from './helpers/localStorage';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
 }
+
+const queryClient = new QueryClient();
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +56,7 @@ export default function App() {
   const [gdFileId, setGDFileId] = useState(LSGetGDFileId());
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
   const [db, setDB] = useState<DB | undefined>(LSGetDB());
+  const [dbPath, setDbPath] = useState('Databases/expensesIncomes.json');
 
   // Perform a database operation, sync it and update it locally
   const asyncDBTask = async function (
@@ -177,7 +184,7 @@ export default function App() {
 
         if (tokenInfo && !gdFileId) {
           const data = await getGoogleDriveElementInfo(tokenInfo, {
-            path: GOOGLE_DRIVE_DB_PATH,
+            path: dbPath,
           });
 
           const newGdFileId = data?.id;
@@ -234,133 +241,155 @@ export default function App() {
   }, []);
 
   return (
-    <div
-      className="h-screen flex flex-col direct-first-child:mt-auto overflow-auto"
-      style={{ height: window.innerHeight }}
-    >
-      <div className="text-sm text-center text-neutral-500">
-        Version: {APP_VERSION}
-      </div>
-      {client ? (
-        <button
-          className="block mx-auto mt-5 mb-2"
-          onClick={() => client.requestCode()}
-        >
-          Iniciar sesión con Google
-        </button>
-      ) : (
-        <button
-          className="block mx-auto mt-5 mb-2"
-          onClick={async () => {
-            if (!window.confirm('Cerrar sesión?')) return;
-
-            syncTokenInfo();
-            syncGdFileId();
-            syncDB();
-            redirectToCleanHomePage();
-          }}
-        >
-          Cerrar sesión
-        </button>
-      )}
-
-      <button
-        className="block mx-auto"
-        onClick={() => redirectToCleanHomePage()}
-      >
-        Recargar
-      </button>
-
-      <div className="w-1/2 mx-auto mt-7 mb-2 border-b-4 border-b-[#333]" />
-
-      <Calculator
-        value={value}
-        onButtonClick={setValue}
-        onBackspaceLongPress={() => setValue(undefined)}
-      />
-
-      <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl ch:basis-1/2">
-        <button
-          className="bg-green-700"
-          onClick={handleActionClick.bind(null, 'income')}
-        >
-          Ingreso
-        </button>
-        <button
-          className="bg-red-800"
-          onClick={handleActionClick.bind(null, 'expense')}
-        >
-          Gasto
-        </button>
-      </div>
-
-      <div className="h-14 bg-black/20 grid grid-cols-4 gap-px shrink-0">
-        {[
-          {
-            label: 'Categoría ingresos',
-            onClick: () =>
-              setPopup({ action: 'showCategories', actionType: 'income' }),
-          },
-          {
-            label: 'Categoría gastos',
-            onClick: () =>
-              setPopup({ action: 'showCategories', actionType: 'expense' }),
-          },
-          {
-            label: 'Ingresos',
-            onClick: () => setPopup({ action: 'show', actionType: 'income' }),
-          },
-          {
-            label: 'Gastos',
-            onClick: () => setPopup({ action: 'show', actionType: 'expense' }),
-          },
-        ].map((it) => (
-          <div
-            role="button"
-            key={it.label}
-            onClick={it.onClick}
-            className="text-xs bg-black/30 flex items-center justify-center px-2 text-center"
+    <QueryClientProvider client={queryClient}>
+      <div className="flex flex-col direct-first-child:mt-auto overflow-auto fixed inset-0">
+        <div className="text-sm text-center text-neutral-500">
+          Version: {APP_VERSION}
+        </div>
+        <div className="flex flex-wrap gap-2 px-1 justify-center">
+          {client ? (
+            <button onClick={() => client.requestCode()}>
+              Iniciar sesión con Google
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                if (!window.confirm('Cerrar sesión?')) return;
+                syncTokenInfo();
+                syncGdFileId();
+                syncDB();
+                redirectToCleanHomePage();
+              }}
+            >
+              Cerrar sesión
+            </button>
+          )}
+          <button onClick={() => redirectToCleanHomePage()}>Recargar</button>
+          <button
+            onClick={() =>
+              asyncDBTask(async (tokenInfo, attrs) => getDB(tokenInfo, attrs))
+            }
           >
-            {it.label}
-          </div>
-        ))}
-      </div>
-
-      <div className="h-14 bg-black/80 shrink-0" />
-
-      {db && popup?.action === 'show' && (
-        <PopupIncomesExpenses
-          db={db}
-          actionType={popup.actionType}
-          onClose={() => setPopup(undefined)}
-          onItemDelete={handleActionDelete}
-          onEditItemSubmit={handleEditActionSubmit}
-        />
-      )}
-
-      {db && popup?.action === 'showCategories' && (
-        <PopupCategories
-          db={db}
-          actionType={popup.actionType}
-          onClose={() => setPopup(undefined)}
-          onItemDelete={handleCategoryDelete}
-          onEditItemSubmit={handleEditCategorySubmit}
-          onNewItemSubmit={handleAddCategorySubmit}
-        />
-      )}
-
-      {db && popup?.action === 'add' && (
-        <PopupIncomeExpenseForm
-          db={db}
+            Sync DB
+          </button>
+          <button
+            onClick={() => {
+              syncGdFileId();
+            }}
+          >
+            Change DB
+          </button>
+          <button
+            onClick={async () => {
+              if (!tokenInfo) return;
+              const bb = await getGoogleDriveElementInfo(tokenInfo, {
+                path: 'Databases',
+              });
+              console.log('bb', bb);
+              uploadGoogleDriveFile(tokenInfo, {
+                parents: [bb!.id],
+                name: 'llorelo papá.txt',
+                blob: new Blob([
+                  'lovely boy lovely boy he used to be a lovely boy',
+                ]),
+                mimeType: 'text/plain',
+              });
+            }}
+          >
+            testing
+          </button>
+        </div>
+        <div className="w-1/2 mx-auto mt-7 mb-2 border-b-4 border-b-[#333]" />
+        <Calculator
           value={value}
-          actionType={popup.actionType}
-          onSubmit={handleAddActionFormSubmit}
-          onClose={() => setPopup(undefined)}
+          onButtonClick={setValue}
+          onBackspaceLongPress={() => setValue(undefined)}
         />
-      )}
-
-      {isLoading && <Loading />}
-      <ToastContainer transition={Slide} position="top-center" />
-    </div>
+        <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl ch:basis-1/2">
+          <button
+            className="bg-green-700"
+            onClick={handleActionClick.bind(null, 'income')}
+          >
+            Ingreso
+          </button>
+          <button
+            className="bg-red-800"
+            onClick={handleActionClick.bind(null, 'expense')}
+          >
+            Gasto
+          </button>
+        </div>
+        <div className="h-14 bg-black/20 grid grid-cols-4 gap-px shrink-0">
+          {[
+            {
+              label: 'Categoría ingresos',
+              onClick: () =>
+                setPopup({ action: 'showCategories', actionType: 'income' }),
+            },
+            {
+              label: 'Categoría gastos',
+              onClick: () =>
+                setPopup({ action: 'showCategories', actionType: 'expense' }),
+            },
+            {
+              label: 'Ingresos',
+              onClick: () => setPopup({ action: 'show', actionType: 'income' }),
+            },
+            {
+              label: 'Gastos',
+              onClick: () =>
+                setPopup({ action: 'show', actionType: 'expense' }),
+            },
+          ].map((it) => (
+            <div
+              role="button"
+              key={it.label}
+              onClick={it.onClick}
+              className="text-xs bg-black/30 flex items-center justify-center px-2 text-center"
+            >
+              {it.label}
+            </div>
+          ))}
+        </div>
+        <div className="h-14 bg-black/80 shrink-0" />
+        {db && popup?.action === 'show' && (
+          <PopupIncomesExpenses
+            db={db}
+            actionType={popup.actionType}
+            onClose={() => setPopup(undefined)}
+            onItemDelete={handleActionDelete}
+            onEditItemSubmit={handleEditActionSubmit}
+          />
+        )}
+        {db && popup?.action === 'showCategories' && (
+          <PopupCategories
+            db={db}
+            actionType={popup.actionType}
+            onClose={() => setPopup(undefined)}
+            onItemDelete={handleCategoryDelete}
+            onEditItemSubmit={handleEditCategorySubmit}
+            onNewItemSubmit={handleAddCategorySubmit}
+          />
+        )}
+        {db && popup?.action === 'add' && (
+          <PopupIncomeExpenseForm
+            db={db}
+            value={value}
+            actionType={popup.actionType}
+            onSubmit={handleAddActionFormSubmit}
+            onClose={() => setPopup(undefined)}
+          />
+        )}
+        {!tokenInfo ? null : (
+          <PopupManageDB
+            dbPath={dbPath}
+            tokenInfo={tokenInfo}
+            onDBChange={(data) => console.log('bb', data)}
+          />
+        )}
+        {isLoading && <Loading />}
+        <ToastContainer transition={Slide} position="top-center" />
+      </div>
+    </QueryClientProvider>
   );
 }

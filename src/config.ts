@@ -12,7 +12,5 @@ export const GOOGLE_REDIRECT_SERVER_URL = `https://serverless-g-rt.vercel.app/ap
 export const GOOGLE_SCOPE =
   'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 
-export const GOOGLE_DRIVE_DB_PATH = 'Databases/expensesIncomes.json';
-
 export const GOOGLE_SERVICE_IDENTITY_CLIENT =
   'https://accounts.google.com/gsi/client';

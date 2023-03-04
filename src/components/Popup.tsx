@@ -11,7 +11,7 @@ export interface Props {
 export default function Popup(props: Props) {
   return (
     <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-4">
-      <div className="bg-gray-800 py-4 px-5 rounded-lg text-center w-full">
+      <div className="bg-neutral-900 py-4 px-5 rounded-lg text-center w-full">
         <h2 className="text-3xl mt-4 mb-4 font-bold">
           {props.title}
           {props.subtitle ? (

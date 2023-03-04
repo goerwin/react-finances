@@ -49,6 +49,7 @@ export async function getNewAccessToken(cid: string, cs: string, rt: string) {
 // in that case, we will try to get a new accessToken using the refresh token in n tries
 function renewAccessTokenRetrier<T>(
   tries: number,
+  // TODO: how to infer args?
   fn: (at: string, ...args: any[]) => Promise<T>
 ): (
   attrs: { cid: string; at: string; rt: string; cs: string },
@@ -56,6 +57,7 @@ function renewAccessTokenRetrier<T>(
 ) => Promise<{ data: T; accessToken?: string }> {
   return async ({ cid, at, rt, cs }, ...restArgs) => {
     let newAccessToken = at;
+    let error: any;
 
     for (let i = 0; i < tries; i++) {
       try {
@@ -65,6 +67,7 @@ function renewAccessTokenRetrier<T>(
           accessToken: newAccessToken !== at ? newAccessToken : undefined,
         };
       } catch (e: unknown) {
+        error = e;
         if (!(e instanceof AxiosError)) break;
         if (e.response?.status !== 401 && e.response?.status !== 403) break;
 
@@ -75,7 +78,7 @@ function renewAccessTokenRetrier<T>(
       }
     }
 
-    throw new Error('Max. number of tries attempted');
+    throw new Error(`Max. number of tries attempted. Error: ${error?.message}`);
   };
 }
 
@@ -165,10 +168,24 @@ export const getGoogleDriveElementInfo =
     }
   );
 
+export const getGoogleDriveElementInfoById =
+  renewAccessTokenRetrierWithAutoSaveAccessToken(
+    2,
+    async function getGoogleDriveElementInfoById(
+      accessToken: string,
+      attrs: { gdElementId: string }
+    ) {
+      return axios.get(
+        `${GAPI_API_URL}/drive/v3/files/${attrs.gdElementId}/?fields=id,kind,name,mimeType,owners,isAppAuthorized`,
+        { headers: { Authorization: 'Bearer ' + accessToken } }
+      );
+    }
+  );
+
 export const getGoogleDriveFileContent =
   renewAccessTokenRetrierWithAutoSaveAccessToken(
     2,
-    async function getGoogleDriveFileContentss(
+    async function getGoogleDriveFileContent(
       accessToken: string,
       attrs: { gdFileId: string }
     ) {
@@ -200,6 +217,7 @@ export const uploadGoogleDriveFile =
       const form = new FormData();
       form.append(
         'Metadata',
+        // TODO: Not sure if type application/json can be replaced by mimeType
         new Blob([metadata], { type: 'application/json' })
       );
       form.append('Media', blob);
@@ -242,6 +260,25 @@ export const updateGoogleDriveFile =
       }
 
       return axios.patch(url, body, {
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+    }
+  );
+
+export const deleteGoogleDriveFile =
+  renewAccessTokenRetrierWithAutoSaveAccessToken(
+    2,
+    async function deleteGoogleDriveFile(
+      accessToken: string,
+      attrs: { gdFileId: string }
+    ) {
+      const { gdFileId } = attrs;
+      const url = `${GOOGLE_DRIVE_UPLOAD_API_URL}/files/${gdFileId}`;
+
+      return axios.delete(url, {
         headers: {
           Authorization: 'Bearer ' + accessToken,
           'Content-Type': 'application/x-www-form-urlencoded',
