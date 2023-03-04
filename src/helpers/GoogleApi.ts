@@ -7,6 +7,31 @@ const GAPI_API_URL = 'https://www.googleapis.com';
 const GOOGLE_DRIVE_UPLOAD_API_URL =
   'https://www.googleapis.com/upload/drive/v3';
 
+type RemoveFirstFromArray<T extends unknown[]> = T extends [infer _, ...infer R]
+  ? R
+  : never;
+
+type GetSecondItemOfArray<T extends unknown[]> = T extends [
+  infer _,
+  infer R,
+  ...infer _R
+]
+  ? R
+  : never;
+
+let localStorageNamespace = 'googleApiHelpers_';
+export function setLocalStorageNamespace(namespace: string) {
+  localStorageNamespace = namespace;
+}
+
+function setLSAccessToken(at: string) {
+  return localStorage.setItem(`${localStorageNamespace}_at`, at);
+}
+
+function getLSAccessToken() {
+  return localStorage.getItem(`${localStorageNamespace}_at`) || '';
+}
+
 export async function requestGapiAccessToken(attrs: {
   gapiClient: typeof gapi;
   googleClient: typeof google;
@@ -47,13 +72,12 @@ export async function getNewAccessToken(cid: string, cs: string, rt: string) {
 
 // This function will retry functions that require accessTokens which can be expired,
 // in that case, we will try to get a new accessToken using the refresh token in n tries
-function renewAccessTokenRetrier<T>(
+function renewAccessTokenRetrier<T, R extends unknown[]>(
   tries: number,
-  // TODO: how to infer args?
-  fn: (at: string, ...args: any[]) => Promise<T>
+  fn: (at: string, ...args: R) => Promise<T>
 ): (
   attrs: { cid: string; at: string; rt: string; cs: string },
-  ...restArgs: unknown[]
+  ...restArgs: RemoveFirstFromArray<Parameters<typeof fn>>
 ) => Promise<{ data: T; accessToken?: string }> {
   return async ({ cid, at, rt, cs }, ...restArgs) => {
     let newAccessToken = at;
@@ -61,9 +85,10 @@ function renewAccessTokenRetrier<T>(
 
     for (let i = 0; i < tries; i++) {
       try {
-        const resp = await fn.call(null, newAccessToken, ...restArgs);
+        // TODO: Remove this any. Hard to do
+        const data = await fn.call(null, newAccessToken, ...(restArgs as any));
         return {
-          data: resp,
+          data,
           accessToken: newAccessToken !== at ? newAccessToken : undefined,
         };
       } catch (e: unknown) {
@@ -82,29 +107,29 @@ function renewAccessTokenRetrier<T>(
   };
 }
 
-let localStorageNamespace = 'googleApiHelpers_';
-export function setLocalStorageNamespace(namespace: string) {
-  localStorageNamespace = namespace;
-}
+// const bb = renewAccessTokenRetrier(
+//   2,
+//   (at: string, a: { a: number }, b: string) => {
+//     return Promise.resolve('234234');
+//   }
+// );
+// const cc = await bb('asdf' as any, { a: '234' }, '234234');
+// const dd: string = cc.data;
 
-function setLSAccessToken(at: string) {
-  return localStorage.setItem(`${localStorageNamespace}_at`, at);
-}
-
-function getLSAccessToken() {
-  return localStorage.getItem(`${localStorageNamespace}_at`) || '';
-}
-
-const renewAccessTokenRetrierWithAutoSaveAccessToken = <T>(
-  ...args: Parameters<typeof renewAccessTokenRetrier<T>>
+const renewAccessTokenRetrierWithAutoSaveAccessToken = <T, R extends unknown[]>(
+  ...args: Parameters<typeof renewAccessTokenRetrier<T, R>>
 ): ((
-  attrs: { at?: string; rt: string; cs: string; cid: string },
-  ...restArgs: unknown[]
+  attrs: { rt: string; cs: string; cid: string },
+  ...restArgs: RemoveFirstFromArray<
+    Parameters<
+      GetSecondItemOfArray<Parameters<typeof renewAccessTokenRetrier<T, R>>>
+    >
+  >
 ) => Promise<T>) => {
   if (!localStorageNamespace) throw new Error('NoLocalStorageNamespace');
 
   return async ({ rt, cs, cid }, ...restArgs) => {
-    const renewAccessTokenRetrierEl = renewAccessTokenRetrier(...args);
+    const renewAccessTokenRetrierEl = renewAccessTokenRetrier<T, R>(...args);
     const { data, accessToken } = await renewAccessTokenRetrierEl(
       { at: getLSAccessToken(), rt, cs, cid },
       ...restArgs
@@ -114,6 +139,14 @@ const renewAccessTokenRetrierWithAutoSaveAccessToken = <T>(
     return data;
   };
 };
+// const ee = renewAccessTokenRetrierWithAutoSaveAccessToken(
+//   2,
+//   (at: string, a: { a: number }, b: string) => {
+//     return Promise.resolve('234234');
+//   }
+// );
+// const ff = await ee('23324' as any, { a: 234 }, 234);
+// const gg: string = ff;
 
 /**
  * You need to recursively navigate using the query syntax
