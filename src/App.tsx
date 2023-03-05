@@ -2,6 +2,7 @@ import {
   QueryClient,
   QueryClientProvider,
   useMutation,
+  useQuery,
 } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Slide, toast, ToastContainer } from 'react-toastify';
@@ -13,6 +14,7 @@ import {
   deleteCategory,
   editAction,
   editCategory,
+  getDB,
   TokenInfo,
   TokenInfoSchema,
 } from './api/actions';
@@ -22,6 +24,9 @@ import PopupCategories from './components/PopupCategories';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import PopupManageDB from './components/PopupManageDB';
+
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import {
   GOOGLE_CLIENT_ID,
   GOOGLE_REDIRECT_SERVER_URL,
@@ -42,7 +47,17 @@ function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      cacheTime: 1000 * 60 * 60 * 2, // 2 hours
+    },
+  },
+});
+
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+});
 
 export default function App() {
   const [value, setValue] = useState<string>();
@@ -52,6 +67,16 @@ export default function App() {
   }>();
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
   const [lsDb, setLsDb] = useState(LSGetLsDB());
+
+  const { data, isLoading, status } = useQuery(
+    ['db'],
+    async () => {
+      return getDB(tokenInfo!, { gdFileId: lsDb?.fileId! });
+    },
+    {
+      enabled: !!tokenInfo && !!lsDb,
+    }
+  );
 
   const syncTokenInfo = (newTokenInfo?: TokenInfo) => {
     setTokenInfo(newTokenInfo);
@@ -90,28 +115,36 @@ export default function App() {
   });
 
   const handleAddActionFormSubmit = async (values: Action) => {
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Entrada agregada',
-      fn: async ({ tokenInfo, gdFileId }) => {
-        const db = await addAction(tokenInfo, {
-          gdFileId,
-          newAction: {
-            incomeCategory: values.incomeCategory,
-            expenseCategory: values.expenseCategory,
-            type: values.type,
-            description: values.description,
-            value: values.value,
-          },
-        });
+    mutate(
+      {
+        tokenInfo,
+        lsDb,
+        alertMsg: 'Entrada agregada',
+        fn: async ({ tokenInfo, gdFileId }) => {
+          const db = await addAction(tokenInfo, {
+            gdFileId,
+            newAction: {
+              incomeCategory: values.incomeCategory,
+              expenseCategory: values.expenseCategory,
+              type: values.type,
+              description: values.description,
+              value: values.value,
+            },
+          });
 
-        setValue(undefined);
-        setPopup(undefined);
+          setValue(undefined);
+          setPopup(undefined);
 
-        return db;
+          return db;
+        },
       },
-    });
+      {
+        onSuccess: (_, attrs) => {
+          attrs?.alertMsg &&
+            toast(attrs.alertMsg, { type: 'success', autoClose: 1000 });
+        },
+      }
+    );
   };
 
   const handleActionDelete = (actionId: string) =>
@@ -213,7 +246,10 @@ export default function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister }}
+    >
       <div className="flex flex-col direct-first-child:mt-auto overflow-auto fixed inset-0">
         <div className="text-sm text-center text-neutral-500">
           Version: {APP_VERSION}
@@ -347,6 +383,6 @@ export default function App() {
         {mutateLoading && <Loading />}
         <ToastContainer transition={Slide} position="top-center" />
       </div>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
