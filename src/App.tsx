@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Slide, toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -8,7 +9,6 @@ import {
   deleteCategory,
   editAction,
   editCategory,
-  getDB,
   TokenInfo,
   TokenInfoSchema,
 } from './api/actions';
@@ -27,17 +27,12 @@ import {
 import { Action, ActionCategory, ActionType, DB } from './helpers/DBHelpers';
 import { loadScript } from './helpers/general';
 import {
-  getGoogleDriveElementInfo,
-  uploadGoogleDriveFile,
-} from './helpers/GoogleApi';
-import {
-  getTokenInfo as LSGetTokenInfo,
-  setTokenInfo as LSSetTokenInfo,
-  setLsDB as LSSetLsDB,
   getLsDB as LSGetLsDB,
+  getTokenInfo as LSGetTokenInfo,
   LSDB,
+  setLsDB as LSSetLsDB,
+  setTokenInfo as LSSetTokenInfo,
 } from './helpers/localStorage';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
@@ -193,7 +188,7 @@ export default function App() {
 
         if (tokenInfo) return;
 
-        // no session, try to get info from search params
+        // no session, try to get token info from search params
         const sp = new URLSearchParams(window.location.search);
         const newTokenInfoRes = TokenInfoSchema.safeParse({
           rt: sp.get('rt'),
@@ -360,7 +355,7 @@ export default function App() {
           <PopupManageDB
             dbPath={lsDb?.path ?? ''}
             tokenInfo={tokenInfo}
-            onDBChange={(data) => console.log('bb', data)}
+            onDBSync={syncLsDB}
             onClose={() => setPopup(undefined)}
           />
         ) : null}

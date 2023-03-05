@@ -19,6 +19,17 @@ type GetSecondItemOfArray<T extends unknown[]> = T extends [
   ? R
   : never;
 
+function stringifyAxiosErrorData(error: any): string {
+  try {
+    if (error instanceof AxiosError)
+      return JSON.stringify(error.response?.data);
+    throw '';
+  } catch {
+    // TODO: yikes
+    return error?.message || '';
+  }
+}
+
 let localStorageNamespace = 'googleApiHelpers_';
 export function setLocalStorageNamespace(namespace: string) {
   localStorageNamespace = namespace;
@@ -81,7 +92,7 @@ function renewAccessTokenRetrier<T, R extends unknown[]>(
 ) => Promise<{ data: T; accessToken?: string }> {
   return async ({ cid, at, rt, cs }, ...restArgs) => {
     let newAccessToken = at;
-    let error: any;
+    let error: unknown;
 
     for (let i = 0; i < tries; i++) {
       try {
@@ -96,14 +107,16 @@ function renewAccessTokenRetrier<T, R extends unknown[]>(
         if (!(e instanceof AxiosError)) break;
         if (e.response?.status !== 401 && e.response?.status !== 403) break;
 
-        // it is an unauthorized 401 error, try get new accesstoken with refresh token
+        // it is an unauthorized 401/403 error, try get new accesstoken with refresh token
         newAccessToken = String(
           (await getNewAccessToken(cid, cs, rt)).data.access_token
         );
       }
     }
 
-    throw new Error(`Max. number of tries attempted. Error: ${error?.message}`);
+    throw new Error(
+      `Max. number of tries attempted. Error: ${stringifyAxiosErrorData(error)}`
+    );
   };
 }
 
