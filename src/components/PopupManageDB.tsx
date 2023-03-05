@@ -1,9 +1,9 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { getDB, TokenInfo } from '../api/actions';
-import { dbSchema, initialDB } from '../helpers/DBHelpers';
+import { initialDB } from '../helpers/DBHelpers';
+import { handleErrorWithNotifications } from '../helpers/general';
 import {
   deleteGoogleDriveFile,
   getGoogleDriveElementInfo,
@@ -35,23 +35,6 @@ async function getDBFileId(
   return fileId;
 }
 
-// TODO: Probably global helper
-function handleError(err: unknown) {
-  let message = '';
-
-  if (!(err instanceof Error)) message = 'Error inesperado';
-  else if (err.message === 'DB_NOT_FOUND') message = 'DB No encontrada';
-  else if (err.message === 'APP_NOT_AUTHORIZED')
-    message = 'Esta App no está autorizada para usar esta DB';
-  else if (err.message === 'DB_ALREADY_EXISTS_CANT_CREATE')
-    message = 'DB ya existe';
-  else if (err.message === 'DB_PARENT_DIR_NOT_FOUND')
-    message = 'Directorio no encontrado';
-  else message = `Error general: ${err.message}`;
-
-  toast(message, { type: 'error', autoClose: false });
-}
-
 export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
   const { register, handleSubmit } = useForm({
     defaultValues: { dbPath },
@@ -59,7 +42,7 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
 
   // handle verify DB
   const { isLoading: isVerifyDBLoading, mutate: verifyDBMutate } = useMutation({
-    onError: handleError,
+    onError: handleErrorWithNotifications,
     mutationFn: async ({ dbPath }: { dbPath: string }) => {
       const fileId = await getDBFileId(tokenInfo, dbPath);
       const respInfo = await getGoogleDriveElementInfoById(tokenInfo, {
@@ -78,7 +61,7 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
 
   // handle create DB
   const { isLoading: isCreateDBLoading, mutate: createDBMutate } = useMutation({
-    onError: handleError,
+    onError: handleErrorWithNotifications,
     mutationFn: async ({ dbPath }: { dbPath: string }) => {
       const dbPathParts = dbPath.split('/');
       const filename = dbPathParts.pop() || '';
@@ -117,7 +100,7 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
 
   // handle delete DB
   const { isLoading: isDeleteDBLoading, mutate: deleteDBMutate } = useMutation({
-    onError: handleError,
+    onError: handleErrorWithNotifications,
     mutationFn: async ({ dbPath }: { dbPath: string }) => {
       if (!confirm(`Seguro de eliminar la base de datos "${dbPath}"?`)) return;
 

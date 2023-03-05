@@ -1,4 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+} from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Slide, toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -25,7 +29,7 @@ import {
   GOOGLE_SERVICE_IDENTITY_CLIENT,
 } from './config';
 import { Action, ActionCategory, ActionType, DB } from './helpers/DBHelpers';
-import { loadScript } from './helpers/general';
+import { handleErrorWithNotifications, loadScript } from './helpers/general';
 import {
   getLsDB as LSGetLsDB,
   getTokenInfo as LSGetTokenInfo,
@@ -41,7 +45,6 @@ function redirectToCleanHomePage() {
 const queryClient = new QueryClient();
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
   const [value, setValue] = useState<string>();
   const [popup, setPopup] = useState<{
     action: 'add' | 'show' | 'showCategories' | 'manageDB';
@@ -50,52 +53,50 @@ export default function App() {
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
   const [lsDb, setLsDb] = useState(LSGetLsDB());
 
-  // Perform a database operation, sync it and update it locally
-  const asyncDBTask = async function (
-    fn: (
-      tokenInfo: TokenInfo,
-      attrs: { gdFileId: string; successMsg?: string }
-    ) => Promise<DB>,
-    attrs?: { alertMsg?: string }
-  ) {
-    try {
-      if (!tokenInfo) throw new Error('MISSING_TOKEN_INFO');
-      if (!lsDb) throw new Error('MISSING_DB_DATA');
-
-      setIsLoading(true);
-
-      const db = await fn(tokenInfo, { gdFileId: lsDb.fileId });
-      syncLsDB({ ...lsDb, db });
-
-      attrs?.alertMsg &&
-        toast(attrs.alertMsg, { type: 'success', autoClose: 1000 });
-
-      return db;
-    } catch (err: any) {
-      toast(err?.message || 'Ocurrió un error.', {
-        type: 'error',
-        autoClose: false,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const syncTokenInfo = (newTokenInfo?: TokenInfo) => {
     setTokenInfo(newTokenInfo);
     LSSetTokenInfo(newTokenInfo);
   };
 
+  // TODO: probably this can be done with react-query persistent stuff
   const syncLsDB = (lsDb?: LSDB) => {
     setLsDb(lsDb);
     LSSetLsDB(lsDb);
   };
 
+  const { isLoading: mutateLoading, mutate } = useMutation({
+    onError: handleErrorWithNotifications,
+    onSuccess: (lsDb, attrs) => {
+      syncLsDB(lsDb);
+      attrs?.alertMsg &&
+        toast(attrs.alertMsg, { type: 'success', autoClose: 1000 });
+    },
+    mutationFn: async (attrs: {
+      tokenInfo: typeof tokenInfo;
+      lsDb: typeof lsDb;
+      alertMsg?: string;
+      fn: (attrs: { tokenInfo: TokenInfo; gdFileId: string }) => Promise<DB>;
+    }) => {
+      if (!attrs.tokenInfo) throw new Error('MISSING_TOKEN_INFO');
+      if (!attrs.lsDb) throw new Error('MISSING_DB_DATA');
+
+      const db = await attrs.fn({
+        tokenInfo: attrs.tokenInfo,
+        gdFileId: attrs.lsDb.fileId,
+      });
+
+      return { ...attrs.lsDb, db };
+    },
+  });
+
   const handleAddActionFormSubmit = async (values: Action) => {
-    await asyncDBTask(
-      async (tokenInfo, attrs) => {
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Entrada agregada',
+      fn: async ({ tokenInfo, gdFileId }) => {
         const db = await addAction(tokenInfo, {
-          ...attrs,
+          gdFileId,
           newAction: {
             incomeCategory: values.incomeCategory,
             expenseCategory: values.expenseCategory,
@@ -110,46 +111,56 @@ export default function App() {
 
         return db;
       },
-      { alertMsg: 'Entrada agregada' }
-    );
+    });
   };
 
   const handleActionDelete = (actionId: string) =>
-    asyncDBTask(
-      async (tokenInfo, attrs) =>
-        deleteAction(tokenInfo, { ...attrs, actionId }),
-      { alertMsg: 'Entrada eliminada' }
-    );
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Entrada eliminada',
+      fn: ({ tokenInfo, gdFileId }) =>
+        deleteAction(tokenInfo, { gdFileId, actionId }),
+    });
 
   const handleEditActionSubmit = (action: Action) =>
-    asyncDBTask(
-      async (tokenInfo, attrs) => editAction(tokenInfo, { ...attrs, action }),
-      { alertMsg: 'Entrada editada' }
-    );
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Entrada editada',
+      fn: ({ tokenInfo, gdFileId }) =>
+        editAction(tokenInfo, { gdFileId, action }),
+    });
 
   const handleCategoryDelete = (categoryId: string) =>
-    asyncDBTask(
-      async (tokenInfo, attrs) =>
-        deleteCategory(tokenInfo, { ...attrs, categoryId }),
-      { alertMsg: 'Categoría eliminada' }
-    );
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Categoría eliminada',
+      fn: ({ tokenInfo, gdFileId }) =>
+        deleteCategory(tokenInfo, { gdFileId, categoryId }),
+    });
 
   const handleAddCategorySubmit = (
     category: ActionCategory,
     type: ActionType
   ) =>
-    asyncDBTask(
-      async (tokenInfo, attrs) =>
-        addCategory(tokenInfo, { ...attrs, category, type }),
-      { alertMsg: 'Categoría agregada' }
-    );
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Categoría agregada',
+      fn: ({ tokenInfo, gdFileId }) =>
+        addCategory(tokenInfo, { gdFileId, category, type }),
+    });
 
   const handleEditCategorySubmit = (category: ActionCategory) =>
-    asyncDBTask(
-      async (tokenInfo, attrs) =>
-        editCategory(tokenInfo, { ...attrs, category }),
-      { alertMsg: 'Categoría editada' }
-    );
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Categoría editada',
+      fn: ({ tokenInfo, gdFileId }) =>
+        editCategory(tokenInfo, { gdFileId, category }),
+    });
 
   const handleActionClick = (actionType: ActionType) => {
     if (!value) return;
@@ -161,31 +172,6 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        // if (tokenInfo && dbPathInfo && db) return;
-
-        // if (tokenInfo && dbPathInfo && !db) {
-        //   syncDBPathInfo();
-        //   redirectToCleanHomePage();
-        //   return;
-        // }
-
-        // if (tokenInfo && !dbPathInfo) {
-        //   const data = await getGoogleDriveElementInfo(tokenInfo, {
-        //     path: dbpath,
-        //   });
-
-        //   const newGdFileId = data?.id;
-        //   if (!newGdFileId || typeof data?.id !== 'string')
-        //     throw new Error('No Google Drive FileID Found');
-
-        //   syncDBPathInfo(newGdFileId);
-
-        //   const db = await getDB(tokenInfo, { gdFileId: newGdFileId });
-        //   syncDB(db);
-
-        //   return;
-        // }
-
         if (tokenInfo) return;
 
         // no session, try to get token info from search params
@@ -222,8 +208,6 @@ export default function App() {
       } catch (err: any) {
         console.log(err?.stack);
         toast(err?.message || 'Error.', { type: 'error', autoClose: false });
-      } finally {
-        setIsLoading(false);
       }
     })();
   }, []);
@@ -360,7 +344,7 @@ export default function App() {
           />
         ) : null}
 
-        {isLoading && <Loading />}
+        {mutateLoading && <Loading />}
         <ToastContainer transition={Slide} position="top-center" />
       </div>
     </QueryClientProvider>

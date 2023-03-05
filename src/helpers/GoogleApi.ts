@@ -25,7 +25,7 @@ function stringifyAxiosErrorData(error: any): string {
       return JSON.stringify(error.response?.data);
     throw '';
   } catch {
-    // TODO: yikes
+    // TODO: error: any yikes
     return error?.message || '';
   }
 }
