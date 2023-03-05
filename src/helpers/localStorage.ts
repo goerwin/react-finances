@@ -2,9 +2,9 @@ import { LOCAL_STORAGE_NAMESPACE } from '../config';
 import { arrayIncludes } from './general';
 import { TokenInfoSchema, TokenInfo } from '../api/actions';
 import { dbSchema, DB } from './DBHelpers';
+import { z } from 'zod';
 
 const Keys = {
-  fileId: `${LOCAL_STORAGE_NAMESPACE}_dbFileId`,
   filteredBy: `${LOCAL_STORAGE_NAMESPACE}_filteredBy`,
   tokenInfo: `${LOCAL_STORAGE_NAMESPACE}_ti`,
   db: `${LOCAL_STORAGE_NAMESPACE}_db`,
@@ -17,16 +17,6 @@ function safeGetLSItem(key: string) {
   } catch (err) {
     return undefined;
   }
-}
-
-export function setGDFileId(fileId?: string) {
-  if (typeof fileId !== 'string') return localStorage.removeItem(Keys.fileId);
-  localStorage.setItem(Keys.fileId, fileId);
-}
-
-export function getGDFileId() {
-  const fileId = localStorage.getItem(Keys.fileId);
-  return typeof fileId === 'string' ? fileId : undefined;
 }
 
 export function getTokenInfo() {
@@ -52,13 +42,21 @@ export function getFilteredBy(): typeof filteredOptions[number] {
   return arrayIncludes(filteredOptions, filteredBy) ? filteredBy : 'date';
 }
 
-export function getDB() {
-  const res = dbSchema.safeParse(safeGetLSItem(Keys.db));
+const LSDBSchema = z.object({
+  path: z.string(),
+  fileId: z.string(),
+  db: dbSchema,
+});
+
+export type LSDB = z.infer<typeof LSDBSchema>;
+
+export function getLsDB() {
+  const res = LSDBSchema.safeParse(safeGetLSItem(Keys.db));
   return res.success ? res.data : undefined;
 }
 
-export function setDB(db?: DB) {
-  db
-    ? localStorage.setItem(Keys.db, JSON.stringify(db))
+export function setLsDB(lsDB?: LSDB) {
+  lsDB
+    ? localStorage.setItem(Keys.db, JSON.stringify(lsDB))
     : localStorage.removeItem(Keys.db);
 }

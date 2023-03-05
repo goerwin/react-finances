@@ -107,15 +107,6 @@ function renewAccessTokenRetrier<T, R extends unknown[]>(
   };
 }
 
-// const bb = renewAccessTokenRetrier(
-//   2,
-//   (at: string, a: { a: number }, b: string) => {
-//     return Promise.resolve('234234');
-//   }
-// );
-// const cc = await bb('asdf' as any, { a: '234' }, '234234');
-// const dd: string = cc.data;
-
 const renewAccessTokenRetrierWithAutoSaveAccessToken = <T, R extends unknown[]>(
   ...args: Parameters<typeof renewAccessTokenRetrier<T, R>>
 ): ((
@@ -139,14 +130,6 @@ const renewAccessTokenRetrierWithAutoSaveAccessToken = <T, R extends unknown[]>(
     return data;
   };
 };
-// const ee = renewAccessTokenRetrierWithAutoSaveAccessToken(
-//   2,
-//   (at: string, a: { a: number }, b: string) => {
-//     return Promise.resolve('234234');
-//   }
-// );
-// const ff = await ee('23324' as any, { a: 234 }, 234);
-// const gg: string = ff;
 
 /**
  * You need to recursively navigate using the query syntax
@@ -309,7 +292,7 @@ export const deleteGoogleDriveFile =
       attrs: { gdFileId: string }
     ) {
       const { gdFileId } = attrs;
-      const url = `${GOOGLE_DRIVE_UPLOAD_API_URL}/files/${gdFileId}`;
+      const url = `${GAPI_API_URL}/drive/v3/files/${gdFileId}`;
 
       return axios.delete(url, {
         headers: {

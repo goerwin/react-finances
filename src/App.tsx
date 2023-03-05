@@ -31,12 +31,11 @@ import {
   uploadGoogleDriveFile,
 } from './helpers/GoogleApi';
 import {
-  getGDFileId as LSGetGDFileId,
   getTokenInfo as LSGetTokenInfo,
-  setGDFileId as LSSetGDFileId,
   setTokenInfo as LSSetTokenInfo,
-  setDB as LSSetDB,
-  getDB as LSGetDB,
+  setLsDB as LSSetLsDB,
+  getLsDB as LSGetLsDB,
+  LSDB,
 } from './helpers/localStorage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -50,13 +49,11 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [value, setValue] = useState<string>();
   const [popup, setPopup] = useState<{
-    action: 'add' | 'show' | 'showCategories';
+    action: 'add' | 'show' | 'showCategories' | 'manageDB';
     actionType: ActionType;
   }>();
-  const [gdFileId, setGDFileId] = useState(LSGetGDFileId());
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
-  const [db, setDB] = useState<DB | undefined>(LSGetDB());
-  const [dbPath, setDbPath] = useState('Databases/expensesIncomes.json');
+  const [lsDb, setLsDb] = useState(LSGetLsDB());
 
   // Perform a database operation, sync it and update it locally
   const asyncDBTask = async function (
@@ -67,13 +64,13 @@ export default function App() {
     attrs?: { alertMsg?: string }
   ) {
     try {
-      if (!tokenInfo) throw new Error('Missing tokenInfo');
-      if (!gdFileId) throw new Error('Missing Google Drive FileId');
+      if (!tokenInfo) throw new Error('MISSING_TOKEN_INFO');
+      if (!lsDb) throw new Error('MISSING_DB_DATA');
 
       setIsLoading(true);
 
-      const db = await fn(tokenInfo, { gdFileId });
-      syncDB(db);
+      const db = await fn(tokenInfo, { gdFileId: lsDb.fileId });
+      syncLsDB({ ...lsDb, db });
 
       attrs?.alertMsg &&
         toast(attrs.alertMsg, { type: 'success', autoClose: 1000 });
@@ -94,14 +91,9 @@ export default function App() {
     LSSetTokenInfo(newTokenInfo);
   };
 
-  const syncDB = (newDB?: DB) => {
-    setDB(newDB);
-    LSSetDB(newDB);
-  };
-
-  const syncGdFileId = (newGdFileId?: string) => {
-    setGDFileId(newGdFileId);
-    LSSetGDFileId(newGdFileId);
+  const syncLsDB = (lsDb?: LSDB) => {
+    setLsDb(lsDb);
+    LSSetLsDB(lsDb);
   };
 
   const handleAddActionFormSubmit = async (values: Action) => {
@@ -174,30 +166,32 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        if (tokenInfo && gdFileId && db) return;
+        // if (tokenInfo && dbPathInfo && db) return;
 
-        if (tokenInfo && gdFileId && !db) {
-          syncGdFileId();
-          redirectToCleanHomePage();
-          return;
-        }
+        // if (tokenInfo && dbPathInfo && !db) {
+        //   syncDBPathInfo();
+        //   redirectToCleanHomePage();
+        //   return;
+        // }
 
-        if (tokenInfo && !gdFileId) {
-          const data = await getGoogleDriveElementInfo(tokenInfo, {
-            path: dbPath,
-          });
+        // if (tokenInfo && !dbPathInfo) {
+        //   const data = await getGoogleDriveElementInfo(tokenInfo, {
+        //     path: dbpath,
+        //   });
 
-          const newGdFileId = data?.id;
-          if (!newGdFileId || typeof data?.id !== 'string')
-            throw new Error('No Google Drive FileID Found');
+        //   const newGdFileId = data?.id;
+        //   if (!newGdFileId || typeof data?.id !== 'string')
+        //     throw new Error('No Google Drive FileID Found');
 
-          syncGdFileId(newGdFileId);
+        //   syncDBPathInfo(newGdFileId);
 
-          const db = await getDB(tokenInfo, { gdFileId: newGdFileId });
-          syncDB(db);
+        //   const db = await getDB(tokenInfo, { gdFileId: newGdFileId });
+        //   syncDB(db);
 
-          return;
-        }
+        //   return;
+        // }
+
+        if (tokenInfo) return;
 
         // no session, try to get info from search params
         const sp = new URLSearchParams(window.location.search);
@@ -210,7 +204,7 @@ export default function App() {
         if (newTokenInfoRes.success) {
           const newTokenInfo = newTokenInfoRes.data;
           syncTokenInfo(newTokenInfo);
-          syncGdFileId();
+          syncLsDB();
           redirectToCleanHomePage();
           return;
         }
@@ -232,7 +226,6 @@ export default function App() {
         setClient(client);
       } catch (err: any) {
         console.log(err?.stack);
-
         toast(err?.message || 'Error.', { type: 'error', autoClose: false });
       } finally {
         setIsLoading(false);
@@ -247,57 +240,36 @@ export default function App() {
           Version: {APP_VERSION}
         </div>
         <div className="flex flex-wrap gap-2 px-1 justify-center">
-          {client ? (
+          {!tokenInfo && client ? (
             <button onClick={() => client.requestCode()}>
               Iniciar sesión con Google
             </button>
-          ) : (
-            <button
-              onClick={async () => {
-                if (!window.confirm('Cerrar sesión?')) return;
-                syncTokenInfo();
-                syncGdFileId();
-                syncDB();
-                redirectToCleanHomePage();
-              }}
-            >
-              Cerrar sesión
-            </button>
-          )}
+          ) : null}
+
+          {tokenInfo ? (
+            <>
+              <button
+                onClick={async () => {
+                  if (!window.confirm('Cerrar sesión?')) return;
+                  syncTokenInfo();
+                  syncLsDB();
+                  redirectToCleanHomePage();
+                }}
+              >
+                Cerrar sesión
+              </button>
+
+              <button
+                onClick={() =>
+                  setPopup({ action: 'manageDB', actionType: 'income' })
+                }
+              >
+                Gestionar DB
+              </button>
+            </>
+          ) : null}
+
           <button onClick={() => redirectToCleanHomePage()}>Recargar</button>
-          <button
-            onClick={() =>
-              asyncDBTask(async (tokenInfo, attrs) => getDB(tokenInfo, attrs))
-            }
-          >
-            Sync DB
-          </button>
-          <button
-            onClick={() => {
-              syncGdFileId();
-            }}
-          >
-            Change DB
-          </button>
-          <button
-            onClick={async () => {
-              if (!tokenInfo) return;
-              const bb = await getGoogleDriveElementInfo(tokenInfo, {
-                path: 'Databases',
-              });
-              console.log('bb', bb);
-              uploadGoogleDriveFile(tokenInfo, {
-                parents: [bb!.id],
-                name: 'llorelo papá.txt',
-                blob: new Blob([
-                  'lovely boy lovely boy he used to be a lovely boy',
-                ]),
-                mimeType: 'text/plain',
-              });
-            }}
-          >
-            testing
-          </button>
         </div>
         <div className="w-1/2 mx-auto mt-7 mb-2 border-b-4 border-b-[#333]" />
         <Calculator
@@ -352,18 +324,20 @@ export default function App() {
           ))}
         </div>
         <div className="h-14 bg-black/80 shrink-0" />
-        {db && popup?.action === 'show' && (
+
+        {lsDb && popup?.action === 'show' && (
           <PopupIncomesExpenses
-            db={db}
+            db={lsDb.db}
             actionType={popup.actionType}
             onClose={() => setPopup(undefined)}
             onItemDelete={handleActionDelete}
             onEditItemSubmit={handleEditActionSubmit}
           />
         )}
-        {db && popup?.action === 'showCategories' && (
+
+        {lsDb && popup?.action === 'showCategories' && (
           <PopupCategories
-            db={db}
+            db={lsDb.db}
             actionType={popup.actionType}
             onClose={() => setPopup(undefined)}
             onItemDelete={handleCategoryDelete}
@@ -371,22 +345,26 @@ export default function App() {
             onNewItemSubmit={handleAddCategorySubmit}
           />
         )}
-        {db && popup?.action === 'add' && (
+
+        {lsDb && popup?.action === 'add' && (
           <PopupIncomeExpenseForm
-            db={db}
+            db={lsDb.db}
             value={value}
             actionType={popup.actionType}
             onSubmit={handleAddActionFormSubmit}
             onClose={() => setPopup(undefined)}
           />
         )}
-        {!tokenInfo ? null : (
+
+        {tokenInfo && popup?.action === 'manageDB' ? (
           <PopupManageDB
-            dbPath={dbPath}
+            dbPath={lsDb?.path ?? ''}
             tokenInfo={tokenInfo}
             onDBChange={(data) => console.log('bb', data)}
+            onClose={() => setPopup(undefined)}
           />
-        )}
+        ) : null}
+
         {isLoading && <Loading />}
         <ToastContainer transition={Slide} position="top-center" />
       </div>

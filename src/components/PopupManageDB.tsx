@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { TokenInfo } from '../api/actions';
+import { initialDB } from '../helpers/DBHelpers';
 import {
   deleteGoogleDriveFile,
   getGoogleDriveElementInfo,
@@ -16,6 +17,7 @@ export interface Props {
   tokenInfo: TokenInfo;
   dbPath: string;
   onDBChange: (data: { fileId: string; path: string }) => void;
+  onClose?: () => void;
 }
 
 const LoadingForBtn = (
@@ -32,7 +34,7 @@ async function getDBFileId(
   return fileId;
 }
 
-async function usableDB(tokenInfo: TokenInfo, dbPath: string) {
+async function getCurrentDB(tokenInfo: TokenInfo, dbPath: string) {
   const fileId = await getDBFileId(tokenInfo, dbPath);
   const respInfo = await getGoogleDriveElementInfoById(tokenInfo, {
     gdElementId: fileId,
@@ -44,11 +46,15 @@ async function usableDB(tokenInfo: TokenInfo, dbPath: string) {
 
 // TODO: Probably global helper
 function handleError(err: unknown) {
-  let message = '';
-  if (!(err instanceof Error)) message = 'Ocurrió un error';
-  else if (err.message === 'DB_NOT_FOUND') message = 'DB No encontrada';
+  let message = 'Ocurrió un error';
+  if (!(err instanceof Error)) {
+  } else if (err.message === 'DB_NOT_FOUND') message = 'DB No encontrada';
   else if (err.message === 'APP_NOT_AUTHORIZED')
     message = 'Esta App no está autorizada para usar esta DB';
+  else if (err.message === 'DB_ALREADY_EXISTS_CANT_CREATE')
+    message = 'DB ya existe';
+  else if (err.message === 'DB_PARENT_DIR_NOT_FOUND')
+    message = 'Directorio no encontrado';
 
   toast(message, { type: 'error' });
 }
@@ -58,14 +64,18 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
     defaultValues: { dbPath },
   });
 
+  // handle verify DB
   const { isLoading: isVerifyDBLoading, mutate: verifyDBMutate } = useMutation({
     onError: handleError,
     mutationFn: async (data: { dbPath: string }) => {
-      const newDB = await usableDB(tokenInfo, data.dbPath);
+      const newDB = await getCurrentDB(tokenInfo, data.dbPath);
+
+      toast.success('Base de datos verificada! 😉');
       props.onDBChange(newDB);
     },
   });
 
+  // handle create DB
   const { isLoading: isCreateDBLoading, mutate: createDBMutate } = useMutation({
     onError: handleError,
     mutationFn: async (data: { dbPath: string }) => {
@@ -95,14 +105,27 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
         parents: [dbParentDirId],
         mimeType: 'application/json',
         name: filename,
-        blob: new Blob([JSON.stringify({ llorelo: 'papá' })]),
+        blob: new Blob([JSON.stringify(initialDB)]),
       });
 
       // TODO: move this outside or do it here?
+      toast.success('Base de datos creada! 😍');
     },
   });
 
-  const isLoading = isCreateDBLoading || isVerifyDBLoading;
+  // handle delete DB
+  const { isLoading: isDeleteDBLoading, mutate: deleteDBMutate } = useMutation({
+    onError: handleError,
+    mutationFn: async (data: { dbPath: string }) => {
+      const { fileId } = await getCurrentDB(tokenInfo, data.dbPath);
+      deleteGoogleDriveFile(tokenInfo, { gdFileId: fileId });
+
+      // TODO: move this outside or do it here?
+      toast.success('Base de datos eliminada! 😭');
+    },
+  });
+
+  const isLoading = isCreateDBLoading || isVerifyDBLoading || isDeleteDBLoading;
 
   return (
     <form onSubmit={handleSubmit((data) => verifyDBMutate(data))}>
@@ -129,13 +152,28 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
               Crear DB
             </button>
 
-            <button type="button">Eliminar DB</button>
-            <button type="button">Cerrar</button>
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={handleSubmit((data) => deleteDBMutate(data))}
+            >
+              {isDeleteDBLoading ? LoadingForBtn : null}
+              Eliminar DB
+            </button>
+
+            <button onClick={props.onClose} type="button">
+              Cerrar
+            </button>
           </div>
         }
       >
         <div>
-          <input type="text" {...register('dbPath', { required: true })} />
+          <input
+            type="text"
+            className="w-full"
+            placeholder="Path de la base de datos"
+            {...register('dbPath', { required: true })}
+          />
           <br />
         </div>
       </Popup>
