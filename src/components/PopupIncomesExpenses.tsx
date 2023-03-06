@@ -357,7 +357,8 @@ export default function PopupIncomesExpenses(props: Props) {
 
   const wallets = props.db.wallets
     .filter((it) => it.type === props.actionType)
-    .map((el) => ({ ...el, filteredBy: 'wallets' as const }));
+    .map((el) => ({ ...el, filteredBy: 'wallets' as const }))
+    .sort(sortByFnCreator('sortPriority', false));
 
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
