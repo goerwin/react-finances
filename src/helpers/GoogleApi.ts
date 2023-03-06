@@ -19,14 +19,13 @@ type GetSecondItemOfArray<T extends unknown[]> = T extends [
   ? R
   : never;
 
-function stringifyAxiosErrorData(error: any): string {
+function stringifyAxiosErrorData(error: unknown): string {
   try {
     if (error instanceof AxiosError)
       return JSON.stringify(error.response?.data);
     throw '';
   } catch {
-    // TODO: error: any yikes
-    return error?.message || '';
+    return error instanceof Error ? error.message : '';
   }
 }
 
@@ -246,7 +245,6 @@ export const uploadGoogleDriveFile =
       const form = new FormData();
       form.append(
         'Metadata',
-        // TODO: Not sure if type application/json can be replaced by mimeType
         new Blob([metadata], { type: 'application/json' })
       );
       form.append('Media', blob);

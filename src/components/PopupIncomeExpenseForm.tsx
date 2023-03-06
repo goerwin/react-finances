@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { Action, ActionType, DB } from '../helpers/DBHelpers';
-import { sortByDateFnCreator } from '../helpers/general';
+import { sortByFnCreator } from '../helpers/general';
 import { removeCurrencyFormattingToValue } from './Calculator';
 import Popup from './Popup';
 
@@ -25,7 +25,7 @@ export default function PopupIncomeExpenseForm(props: Props) {
     ...props.db[
       props.actionType === 'income' ? 'incomeCategories' : 'expenseCategories'
     ],
-  ].sort(sortByDateFnCreator('name'));
+  ].sort(sortByFnCreator('name'));
 
   return (
     <form onSubmit={handleSubmit(props.onSubmit)}>

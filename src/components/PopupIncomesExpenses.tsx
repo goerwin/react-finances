@@ -1,7 +1,13 @@
 import { useRef, useState } from 'react';
 import { useForm, UseFormReset } from 'react-hook-form';
-import { Action, ActionType, DB, ActionCategory } from '../helpers/DBHelpers';
-import { sortByDateFnCreator } from '../helpers/general';
+import {
+  Action,
+  ActionType,
+  DB,
+  ActionCategory,
+  Tag,
+} from '../helpers/DBHelpers';
+import { sortByFnCreator } from '../helpers/general';
 import {
   getFilteredBy as lsGetFilteredBy,
   setFilteredBy as lsSetFilteredBy,
@@ -14,6 +20,7 @@ import {
   getNextMonthFirstDayDate,
   getPreviousMonthFirstDayDate,
   getFormattedLocalDate,
+  getMonthDifference,
 } from '../helpers/time';
 import { formatNumberValueToCurrency } from './Calculator';
 import Popup from './Popup';
@@ -64,14 +71,14 @@ function getAction({
         {editingItemId !== action.id && (
           <>
             <span className="block">
-              {formatNumberValueToCurrency(String(action.value))}
+              {formatNumberValueToCurrency(action.value)}
               <span className="c-description">
                 <span> </span> {getCategoryName(props.db, action)}
               </span>
             </span>
             <span className="block c-description">{action.description}</span>
             <span className="block c-description not-italic">
-              {getFormattedLocalDatetime(new Date(action.date))}
+              {getFormattedLocalDatetime(action.date)}
             </span>
           </>
         )}
@@ -101,8 +108,8 @@ function getAction({
                     props.db,
                     action
                   )} - ${formatNumberValueToCurrency(
-                    String(action.value)
-                  )} - ${getFormattedLocalDatetime(new Date(action.date))})?`
+                    action.value
+                  )} - ${getFormattedLocalDatetime(action.date)})?`
                 );
 
                 if (!resp) return;
@@ -135,15 +142,85 @@ function getAction({
 }
 
 function filterActionsByTypeAndStartEndDates(
-  attrs: { actionType: ActionType; startDate: Date; endDate: Date },
+  attrs: {
+    actionType: ActionType;
+    startDate: Date | string;
+    endDate: Date | string;
+  },
   action: Action
 ) {
   const actionDate = new Date(action.date);
 
   return (
     action.type === attrs.actionType &&
-    actionDate >= attrs.startDate &&
-    actionDate <= attrs.endDate
+    actionDate >= new Date(attrs.startDate) &&
+    actionDate <= new Date(attrs.endDate)
+  );
+}
+
+function getCategoryActionsInfo(attrs: {
+  startDate: string | Date;
+  endDate: string | Date;
+  actionType: ActionType;
+  expectedPerMonth: number;
+  actionCategoryKey: 'incomeCategory' | 'expenseCategory';
+  actionCategories: string[];
+  categories: ActionCategory[];
+  actions: Action[];
+}) {
+  const { startDate, endDate, actions, actionType, actionCategories } = attrs;
+  const { expectedPerMonth, actionCategoryKey, categories } = attrs;
+
+  const parsedCategories = actionCategories
+    .map((catId) => ({ ...categories.find((cat) => cat.id === catId) }))
+    .filter((el): el is ActionCategory => !!el.id);
+
+  const filteredActions = actions
+    .filter((ac) => actionCategories.includes(ac[actionCategoryKey] ?? ''))
+    .filter(
+      filterActionsByTypeAndStartEndDates.bind(null, {
+        actionType,
+        startDate,
+        endDate,
+      })
+    );
+
+  const actionsTotal = filteredActions.reduce((acc, it) => acc + it.value, 0);
+  const monthDiff = getMonthDifference(endDate, startDate);
+  const averageValuePerMonth = actionsTotal / monthDiff;
+  const deviationFromExpected = expectedPerMonth * monthDiff - actionsTotal;
+
+  return {
+    startDate,
+    endDate,
+    monthDiff,
+    actionsTotal,
+    averageValuePerMonth,
+    deviationFromExpected,
+    parsedCategories,
+    filteredActions,
+  };
+}
+
+function getCategoryActionsInfoEl(
+  attrs: ReturnType<typeof getCategoryActionsInfo>
+) {
+  return (
+    <>
+      <span>-------</span>
+      <span className="block text-xs c-description">
+        Rango: {getFormattedLocalDate(attrs.startDate, true)}
+        {' - '}
+        {getFormattedLocalDate(attrs.endDate, true)} (
+        {attrs.monthDiff + (attrs.monthDiff === 1 ? ' Mes' : ' Meses')})
+      </span>
+
+      <span className="block text-xs c-description"></span>
+      <span className="block text-xs c-description">
+        Prom. mensual: {formatNumberValueToCurrency(attrs.averageValuePerMonth)}{' '}
+        / Dif: {formatNumberValueToCurrency(attrs.deviationFromExpected)}
+      </span>
+    </>
   );
 }
 
@@ -167,6 +244,9 @@ export default function PopupIncomesExpenses(props: Props) {
       ? props.db.expenseCategories
       : props.db.incomeCategories;
 
+  const actionCategoryKey =
+    props.actionType === 'expense' ? 'expenseCategory' : 'incomeCategory';
+
   const title = props.actionType === 'expense' ? 'Gastos' : 'Ingresos';
 
   const filteredActions = props.db.actions
@@ -177,9 +257,11 @@ export default function PopupIncomesExpenses(props: Props) {
         endDate: filterEndDate,
       })
     )
-    .sort(sortByDateFnCreator('date', false));
+    .sort(sortByFnCreator('date', false));
 
   const filteredTotal = filteredActions.reduce((acc, el) => acc + el.value, 0);
+
+  // filterBy categories
 
   let filteredByCaterogies: (ActionCategory & { actions: Action[] })[] = [];
 
@@ -188,14 +270,7 @@ export default function PopupIncomesExpenses(props: Props) {
       .map((cat) => ({
         ...cat,
         actions: props.db.actions
-          .filter(
-            (action) =>
-              action[
-                props.actionType === 'expense'
-                  ? 'expenseCategory'
-                  : 'incomeCategory'
-              ] === cat.id
-          )
+          .filter((action) => action[actionCategoryKey] === cat.id)
           .filter(
             filterActionsByTypeAndStartEndDates.bind(null, {
               actionType: props.actionType,
@@ -203,10 +278,16 @@ export default function PopupIncomesExpenses(props: Props) {
               endDate: filterEndDate,
             })
           )
-          .sort(sortByDateFnCreator('date', false)),
+          .sort(sortByFnCreator('date', false)),
       }))
-      .sort(sortByDateFnCreator('name'))
-      .sort(sortByDateFnCreator('sortPriority', false));
+      .sort(sortByFnCreator('name'))
+      .sort(sortByFnCreator('sortPriority', false));
+
+  // filterBy tags
+
+  const tags = (
+    props.actionType === 'expense' ? props.db.expenseTags : props.db.incomeTags
+  ).sort(sortByFnCreator('sortPriority', false));
 
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
@@ -304,7 +385,7 @@ export default function PopupIncomesExpenses(props: Props) {
         bottomArea={
           <>
             <div className="mb-4 text-lg font-bold">
-              Total: {formatNumberValueToCurrency(String(filteredTotal))}
+              Total: {formatNumberValueToCurrency(filteredTotal)}
             </div>
 
             <div className="flex items-center gap-2 justify-between capitalize">
@@ -349,21 +430,39 @@ export default function PopupIncomesExpenses(props: Props) {
                 className="mr-2"
                 onClick={() => {
                   const newFilterBy =
-                    filterBy === 'date' ? 'categories' : 'date';
+                    filterBy === 'date'
+                      ? 'categories'
+                      : filterBy === 'categories'
+                      ? 'tags'
+                      : 'date';
+
                   setFilterBy(newFilterBy);
                   lsSetFilteredBy(newFilterBy);
                 }}
               >
-                Filtro: {filterBy === 'date' ? 'fecha' : 'categorías'}
+                Filtro: {filterBy}
               </button>
               <button onClick={props.onClose}>Cerrar</button>
             </div>
           </>
         }
       >
-        {filterBy === 'categories' && (
-          <>
-            {filteredByCaterogies.map((item) => (
+        {filterBy === 'date'
+          ? filteredActions.map((item) =>
+              getAction({
+                action: item,
+                props,
+                getEditingItemForm,
+                manuallySubmitForm,
+                reset,
+                setEditingItemId,
+                editingItemId,
+              })
+            )
+          : null}
+
+        {filterBy === 'categories'
+          ? filteredByCaterogies.map((item) => (
               <div
                 key={item.id + filterStartDate + filterEndDate}
                 className="relative"
@@ -381,9 +480,7 @@ export default function PopupIncomesExpenses(props: Props) {
                       <span>
                         Total:{' '}
                         {formatNumberValueToCurrency(
-                          String(
-                            item.actions.reduce((acc, el) => acc + el.value, 0)
-                          )
+                          item.actions.reduce((acc, el) => acc + el.value, 0)
                         )}
                       </span>
                     </span>
@@ -404,25 +501,107 @@ export default function PopupIncomesExpenses(props: Props) {
                   )}
                 </div>
               </div>
-            ))}
-          </>
-        )}
+            ))
+          : null}
 
-        {filterBy === 'date' && (
-          <>
-            {filteredActions.map((item) =>
-              getAction({
-                action: item,
-                props,
-                getEditingItemForm,
-                manuallySubmitForm,
-                reset,
-                setEditingItemId,
-                editingItemId,
-              })
-            )}
-          </>
-        )}
+        {filterBy === 'tags'
+          ? tags.map((item) => {
+              const dateFilteredCategoryActionsInfo = getCategoryActionsInfo({
+                actionType: props.actionType,
+                actions: props.db.actions,
+                categories,
+                actionCategoryKey,
+                actionCategories: item.categories,
+                expectedPerMonth: item.track?.expectedPerMonth ?? 0,
+                startDate: filterStartDate,
+                endDate: filterEndDate,
+              });
+
+              return (
+                <div
+                  key={item.id + filterStartDate + filterEndDate}
+                  className="relative"
+                >
+                  <input
+                    type="checkbox"
+                    className="absolute w-full left-0 top-0 h-full peer opacity-0"
+                  />
+
+                  <div className="text-left">
+                    <p className="border-b border-b-white/10 mb-2 pb-2">
+                      <span>{item.name} </span>
+                      <span className="text-xs c-description">
+                        <span>
+                          Items:{' '}
+                          {
+                            dateFilteredCategoryActionsInfo.filteredActions
+                              .length
+                          }
+                          ,{' '}
+                        </span>
+                        <span>
+                          Total:{' '}
+                          {formatNumberValueToCurrency(
+                            dateFilteredCategoryActionsInfo.filteredActions.reduce(
+                              (acc, el) => acc + el.value,
+                              0
+                            )
+                          )}
+                        </span>
+                      </span>
+                      <span className="block text-xs c-description">
+                        Categorías:{' '}
+                        {dateFilteredCategoryActionsInfo.parsedCategories
+                          .map((el) => el.name)
+                          .join(', ')}
+                      </span>
+
+                      <span className="block text-xs c-description">
+                        Esperado mensual:{' '}
+                        {formatNumberValueToCurrency(
+                          item.track?.expectedPerMonth ?? 0
+                        )}
+                      </span>
+
+                      <span>-------</span>
+                      {getCategoryActionsInfoEl(
+                        getCategoryActionsInfo({
+                          actionType: props.actionType,
+                          actions: props.db.actions,
+                          categories,
+                          actionCategoryKey,
+                          actionCategories: item.categories,
+                          expectedPerMonth: item.track?.expectedPerMonth ?? 0,
+                          startDate: item.track?.startDate ?? '2020-11-20',
+                          endDate: today,
+                        })
+                      )}
+
+                      <span>-------</span>
+                      {getCategoryActionsInfoEl(
+                        dateFilteredCategoryActionsInfo
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="pl-2 mb-5 hidden peer-checked:block">
+                    {dateFilteredCategoryActionsInfo.filteredActions.map(
+                      (item) =>
+                        getAction({
+                          action: item,
+                          props,
+                          getEditingItemForm,
+                          manuallySubmitForm,
+                          reset,
+                          setEditingItemId,
+                          editingItemId,
+                        })
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          : null}
       </Popup>
 
       {showFilterByDatesPopup && (

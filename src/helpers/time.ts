@@ -1,5 +1,6 @@
 /** Returns date as eg. 5 Oct 2022 08:40 */
-export function getFormattedLocalDatetime(date: Date) {
+export function getFormattedLocalDatetime(date: Date | string) {
+  date = new Date(date);
   const hours = String(date.getHours()).padStart(2, '0');
   const mins = String(date.getMinutes()).padStart(2, '0');
 
@@ -7,12 +8,13 @@ export function getFormattedLocalDatetime(date: Date) {
 }
 
 /** Returns date as eg. 5 Oct 2022 */
-export function getFormattedLocalDate(date: Date) {
+export function getFormattedLocalDate(date: Date | string, skipDay = false) {
+  date = new Date(date);
   const month = date.toLocaleString('default', { month: 'short' });
   const dayOfMonth = date.getDate();
   const year = date.getFullYear();
 
-  return `${dayOfMonth} ${month} ${year}`;
+  return `${skipDay ? '' : `${dayOfMonth} `}${month} ${year}`;
 }
 
 /** Returns date as yyyy-MM-dd */
@@ -103,4 +105,13 @@ export function getNextMonthFirstDayDate(date: Date) {
   newDate.setFullYear(newLocalYear);
 
   return newDate;
+}
+
+export function getMonthDifference(date1: Date | string, date2: Date | string) {
+  date1 = new Date(date1);
+  date2 = new Date(date2);
+
+  let months = (date1.getFullYear() - date2.getFullYear()) * 12;
+  months = months + date1.getMonth() - date2.getMonth() + 1;
+  return months <= 0 ? 0 : months;
 }

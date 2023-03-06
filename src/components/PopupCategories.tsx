@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ActionCategory, ActionType, DB } from '../helpers/DBHelpers';
-import { sortByDateFnCreator } from '../helpers/general';
+import { sortByFnCreator } from '../helpers/general';
 import Popup from './Popup';
 
 export interface Props {
@@ -81,8 +81,8 @@ export default function PopupCategories({ db, ...props }: Props) {
       props.actionType === 'expense' ? 'expenseCategories' : 'incomeCategories'
     ],
   ]
-    .sort(sortByDateFnCreator('name'))
-    .sort(sortByDateFnCreator('sortPriority', false));
+    .sort(sortByFnCreator('name'))
+    .sort(sortByFnCreator('sortPriority', false));
 
   return (
     <Popup

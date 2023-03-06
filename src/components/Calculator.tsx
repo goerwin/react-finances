@@ -29,7 +29,8 @@ export function applyCalcString(current: string, input: string) {
   return String(Number(integer + input));
 }
 
-export function formatNumberValueToCurrency(value: string) {
+export function formatNumberValueToCurrency(value: number | string) {
+  value = String(value);
   const [integerStr, decimalStr] = value.split('.');
   const parsedValueStr = Number(
     integerStr + (decimalStr ? `.${decimalStr}` : '')
