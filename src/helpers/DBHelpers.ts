@@ -24,12 +24,8 @@ const tagSchema = z.object({
   sortPriority: z.number(),
   name: z.string(),
   categories: z.array(actionCategorySchema.shape.id),
-  track: z
-    .object({
-      startDate: z.string().datetime(),
-      expectedPerMonth: z.number(),
-    })
-    .optional(),
+  startDate: z.string().datetime().optional(),
+  expectedPerMonth: z.number().optional(),
 });
 
 export const dbSchema = z.object({

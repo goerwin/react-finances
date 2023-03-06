@@ -512,7 +512,7 @@ export default function PopupIncomesExpenses(props: Props) {
                 categories,
                 actionCategoryKey,
                 actionCategories: item.categories,
-                expectedPerMonth: item.track?.expectedPerMonth ?? 0,
+                expectedPerMonth: item.expectedPerMonth ?? 0,
                 startDate: filterStartDate,
                 endDate: filterEndDate,
               });
@@ -559,7 +559,7 @@ export default function PopupIncomesExpenses(props: Props) {
                       <span className="block text-xs c-description">
                         Esperado mensual:{' '}
                         {formatNumberValueToCurrency(
-                          item.track?.expectedPerMonth ?? 0
+                          item.expectedPerMonth ?? 0
                         )}
                       </span>
 
@@ -571,8 +571,8 @@ export default function PopupIncomesExpenses(props: Props) {
                           categories,
                           actionCategoryKey,
                           actionCategories: item.categories,
-                          expectedPerMonth: item.track?.expectedPerMonth ?? 0,
-                          startDate: item.track?.startDate ?? '2020-11-20',
+                          expectedPerMonth: item.expectedPerMonth ?? 0,
+                          startDate: item.startDate ?? '2020-11-20',
                           endDate: today,
                         })
                       )}
@@ -608,6 +608,7 @@ export default function PopupIncomesExpenses(props: Props) {
         <PopupFilterByDates
           startDate={filterStartDate}
           endDate={filterEndDate}
+          actions={props.db.actions}
           onCancelClick={() => setShowFilterByDatesPopup(false)}
           onCurrentMonthClick={() => {
             setShowFilterByDatesPopup(false);

@@ -1,10 +1,12 @@
 import { useForm } from 'react-hook-form';
+import { Action } from '../helpers/DBHelpers';
 import { getDateFormattedForInput } from '../helpers/time';
 import Popup from './Popup';
 
 export type Props = {
   startDate: Date;
   endDate: Date;
+  actions: Action[];
   onCurrentMonthClick: () => void;
   onCancelClick: () => void;
   onSubmit: (startDate: Date, endDate: Date) => void;
@@ -17,6 +19,26 @@ export default function PopupFilterByDates(props: Props) {
       endDate: getDateFormattedForInput(props.endDate),
     },
   });
+
+  const getInitialDate = () => {
+    const action = props.actions.reduce<Action | null>(
+      (prev, curr) =>
+        !prev ? curr : new Date(curr.date) < new Date(prev.date) ? curr : prev,
+      null
+    );
+
+    return new Date(action?.date || 0);
+  };
+
+  const getFinalDate = () => {
+    const action = props.actions.reduce<Action | null>(
+      (prev, curr) =>
+        !prev ? curr : new Date(curr.date) > new Date(prev.date) ? curr : prev,
+      null
+    );
+
+    return new Date(action?.date || 0);
+  };
 
   const handleFormSubmit = (data: typeof formState.defaultValues) => {
     if (!data?.endDate || !data?.startDate) return;
@@ -61,7 +83,7 @@ export default function PopupFilterByDates(props: Props) {
           </button>
           <button
             type="button"
-            onClick={() => props.onSubmit(new Date(0), new Date())}
+            onClick={() => props.onSubmit(getInitialDate(), getFinalDate())}
           >
             Histórico
           </button>
