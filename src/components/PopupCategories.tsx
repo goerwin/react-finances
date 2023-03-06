@@ -88,6 +88,7 @@ export default function PopupCategories({ db, ...props }: Props) {
   return (
     <Popup
       title={title}
+      subtitle={`(${categories.length})`}
       bottomArea={
         <>
           <button onClick={props.onClose}>Cerrar</button>

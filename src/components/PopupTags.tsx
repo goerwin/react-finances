@@ -136,6 +136,7 @@ export default function PopupTags({ db, ...props }: Props) {
   return (
     <Popup
       title={title}
+      subtitle={`(${tags.length})`}
       bottomArea={
         <>
           <button onClick={props.onClose}>Cerrar</button>
@@ -206,15 +207,6 @@ export default function PopupTags({ db, ...props }: Props) {
                 <span className="block c-description">
                   Prioridad de orden: {item.sortPriority}
                 </span>
-                <span className="block c-description">
-                  Categorías {`(${item.categories.length}): `}
-                  {item.categories
-                    .map(
-                      (catId) =>
-                        allCategories.find((cat) => cat.id === catId)?.name
-                    )
-                    .join(', ')}
-                </span>
 
                 <span className="block c-description">
                   Esperado mensual:{' '}
@@ -224,6 +216,16 @@ export default function PopupTags({ db, ...props }: Props) {
                 <span className="block c-description">
                   Día inicial:{' '}
                   {item.startDate ? getFormattedLocalDate(item.startDate) : '-'}
+                </span>
+
+                <span className="block c-description">
+                  Categorías {`(${item.categories.length}): `}
+                  {item.categories
+                    .map(
+                      (catId) =>
+                        allCategories.find((cat) => cat.id === catId)?.name
+                    )
+                    .join(', ')}
                 </span>
               </>
             )}
