@@ -5,6 +5,7 @@ import {
   DB,
   dbSchema,
   Tag,
+  Wallet,
 } from '../helpers/DBHelpers';
 import { z } from 'zod';
 
@@ -237,6 +238,60 @@ export async function deleteTag(
       updatedAt: date,
       incomeTags: db.incomeTags.filter((it) => it.id !== attrs.tagId),
       expenseTags: db.expenseTags.filter((it) => it.id !== attrs.tagId),
+    },
+  });
+}
+
+export async function addWallet(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & { data: Wallet; type: ActionType }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+  const id = uuidv4();
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      wallets: [{ ...attrs.data, id }, ...db.wallets],
+    },
+  });
+}
+
+export async function editWallet(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & { data: Wallet }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      wallets: db.wallets.map((it) =>
+        it.id === attrs.data.id ? { ...attrs.data } : it
+      ),
+    },
+  });
+}
+
+export async function deleteWallet(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & { id: string }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      wallets: db.wallets.filter((it) => it.id !== attrs.id),
     },
   });
 }

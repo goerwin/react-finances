@@ -2,6 +2,12 @@
 
 ## TODOs
 
+- [x] wallets
+- [ ] can you just add a type to incomeTags/expenseTags instead of 2 arrays?
+  - same for categories arrays
+- [ ] tags should be extendable
+- [ ] latest content in scrollable should be at bottom
+- [ ] by date filter should be activated with long press
 - [x] categories should also have the same info as tags
 - [x] Google Drive file picker/creator for database
 - [x] Track how much you can spend if you don't consume all money for a particular tag

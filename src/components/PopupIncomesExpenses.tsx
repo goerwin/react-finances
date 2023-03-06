@@ -34,6 +34,7 @@ export type Props = {
   onClose: () => void;
 };
 
+// TODO: REFACTOR IT MAYBE?
 function getCategoryName(db: DB, action: Action) {
   const { type, expenseCategory, incomeCategory } = action;
   const category = db[
@@ -43,6 +44,10 @@ function getCategoryName(db: DB, action: Action) {
   );
 
   return category?.name || '-';
+}
+
+function getWalletNameById(db: DB, walletId: string) {
+  return db.wallets.find((it) => it.id === walletId)?.name ?? '';
 }
 
 function getAction({
@@ -73,12 +78,15 @@ function getAction({
             <span className="block">
               {formatNumberValueToCurrency(action.value)}
               <span className="c-description">
-                <span> </span> {getCategoryName(props.db, action)}
+                {' '}
+                {getCategoryName(props.db, action)}
               </span>
             </span>
             <span className="block c-description">{action.description}</span>
             <span className="block c-description not-italic">
               {getFormattedLocalDatetime(action.date)}
+              {' / Bolsillo: '}
+              {getWalletNameById(props.db, action.walletId)}
             </span>
           </>
         )}
@@ -158,36 +166,54 @@ function filterActionsByTypeAndStartEndDates(
   );
 }
 
-function getCategoryActionsInfo(attrs: {
-  startDate: string | Date;
-  endDate: string | Date;
-  actionType: ActionType;
-  expectedPerMonth: number;
-  actionCategoryKey: 'incomeCategory' | 'expenseCategory';
-  actionCategories: string[];
-  allCategories: ActionCategory[];
-  allActions: Action[];
-}) {
-  const { startDate, endDate, allActions, actionType, actionCategories } =
-    attrs;
-  const { expectedPerMonth, actionCategoryKey, allCategories } = attrs;
+function getCategoryActionsInfo(
+  attrs: {
+    startDate: string | Date;
+    endDate: string | Date;
+    actionType: ActionType;
+    expectedPerMonth: number;
+    actionCategoryKey: 'incomeCategory' | 'expenseCategory';
 
-  const parsedCategories = actionCategories
-    .map((catId) => ({ ...allCategories.find((cat) => cat.id === catId) }))
-    .filter((el): el is ActionCategory => !!el.id);
+    allActions: Action[];
+  } & (
+    | {
+        filterBy: 'tags' | 'categories';
+        allCategories: ActionCategory[];
+        actionCategories: string[];
+      }
+    | { filterBy: 'wallets'; walletId: string }
+  )
+) {
+  const { startDate, endDate, allActions, actionType, filterBy } = attrs;
+  const { expectedPerMonth, actionCategoryKey } = attrs;
 
-  const filteredActions = allActions
-    .filter((ac) => actionCategories.includes(ac[actionCategoryKey] ?? ''))
-    .filter(
-      filterActionsByTypeAndStartEndDates.bind(null, {
-        actionType,
-        startDate,
-        endDate,
-      })
+  let filteredActions: Action[] = [];
+  let parsedCategories: ActionCategory[] = [];
+
+  if (filterBy === 'categories' || filterBy === 'tags') {
+    const { actionCategories, allCategories } = attrs;
+
+    parsedCategories = actionCategories
+      .map((catId) => ({ ...allCategories.find((cat) => cat.id === catId) }))
+      .filter((el): el is ActionCategory => !!el.id);
+
+    filteredActions = allActions.filter((ac) =>
+      actionCategories.includes(ac[actionCategoryKey] ?? '')
     );
+  } else if (filterBy === 'wallets') {
+    filteredActions = allActions.filter((ac) => ac.walletId === attrs.walletId);
+  }
+
+  filteredActions = filteredActions.filter(
+    filterActionsByTypeAndStartEndDates.bind(null, {
+      actionType,
+      startDate,
+      endDate,
+    })
+  );
 
   const filteredActionsTotal = filteredActions.reduce(
-    (acc, it) => acc + it.value,
+    (t, it) => t + it.value,
     0
   );
   const monthDiff = getMonthDifference(endDate, startDate);
@@ -329,6 +355,10 @@ export default function PopupIncomesExpenses(props: Props) {
     .map((el) => ({ ...el, filteredBy: 'tags' as const }))
     .sort(sortByFnCreator('sortPriority', false));
 
+  const wallets = props.db.wallets
+    .filter((it) => it.type === props.actionType)
+    .map((el) => ({ ...el, filteredBy: 'wallets' as const }));
+
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
       new Event('submit', {
@@ -345,15 +375,8 @@ export default function PopupIncomesExpenses(props: Props) {
   };
 
   const getEditingItemForm = (action: Action) => {
-    const {
-      id,
-      value,
-      type,
-      expenseCategory,
-      incomeCategory,
-      date,
-      description,
-    } = action;
+    const { id, value, type, expenseCategory } = action;
+    const { incomeCategory, date, description, walletId } = action;
 
     if (editingItemId !== id) return;
 
@@ -361,7 +384,7 @@ export default function PopupIncomesExpenses(props: Props) {
       type === 'expense' ? 'expenseCategory' : 'incomeCategory';
     const expenseIncomeCategoryVal =
       type === 'expense' ? expenseCategory : incomeCategory;
-    const selectOptions =
+    const categories =
       props.db[type === 'expense' ? 'expenseCategories' : 'incomeCategories'];
 
     return (
@@ -383,15 +406,32 @@ export default function PopupIncomesExpenses(props: Props) {
         />
         <select
           placeholder="Categoría"
-          className="mb-1"
+          className="block mb-1"
           {...register(expenseIncomeCategoryName, {
             value: expenseIncomeCategoryVal,
           })}
         >
-          <option key="empty" value="">
-            -
+          <option key="empty" value="" disabled>
+            Categoría
           </option>
-          {selectOptions.map((option) => (
+          {categories.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          placeholder="Bolsillo"
+          className="block mb-1"
+          {...register('walletId', {
+            value: walletId,
+          })}
+        >
+          <option key="empty" value="" disabled>
+            Bolsillo
+          </option>
+          {wallets.map((option) => (
             <option key={option.id} value={option.id}>
               {option.name}
             </option>
@@ -476,6 +516,8 @@ export default function PopupIncomesExpenses(props: Props) {
                       ? 'categories'
                       : filterBy === 'categories'
                       ? 'tags'
+                      : filterBy === 'tags'
+                      ? 'wallets'
                       : 'date';
 
                   setFilterBy(newFilterBy);
@@ -502,33 +544,80 @@ export default function PopupIncomesExpenses(props: Props) {
             )
           : null}
 
-        {filterBy === 'tags' || filterBy === 'categories'
-          ? (filterBy === 'tags' ? tags : filteredByCaterogies).map((item) => {
+        {filterBy === 'tags' ||
+        filterBy === 'categories' ||
+        filterBy === 'wallets'
+          ? (filterBy === 'tags'
+              ? tags
+              : filterBy === 'categories'
+              ? filteredByCaterogies
+              : wallets
+            ).map((item) => {
               const filteredBy = item.filteredBy;
-              const actionCategories =
-                filteredBy === 'tags' ? item.categories : [item.id];
 
-              const dateFilteredCategoryActionsInfo = getCategoryActionsInfo({
-                actionType: props.actionType,
-                allActions: props.db.actions,
-                allCategories,
-                actionCategoryKey,
-                actionCategories,
-                expectedPerMonth: item.expectedPerMonth ?? 0,
-                startDate: filterStartDate,
-                endDate: filterEndDate,
-              });
+              let dateFilteredCategoryActionsInfo: ReturnType<
+                typeof getCategoryActionsInfo
+                // TODO: REMOVE AS ANY
+              > = {} as any;
+              let startDateCategoryActionsInfo: ReturnType<
+                typeof getCategoryActionsInfo
+                // TODO: REMOVE AS ANY
+              > = {} as any;
 
-              const startDateCategoryActionsInfo = getCategoryActionsInfo({
-                actionType: props.actionType,
-                allActions: props.db.actions,
-                allCategories,
-                actionCategoryKey,
-                actionCategories: actionCategories,
-                expectedPerMonth: item.expectedPerMonth ?? 0,
-                startDate: item.startDate ?? initialDate,
-                endDate: today,
-              });
+              if (filterBy === 'categories' || filterBy === 'tags') {
+                const actionCategories =
+                  filteredBy === 'tags' ? item.categories : [item.id];
+
+                dateFilteredCategoryActionsInfo = getCategoryActionsInfo({
+                  actionType: props.actionType,
+                  allActions: props.db.actions,
+                  actionCategoryKey,
+                  filterBy,
+                  expectedPerMonth: item.expectedPerMonth ?? 0,
+                  startDate: filterStartDate,
+                  endDate: filterEndDate,
+
+                  allCategories,
+                  actionCategories,
+                });
+
+                startDateCategoryActionsInfo = getCategoryActionsInfo({
+                  actionType: props.actionType,
+                  allActions: props.db.actions,
+                  filterBy,
+                  actionCategoryKey,
+                  expectedPerMonth: item.expectedPerMonth ?? 0,
+                  startDate: item.startDate ?? initialDate,
+                  endDate: today,
+
+                  allCategories,
+                  actionCategories,
+                });
+              } else if (filteredBy === 'wallets') {
+                dateFilteredCategoryActionsInfo = getCategoryActionsInfo({
+                  actionType: props.actionType,
+                  allActions: props.db.actions,
+                  actionCategoryKey,
+                  filterBy,
+                  expectedPerMonth: item.expectedPerMonth ?? 0,
+                  startDate: filterStartDate,
+                  endDate: filterEndDate,
+
+                  walletId: item.id,
+                });
+
+                startDateCategoryActionsInfo = getCategoryActionsInfo({
+                  actionType: props.actionType,
+                  allActions: props.db.actions,
+                  filterBy,
+                  actionCategoryKey,
+                  expectedPerMonth: item.expectedPerMonth ?? 0,
+                  startDate: item.startDate ?? initialDate,
+                  endDate: today,
+
+                  walletId: item.id,
+                });
+              }
 
               return (
                 <div
@@ -544,7 +633,7 @@ export default function PopupIncomesExpenses(props: Props) {
                     <p className="border-b border-b-white/10 mb-2 pb-1">
                       <span>{item.name} </span>
                       <span className="c-description">
-                        {filteredBy === 'tags' ? (
+                        {filteredBy === 'tags' || filteredBy === 'wallets' ? (
                           <span>
                             {'('}
                             {
@@ -575,7 +664,7 @@ export default function PopupIncomesExpenses(props: Props) {
                         )}
                       </span>
 
-                      {filteredBy === 'tags'
+                      {filteredBy === 'tags' || filteredBy === 'wallets'
                         ? getCategoryActionsInfoEl({
                             ...startDateCategoryActionsInfo,
                             omitRange: true,
@@ -592,7 +681,8 @@ export default function PopupIncomesExpenses(props: Props) {
                           Estimado Mensual:{' '}
                           {formatNumberValueToCurrency(item.expectedPerMonth)}
                         </span>
-                        Categorías {`(${actionCategories.length}): `}
+                        Categorías{' '}
+                        {`(${dateFilteredCategoryActionsInfo.parsedCategories.length}): `}
                         {dateFilteredCategoryActionsInfo.parsedCategories
                           .map((el) => el.name)
                           .join(', ')}

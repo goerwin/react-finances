@@ -10,12 +10,15 @@ import {
   addAction,
   addCategory,
   addTag,
+  addWallet,
   deleteAction,
   deleteCategory,
   deleteTag,
+  deleteWallet,
   editAction,
   editCategory,
   editTag,
+  editWallet,
   TokenInfo,
   TokenInfoSchema,
 } from './api/actions';
@@ -26,6 +29,7 @@ import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import PopupManageDB from './components/PopupManageDB';
 import PopupTags from './components/PopupTags';
+import PopupWallets from './components/PopupWallets';
 import {
   GOOGLE_CLIENT_ID,
   GOOGLE_REDIRECT_SERVER_URL,
@@ -38,6 +42,7 @@ import {
   ActionType,
   DB,
   Tag,
+  Wallet,
 } from './helpers/DBHelpers';
 import { handleErrorWithNotifications, loadScript } from './helpers/general';
 import {
@@ -57,7 +62,13 @@ const queryClient = new QueryClient();
 export default function App() {
   const [value, setValue] = useState<string>();
   const [popup, setPopup] = useState<{
-    action: 'add' | 'show' | 'showCategories' | 'showTags' | 'manageDB';
+    action:
+      | 'add'
+      | 'show'
+      | 'showCategories'
+      | 'showTags'
+      | 'showWallets'
+      | 'manageDB';
     actionType: ActionType;
   }>();
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
@@ -99,22 +110,13 @@ export default function App() {
     },
   });
 
-  const handleAddActionFormSubmit = async (values: Action) => {
+  const handleAddActionFormSubmit = async (newAction: Action) => {
     mutate({
       tokenInfo,
       lsDb,
       alertMsg: 'Entrada agregada',
       fn: async ({ tokenInfo, gdFileId }) => {
-        const db = await addAction(tokenInfo, {
-          gdFileId,
-          newAction: {
-            incomeCategory: values.incomeCategory,
-            expenseCategory: values.expenseCategory,
-            type: values.type,
-            description: values.description,
-            value: values.value,
-          },
-        });
+        const db = await addAction(tokenInfo, { gdFileId, newAction });
 
         setValue(undefined);
         setPopup(undefined);
@@ -187,6 +189,33 @@ export default function App() {
       lsDb,
       alertMsg: 'Etiqueta editada',
       fn: ({ tokenInfo, gdFileId }) => editTag(tokenInfo, { gdFileId, tag }),
+    });
+
+  const handleWalletDelete = (id: string) =>
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Bolsillo eliminado',
+      fn: ({ tokenInfo, gdFileId }) =>
+        deleteWallet(tokenInfo, { gdFileId, id }),
+    });
+
+  const handleAddWalletSubmit = (data: Wallet, type: ActionType) =>
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Bolsillo agregado',
+      fn: ({ tokenInfo, gdFileId }) =>
+        addWallet(tokenInfo, { gdFileId, data, type }),
+    });
+
+  const handleEditWalletSubmit = (data: Wallet) =>
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Bolsillo editado',
+      fn: ({ tokenInfo, gdFileId }) =>
+        editWallet(tokenInfo, { gdFileId, data }),
     });
 
   const handleTagDelete = (tagId: string) =>
@@ -306,18 +335,9 @@ export default function App() {
             Gasto
           </button>
         </div>
-        <div className="h-14 bg-black/20 grid grid-cols-6 gap-px shrink-0">
+
+        <div className="h-14 bg-black/20 grid grid-cols-2 gap-px shrink-0">
           {[
-            {
-              label: 'Cat. ingresos',
-              onClick: () =>
-                setPopup({ action: 'showCategories', actionType: 'income' }),
-            },
-            {
-              label: 'Cat. gastos',
-              onClick: () =>
-                setPopup({ action: 'showCategories', actionType: 'expense' }),
-            },
             {
               label: 'Ingresos',
               onClick: () => setPopup({ action: 'show', actionType: 'income' }),
@@ -326,6 +346,30 @@ export default function App() {
               label: 'Gastos',
               onClick: () =>
                 setPopup({ action: 'show', actionType: 'expense' }),
+            },
+          ].map((it) => (
+            <div
+              role="button"
+              key={it.label}
+              onClick={it.onClick}
+              className="text-xs bg-black/30 flex items-center justify-center px-2 text-center"
+            >
+              {it.label}
+            </div>
+          ))}
+        </div>
+
+        <div className="h-14 bg-black/20 grid grid-cols-6 gap-px shrink-0">
+          {[
+            {
+              label: 'Categoría ingresos',
+              onClick: () =>
+                setPopup({ action: 'showCategories', actionType: 'income' }),
+            },
+            {
+              label: 'Categoría gastos',
+              onClick: () =>
+                setPopup({ action: 'showCategories', actionType: 'expense' }),
             },
             {
               label: 'Etiqueta ingresos',
@@ -337,12 +381,22 @@ export default function App() {
               onClick: () =>
                 setPopup({ action: 'showTags', actionType: 'expense' }),
             },
+            {
+              label: 'Bolsillo ingresos',
+              onClick: () =>
+                setPopup({ action: 'showWallets', actionType: 'income' }),
+            },
+            {
+              label: 'Bolsillo gastos',
+              onClick: () =>
+                setPopup({ action: 'showWallets', actionType: 'expense' }),
+            },
           ].map((it) => (
             <div
               role="button"
               key={it.label}
               onClick={it.onClick}
-              className="text-xs bg-black/30 flex items-center justify-center px-2 text-center"
+              className="text-xs bg-black/90 flex items-center justify-center px-2 text-center"
             >
               {it.label}
             </div>
@@ -388,6 +442,17 @@ export default function App() {
             onItemDelete={handleTagDelete}
             onEditItemSubmit={handleEditTagSubmit}
             onNewItemSubmit={handleAddTagSubmit}
+          />
+        ) : null}
+
+        {lsDb && popup?.action === 'showWallets' ? (
+          <PopupWallets
+            db={lsDb.db}
+            actionType={popup.actionType}
+            onClose={() => setPopup(undefined)}
+            onItemDelete={handleWalletDelete}
+            onEditItemSubmit={handleEditWalletSubmit}
+            onNewItemSubmit={handleAddWalletSubmit}
           />
         ) : null}
 
