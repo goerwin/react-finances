@@ -4,6 +4,7 @@ import {
   ActionType,
   DB,
   dbSchema,
+  Tag,
 } from '../helpers/DBHelpers';
 import { z } from 'zod';
 
@@ -171,6 +172,71 @@ export async function deleteCategory(
       expenseCategories: db.expenseCategories.filter(
         (it) => it.id !== attrs.categoryId
       ),
+    },
+  });
+}
+
+export async function addTag(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & { tag: Tag; type: ActionType }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+  const id = uuidv4();
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      incomeTags: [
+        ...(attrs.type === 'income' ? [{ ...attrs.tag, id }] : []),
+        ...db.incomeTags,
+      ],
+      expenseTags: [
+        ...(attrs.type === 'expense' ? [{ ...attrs.tag, id }] : []),
+        ...db.expenseTags,
+      ],
+    },
+  });
+}
+
+export async function editTag(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & { tag: Tag }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      incomeTags: db.incomeTags.map((it) =>
+        it.id === attrs.tag.id ? { ...attrs.tag } : it
+      ),
+      expenseTags: db.expenseTags.map((it) =>
+        it.id === attrs.tag.id ? { ...attrs.tag } : it
+      ),
+    },
+  });
+}
+
+export async function deleteTag(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & { tagId: string }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      incomeTags: db.incomeTags.filter((it) => it.id !== attrs.tagId),
+      expenseTags: db.expenseTags.filter((it) => it.id !== attrs.tagId),
     },
   });
 }

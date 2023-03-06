@@ -1,28 +1,45 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ActionCategory, ActionType, DB } from '../helpers/DBHelpers';
+import { ActionType, DB, Tag } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
+import {
+  getDateFormattedForInput,
+  getFormattedLocalDate,
+} from '../helpers/time';
+import { formatNumberValueToCurrency } from './Calculator';
 import Popup from './Popup';
 
 export interface Props {
   db: DB;
   actionType: ActionType;
   onItemDelete: (itemId: string) => void;
-  onEditItemSubmit: (item: ActionCategory) => void;
-  onNewItemSubmit: (item: ActionCategory, type: ActionType) => void;
+  onEditItemSubmit: (item: Tag) => void;
+  onNewItemSubmit: (item: Tag, type: ActionType) => void;
   onClose: () => void;
 }
 
-export default function PopupCategories({ db, ...props }: Props) {
+export default function PopupTags({ db, ...props }: Props) {
   const itemFormRef = useRef<HTMLFormElement | null>(null);
   const [formItemId, setFormItemId] = useState<string>();
 
-  const { register, handleSubmit, reset } = useForm<ActionCategory>({
+  const { register, handleSubmit, reset } = useForm<Tag>({
     shouldUnregister: true,
   });
 
   const title =
-    props.actionType === 'expense' ? 'Categoría Gastos' : 'Categoría Ingresos';
+    props.actionType === 'expense' ? 'Etiquetas Gastos' : 'Etiquetas Ingresos';
+
+  const allCategories = [
+    ...db[
+      props.actionType === 'expense' ? 'expenseCategories' : 'incomeCategories'
+    ],
+  ];
+
+  const tags = [
+    ...db[props.actionType === 'expense' ? 'expenseTags' : 'incomeTags'],
+  ]
+    .sort(sortByFnCreator('name'))
+    .sort(sortByFnCreator('sortPriority', false));
 
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
@@ -33,17 +50,27 @@ export default function PopupCategories({ db, ...props }: Props) {
     );
   };
 
-  const handleItemFormSubmit = (item: ActionCategory) => {
+  const handleItemFormSubmit = (item: Tag) => {
     setFormItemId(undefined);
     itemFormRef.current = null;
 
     if (!formItemId) return;
+
+    item.startDate = item.startDate
+      ? new Date(item.startDate).toISOString()
+      : undefined;
+
+    item.expectedPerMonth = isNaN(Number(item.expectedPerMonth))
+      ? undefined
+      : item.expectedPerMonth;
+
     if (formItemId === 'new') props.onNewItemSubmit(item, props.actionType);
     else props.onEditItemSubmit(item);
   };
 
-  const getItemForm = (item?: ActionCategory) => {
-    const { id, name, description, sortPriority } = item || {};
+  const getItemForm = (item?: Tag) => {
+    const { id, name, sortPriority, expectedPerMonth, categories, startDate } =
+      item || {};
 
     if (!formItemId) return;
 
@@ -58,32 +85,53 @@ export default function PopupCategories({ db, ...props }: Props) {
         />
         <input
           className="mb-1"
+          {...register('expectedPerMonth', {
+            value: expectedPerMonth,
+            valueAsNumber: true,
+          })}
+          type="number"
+          placeholder="Esperado mensual"
+        />
+        <input
+          className="mb-1"
           {...register('sortPriority', {
             required: true,
-            value: sortPriority,
+            value: sortPriority || 0,
             valueAsNumber: true,
           })}
           type="number"
           placeholder="Prioridad de orden"
         />
-        <input
-          className="mb-1"
-          {...register('description', { value: description })}
-          type="text"
-          placeholder="Descripción"
-        />
+        <select
+          {...register('categories', { required: true, value: categories })}
+          multiple
+          className="w-full"
+          placeholder="Categorías"
+        >
+          {allCategories.map((el) => (
+            <option key={el.id} value={el.id}>
+              {el.name}
+            </option>
+          ))}
+        </select>
+
+        <fieldset className="mb-2">
+          <label>Día inicial: </label>
+          <input
+            type="date"
+            {...register('startDate', {
+              value: startDate ? getDateFormattedForInput(startDate) : '',
+              // val is yyyy-MM-dd
+              // append T00:00 to convert it to local date
+              setValueAs: (val) => (val ? new Date(val + 'T00:00') : ''),
+            })}
+          />
+        </fieldset>
+
         <button type="submit" hidden />
       </form>
     );
   };
-
-  const categories = [
-    ...db[
-      props.actionType === 'expense' ? 'expenseCategories' : 'incomeCategories'
-    ],
-  ]
-    .sort(sortByFnCreator('name'))
-    .sort(sortByFnCreator('sortPriority', false));
 
   return (
     <Popup
@@ -128,7 +176,7 @@ export default function PopupCategories({ db, ...props }: Props) {
         </div>
       )}
 
-      {categories.map((item) => (
+      {tags.map((item) => (
         <div
           key={item.id}
           className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center"
@@ -142,11 +190,13 @@ export default function PopupCategories({ db, ...props }: Props) {
                     Items:{' '}
                     {db.actions.reduce(
                       (count, action) =>
-                        action[
-                          props.actionType === 'expense'
-                            ? 'expenseCategory'
-                            : 'incomeCategory'
-                        ] === item.id
+                        item.categories.includes(
+                          action[
+                            props.actionType === 'expense'
+                              ? 'expenseCategory'
+                              : 'incomeCategory'
+                          ] ?? ''
+                        )
                           ? count + 1
                           : count,
                       0
@@ -156,7 +206,25 @@ export default function PopupCategories({ db, ...props }: Props) {
                 <span className="block c-description">
                   Prioridad de orden: {item.sortPriority}
                 </span>
-                <span className="block c-description">{item.description}</span>
+                <span className="block c-description">
+                  Categorías {`(${item.categories.length}): `}
+                  {item.categories
+                    .map(
+                      (catId) =>
+                        allCategories.find((cat) => cat.id === catId)?.name
+                    )
+                    .join(', ')}
+                </span>
+
+                <span className="block c-description">
+                  Esperado mensual:{' '}
+                  {formatNumberValueToCurrency(item.expectedPerMonth ?? 0)}
+                </span>
+
+                <span className="block c-description">
+                  Día inicial:{' '}
+                  {item.startDate ? getFormattedLocalDate(item.startDate) : '-'}
+                </span>
               </>
             )}
             {formItemId === item.id && getItemForm(item)}
@@ -178,7 +246,7 @@ export default function PopupCategories({ db, ...props }: Props) {
                   className="btn-danger p-0 text-2xl h-10 aspect-square"
                   onClick={async () => {
                     const resp = window.confirm(
-                      `Seguro que quieres eliminar esta categoría (${item.name})?`
+                      `Seguro que quieres eliminar esta etiqueta (${item.name})?`
                     );
 
                     if (!resp) return;

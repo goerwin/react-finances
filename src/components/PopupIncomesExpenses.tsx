@@ -209,13 +209,15 @@ function getCategoryActionsInfoEl(
     <>
       <span>-------</span>
       <span className="block text-xs c-description">
-        Rango: {getFormattedLocalDate(attrs.startDate, true)}
+        Rango: {getFormattedLocalDate(attrs.startDate)}
         {' - '}
-        {getFormattedLocalDate(attrs.endDate, true)} (
+        {getFormattedLocalDate(attrs.endDate)} (
         {attrs.monthDiff + (attrs.monthDiff === 1 ? ' Mes' : ' Meses')})
       </span>
 
-      <span className="block text-xs c-description"></span>
+      <span className="block text-xs c-description">
+        Total: {formatNumberValueToCurrency(attrs.actionsTotal)}
+      </span>
       <span className="block text-xs c-description">
         Prom. mensual: {formatNumberValueToCurrency(attrs.averageValuePerMonth)}{' '}
         / Dif: {formatNumberValueToCurrency(attrs.deviationFromExpected)}
@@ -426,8 +428,10 @@ export default function PopupIncomesExpenses(props: Props) {
             </div>
 
             <div className="pt-4">
+              <button className="mr-2" onClick={props.onClose}>
+                Cerrar
+              </button>
               <button
-                className="mr-2"
                 onClick={() => {
                   const newFilterBy =
                     filterBy === 'date'
@@ -442,7 +446,6 @@ export default function PopupIncomesExpenses(props: Props) {
               >
                 Filtro: {filterBy}
               </button>
-              <button onClick={props.onClose}>Cerrar</button>
             </div>
           </>
         }
@@ -550,7 +553,7 @@ export default function PopupIncomesExpenses(props: Props) {
                         </span>
                       </span>
                       <span className="block text-xs c-description">
-                        Categorías:{' '}
+                        Categorías {`(${item.categories.length}): `}
                         {dateFilteredCategoryActionsInfo.parsedCategories
                           .map((el) => el.name)
                           .join(', ')}

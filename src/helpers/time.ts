@@ -18,7 +18,8 @@ export function getFormattedLocalDate(date: Date | string, skipDay = false) {
 }
 
 /** Returns date as yyyy-MM-dd */
-export function getDateFormattedForInput(date: Date) {
+export function getDateFormattedForInput(date: Date | string) {
+  date = new Date(date);
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const dayOfMonth = String(date.getDate()).padStart(2, '0');
 

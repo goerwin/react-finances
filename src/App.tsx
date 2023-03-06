@@ -9,10 +9,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import {
   addAction,
   addCategory,
+  addTag,
   deleteAction,
   deleteCategory,
+  deleteTag,
   editAction,
   editCategory,
+  editTag,
   TokenInfo,
   TokenInfoSchema,
 } from './api/actions';
@@ -22,13 +25,20 @@ import PopupCategories from './components/PopupCategories';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import PopupManageDB from './components/PopupManageDB';
+import PopupTags from './components/PopupTags';
 import {
   GOOGLE_CLIENT_ID,
   GOOGLE_REDIRECT_SERVER_URL,
   GOOGLE_SCOPE,
   GOOGLE_SERVICE_IDENTITY_CLIENT,
 } from './config';
-import { Action, ActionCategory, ActionType, DB } from './helpers/DBHelpers';
+import {
+  Action,
+  ActionCategory,
+  ActionType,
+  DB,
+  Tag,
+} from './helpers/DBHelpers';
 import { handleErrorWithNotifications, loadScript } from './helpers/general';
 import {
   getLsDB as LSGetLsDB,
@@ -47,7 +57,7 @@ const queryClient = new QueryClient();
 export default function App() {
   const [value, setValue] = useState<string>();
   const [popup, setPopup] = useState<{
-    action: 'add' | 'show' | 'showCategories' | 'manageDB';
+    action: 'add' | 'show' | 'showCategories' | 'showTags' | 'manageDB';
     actionType: ActionType;
   }>();
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
@@ -132,15 +142,6 @@ export default function App() {
         editAction(tokenInfo, { gdFileId, action }),
     });
 
-  const handleCategoryDelete = (categoryId: string) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Categoría eliminada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        deleteCategory(tokenInfo, { gdFileId, categoryId }),
-    });
-
   const handleAddCategorySubmit = (
     category: ActionCategory,
     type: ActionType
@@ -160,6 +161,41 @@ export default function App() {
       alertMsg: 'Categoría editada',
       fn: ({ tokenInfo, gdFileId }) =>
         editCategory(tokenInfo, { gdFileId, category }),
+    });
+
+  const handleCategoryDelete = (categoryId: string) =>
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Categoría eliminada',
+      fn: ({ tokenInfo, gdFileId }) =>
+        deleteCategory(tokenInfo, { gdFileId, categoryId }),
+    });
+
+  const handleAddTagSubmit = (tag: Tag, type: ActionType) =>
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Etiqueta agregada',
+      fn: ({ tokenInfo, gdFileId }) =>
+        addTag(tokenInfo, { gdFileId, tag, type }),
+    });
+
+  const handleEditTagSubmit = (tag: Tag) =>
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Etiqueta editada',
+      fn: ({ tokenInfo, gdFileId }) => editTag(tokenInfo, { gdFileId, tag }),
+    });
+
+  const handleTagDelete = (tagId: string) =>
+    mutate({
+      tokenInfo,
+      lsDb,
+      alertMsg: 'Categoría eliminada',
+      fn: ({ tokenInfo, gdFileId }) =>
+        deleteTag(tokenInfo, { gdFileId, tagId }),
     });
 
   const handleActionClick = (actionType: ActionType) => {
@@ -270,15 +306,15 @@ export default function App() {
             Gasto
           </button>
         </div>
-        <div className="h-14 bg-black/20 grid grid-cols-4 gap-px shrink-0">
+        <div className="h-14 bg-black/20 grid grid-cols-6 gap-px shrink-0">
           {[
             {
-              label: 'Categoría ingresos',
+              label: 'Cat. ingresos',
               onClick: () =>
                 setPopup({ action: 'showCategories', actionType: 'income' }),
             },
             {
-              label: 'Categoría gastos',
+              label: 'Cat. gastos',
               onClick: () =>
                 setPopup({ action: 'showCategories', actionType: 'expense' }),
             },
@@ -291,6 +327,16 @@ export default function App() {
               onClick: () =>
                 setPopup({ action: 'show', actionType: 'expense' }),
             },
+            {
+              label: 'Etiqueta ingresos',
+              onClick: () =>
+                setPopup({ action: 'showTags', actionType: 'income' }),
+            },
+            {
+              label: 'Etiqueta gastos',
+              onClick: () =>
+                setPopup({ action: 'showTags', actionType: 'expense' }),
+            },
           ].map((it) => (
             <div
               role="button"
@@ -302,9 +348,8 @@ export default function App() {
             </div>
           ))}
         </div>
-        <div className="h-14 bg-black/80 shrink-0" />
 
-        {lsDb && popup?.action === 'show' && (
+        {lsDb && popup?.action === 'show' ? (
           <PopupIncomesExpenses
             db={lsDb.db}
             actionType={popup.actionType}
@@ -312,9 +357,9 @@ export default function App() {
             onItemDelete={handleActionDelete}
             onEditItemSubmit={handleEditActionSubmit}
           />
-        )}
+        ) : null}
 
-        {lsDb && popup?.action === 'showCategories' && (
+        {lsDb && popup?.action === 'showCategories' ? (
           <PopupCategories
             db={lsDb.db}
             actionType={popup.actionType}
@@ -323,7 +368,7 @@ export default function App() {
             onEditItemSubmit={handleEditCategorySubmit}
             onNewItemSubmit={handleAddCategorySubmit}
           />
-        )}
+        ) : null}
 
         {lsDb && popup?.action === 'add' && (
           <PopupIncomeExpenseForm
@@ -334,6 +379,17 @@ export default function App() {
             onClose={() => setPopup(undefined)}
           />
         )}
+
+        {lsDb && popup?.action === 'showTags' ? (
+          <PopupTags
+            db={lsDb.db}
+            actionType={popup.actionType}
+            onClose={() => setPopup(undefined)}
+            onItemDelete={handleTagDelete}
+            onEditItemSubmit={handleEditTagSubmit}
+            onNewItemSubmit={handleAddTagSubmit}
+          />
+        ) : null}
 
         {tokenInfo && popup?.action === 'manageDB' ? (
           <PopupManageDB

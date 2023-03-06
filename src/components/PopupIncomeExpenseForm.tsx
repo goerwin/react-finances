@@ -71,7 +71,7 @@ export default function PopupIncomeExpenseForm(props: Props) {
           {...register('type', { value: props.actionType })}
         />
 
-        <div>
+        <div className='flex flex-wrap justify-center'>
           {categories.map(({ id, name }) => (
             <label key={id} className="relative cursor-pointer">
               <input
