@@ -42,7 +42,7 @@
   }
 
   .c-description {
-    @apply text-sm italic text-white/50;
+    @apply text-xs italic text-white/50;
   }
 }
 

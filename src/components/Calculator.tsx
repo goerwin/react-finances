@@ -29,12 +29,12 @@ export function applyCalcString(current: string, input: string) {
   return String(Number(integer + input));
 }
 
-export function formatNumberValueToCurrency(value: number | string) {
-  value = String(value);
+export function formatNumberValueToCurrency(value?: number | string) {
+  value = String(value || 0);
   const [integerStr, decimalStr] = value.split('.');
   const parsedValueStr = Number(
     integerStr + (decimalStr ? `.${decimalStr}` : '')
-  ).toFixed(2);
+  ).toFixed(0);
 
   return `${new Intl.NumberFormat('en-US', {
     style: 'currency',

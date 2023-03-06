@@ -10,13 +10,13 @@ export interface Props {
 
 export default function Popup(props: Props) {
   return (
-    <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-4">
+    <div className="flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-3">
       <div
-        className={`flex flex-col max-h-full w-full bg-neutral-900 py-4 px-5 rounded-lg text-center ${
+        className={`flex flex-col max-h-full w-full bg-neutral-900 py-4 px-3 rounded-lg text-center ${
           props.autoHeight ? '' : 'h-full'
         }`}
       >
-        <h2 className="text-3xl mt-0 mb-4 font-bold">
+        <h2 className="text-2xl mt-0 mb-2 font-bold leading-none">
           {props.title}
           {props.subtitle ? (
             <span className="text-lg font-normal block">{props.subtitle}</span>
@@ -30,7 +30,7 @@ export default function Popup(props: Props) {
         )}
 
         {props.bottomArea ? (
-          <div className="pt-4">{props.bottomArea}</div>
+          <div className="pt-2">{props.bottomArea}</div>
         ) : null}
       </div>
     </div>

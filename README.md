@@ -8,8 +8,9 @@
 - [ ] better stylings
 - [ ] refactor categories/tags popups
 - [ ] Figure out how to handle payments done with credit cards
-- [x] move from JSON save to a database approach
+- [ ] move from JSON save to a database approach
   - not really necessary though, json store should be enough
+  - actually, nop, it is better to have a database for this
 - [ ] settings icon to show info:
   - database path
   - session active/email

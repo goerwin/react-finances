@@ -165,17 +165,18 @@ function getCategoryActionsInfo(attrs: {
   expectedPerMonth: number;
   actionCategoryKey: 'incomeCategory' | 'expenseCategory';
   actionCategories: string[];
-  categories: ActionCategory[];
-  actions: Action[];
+  allCategories: ActionCategory[];
+  allActions: Action[];
 }) {
-  const { startDate, endDate, actions, actionType, actionCategories } = attrs;
-  const { expectedPerMonth, actionCategoryKey, categories } = attrs;
+  const { startDate, endDate, allActions, actionType, actionCategories } =
+    attrs;
+  const { expectedPerMonth, actionCategoryKey, allCategories } = attrs;
 
   const parsedCategories = actionCategories
-    .map((catId) => ({ ...categories.find((cat) => cat.id === catId) }))
+    .map((catId) => ({ ...allCategories.find((cat) => cat.id === catId) }))
     .filter((el): el is ActionCategory => !!el.id);
 
-  const filteredActions = actions
+  const filteredActions = allActions
     .filter((ac) => actionCategories.includes(ac[actionCategoryKey] ?? ''))
     .filter(
       filterActionsByTypeAndStartEndDates.bind(null, {
@@ -185,16 +186,20 @@ function getCategoryActionsInfo(attrs: {
       })
     );
 
-  const actionsTotal = filteredActions.reduce((acc, it) => acc + it.value, 0);
+  const filteredActionsTotal = filteredActions.reduce(
+    (acc, it) => acc + it.value,
+    0
+  );
   const monthDiff = getMonthDifference(endDate, startDate);
-  const averageValuePerMonth = actionsTotal / monthDiff;
-  const deviationFromExpected = expectedPerMonth * monthDiff - actionsTotal;
+  const averageValuePerMonth = filteredActionsTotal / monthDiff;
+  const deviationFromExpected =
+    expectedPerMonth * monthDiff - filteredActionsTotal;
 
   return {
     startDate,
     endDate,
     monthDiff,
-    actionsTotal,
+    filteredActionsTotal,
     averageValuePerMonth,
     deviationFromExpected,
     parsedCategories,
@@ -203,24 +208,26 @@ function getCategoryActionsInfo(attrs: {
 }
 
 function getCategoryActionsInfoEl(
-  attrs: ReturnType<typeof getCategoryActionsInfo>
+  attrs: ReturnType<typeof getCategoryActionsInfo> & {
+    omitRange?: boolean;
+    prefix?: string;
+  }
 ) {
   return (
     <>
-      <span>-------</span>
-      <span className="block text-xs c-description">
-        Rango: {getFormattedLocalDate(attrs.startDate)}
-        {' - '}
-        {getFormattedLocalDate(attrs.endDate)} (
-        {attrs.monthDiff + (attrs.monthDiff === 1 ? ' Mes' : ' Meses')})
-      </span>
+      {attrs.omitRange ? null : (
+        <span className="block c-description">
+          Rango: {getFormattedLocalDate(attrs.startDate)}
+          {' - '}
+          {getFormattedLocalDate(attrs.endDate)} (Meses: {attrs.monthDiff})
+        </span>
+      )}
 
-      <span className="block text-xs c-description">
-        Total: {formatNumberValueToCurrency(attrs.actionsTotal)}
-      </span>
-      <span className="block text-xs c-description">
-        Prom. mensual: {formatNumberValueToCurrency(attrs.averageValuePerMonth)}{' '}
-        / Dif: {formatNumberValueToCurrency(attrs.deviationFromExpected)}
+      <span className="block c-description">
+        {attrs.prefix ?? ''}
+        T: {formatNumberValueToCurrency(attrs.filteredActionsTotal)}, M:{' '}
+        {formatNumberValueToCurrency(attrs.averageValuePerMonth)}, D:{' '}
+        {formatNumberValueToCurrency(attrs.deviationFromExpected)}
       </span>
     </>
   );
@@ -266,7 +273,7 @@ export default function PopupIncomesExpenses(props: Props) {
     shouldUnregister: true,
   });
 
-  const categories =
+  const allCategories =
     props.actionType === 'expense'
       ? props.db.expenseCategories
       : props.db.incomeCategories;
@@ -293,7 +300,7 @@ export default function PopupIncomesExpenses(props: Props) {
   let filteredByCaterogies: (ActionCategory & { actions: Action[] })[] = [];
 
   if (filterBy === 'categories')
-    filteredByCaterogies = categories
+    filteredByCaterogies = allCategories
       .map((cat) => ({
         ...cat,
         actions: props.db.actions
@@ -411,7 +418,7 @@ export default function PopupIncomesExpenses(props: Props) {
         title={title}
         bottomArea={
           <>
-            <div className="mb-4 text-lg font-bold">
+            <div className="mb-2 text-base font-bold">
               Total: {formatNumberValueToCurrency(filteredTotal)}
             </div>
 
@@ -431,7 +438,7 @@ export default function PopupIncomesExpenses(props: Props) {
               </button>
               <button
                 type="button"
-                className="!px-2"
+                className="!px-2 text-xs leading-none"
                 onClick={() => setShowFilterByDatesPopup(true)}
               >
                 {getFormattedLocalDate(filterStartDate)}
@@ -452,7 +459,7 @@ export default function PopupIncomesExpenses(props: Props) {
               </button>
             </div>
 
-            <div className="pt-4">
+            <div className="pt-2">
               <button className="mr-2" onClick={props.onClose}>
                 Cerrar
               </button>
@@ -536,13 +543,24 @@ export default function PopupIncomesExpenses(props: Props) {
           ? tags.map((item) => {
               const dateFilteredCategoryActionsInfo = getCategoryActionsInfo({
                 actionType: props.actionType,
-                actions: props.db.actions,
-                categories,
+                allActions: props.db.actions,
+                allCategories,
                 actionCategoryKey,
                 actionCategories: item.categories,
                 expectedPerMonth: item.expectedPerMonth ?? 0,
                 startDate: filterStartDate,
                 endDate: filterEndDate,
+              });
+
+              const startDateCategoryActionsInfo = getCategoryActionsInfo({
+                actionType: props.actionType,
+                allActions: props.db.actions,
+                allCategories,
+                actionCategoryKey,
+                actionCategories: item.categories,
+                expectedPerMonth: item.expectedPerMonth ?? 0,
+                startDate: item.startDate ?? initialDate,
+                endDate: today,
               });
 
               return (
@@ -556,63 +574,55 @@ export default function PopupIncomesExpenses(props: Props) {
                   />
 
                   <div className="text-left">
-                    <p className="border-b border-b-white/10 mb-2 pb-2">
+                    <p className="border-b border-b-white/10 mb-2 pb-1">
                       <span>{item.name} </span>
-                      <span className="text-xs c-description">
+                      <span className="c-description">
                         <span>
-                          Items:{' '}
+                          {'('}
                           {
                             dateFilteredCategoryActionsInfo.filteredActions
                               .length
                           }
-                          ,{' '}
                         </span>
-                        <span>
-                          Total:{' '}
-                          {formatNumberValueToCurrency(
-                            dateFilteredCategoryActionsInfo.filteredActions.reduce(
-                              (acc, el) => acc + el.value,
-                              0
-                            )
-                          )}
-                        </span>
+                        {') T: '}
+                        {formatNumberValueToCurrency(
+                          dateFilteredCategoryActionsInfo.filteredActionsTotal
+                        )}
+                        {', D: '}
+                        {formatNumberValueToCurrency(
+                          dateFilteredCategoryActionsInfo.deviationFromExpected
+                        )}
                       </span>
+
+                      {getCategoryActionsInfoEl({
+                        ...startDateCategoryActionsInfo,
+                        omitRange: true,
+                        prefix: 'Seg: ',
+                      })}
+                    </p>
+                  </div>
+
+                  <div className="pl-2 mb-5 hidden peer-checked:block">
+                    <div className="text-left relative mb-2">
                       <span className="block text-xs c-description">
+                        <span className="block">
+                          Estimado Mensual:{' '}
+                          {formatNumberValueToCurrency(item.expectedPerMonth)}
+                        </span>
                         Categorías {`(${item.categories.length}): `}
                         {dateFilteredCategoryActionsInfo.parsedCategories
                           .map((el) => el.name)
                           .join(', ')}
                       </span>
+                      <span className="block">-------</span>
+                      {getCategoryActionsInfoEl(startDateCategoryActionsInfo)}
+                      <span className="block">-------</span>
 
-                      <span className="block text-xs c-description">
-                        Esperado mensual:{' '}
-                        {formatNumberValueToCurrency(
-                          item.expectedPerMonth ?? 0
-                        )}
-                      </span>
-
-                      <span>-------</span>
-                      {getCategoryActionsInfoEl(
-                        getCategoryActionsInfo({
-                          actionType: props.actionType,
-                          actions: props.db.actions,
-                          categories,
-                          actionCategoryKey,
-                          actionCategories: item.categories,
-                          expectedPerMonth: item.expectedPerMonth ?? 0,
-                          startDate: item.startDate ?? initialDate,
-                          endDate: today,
-                        })
-                      )}
-
-                      <span>-------</span>
                       {getCategoryActionsInfoEl(
                         dateFilteredCategoryActionsInfo
                       )}
-                    </p>
-                  </div>
+                    </div>
 
-                  <div className="pl-2 mb-5 hidden peer-checked:block">
                     {dateFilteredCategoryActionsInfo.filteredActions.map(
                       (item) =>
                         getAction({
