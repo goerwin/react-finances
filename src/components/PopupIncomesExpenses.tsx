@@ -226,6 +226,26 @@ function getCategoryActionsInfoEl(
   );
 }
 
+function getInitialDate(actions: Action[]) {
+  const action = actions.reduce<Action | null>(
+    (prev, curr) =>
+      !prev ? curr : new Date(curr.date) < new Date(prev.date) ? curr : prev,
+    null
+  );
+
+  return new Date(action?.date || 0);
+}
+
+function getFinalDate(actions: Action[]) {
+  const action = actions.reduce<Action | null>(
+    (prev, curr) =>
+      !prev ? curr : new Date(curr.date) > new Date(prev.date) ? curr : prev,
+    null
+  );
+
+  return new Date(action?.date || 0);
+}
+
 export default function PopupIncomesExpenses(props: Props) {
   const today = new Date();
   const itemFormRef = useRef<HTMLFormElement | null>(null);
@@ -236,6 +256,11 @@ export default function PopupIncomesExpenses(props: Props) {
     filterStartDate: getFirstDayOfMonthDate(today),
     filterEndDate: getLastDayOfMonthDate(today),
   });
+
+  const [initialDate, finalDate] = [
+    getInitialDate(props.db.actions),
+    getFinalDate(props.db.actions),
+  ];
 
   const { register, handleSubmit, reset } = useForm<Action>({
     shouldUnregister: true,
@@ -575,7 +600,7 @@ export default function PopupIncomesExpenses(props: Props) {
                           actionCategoryKey,
                           actionCategories: item.categories,
                           expectedPerMonth: item.expectedPerMonth ?? 0,
-                          startDate: item.startDate ?? '2020-11-20',
+                          startDate: item.startDate ?? initialDate,
                           endDate: today,
                         })
                       )}
@@ -611,7 +636,8 @@ export default function PopupIncomesExpenses(props: Props) {
         <PopupFilterByDates
           startDate={filterStartDate}
           endDate={filterEndDate}
-          actions={props.db.actions}
+          initialDate={initialDate}
+          finalDate={finalDate}
           onCancelClick={() => setShowFilterByDatesPopup(false)}
           onCurrentMonthClick={() => {
             setShowFilterByDatesPopup(false);

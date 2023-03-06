@@ -2,6 +2,7 @@
 
 ## TODOs
 
+- [ ] categories should also have the same info as tags
 - [x] Google Drive file picker/creator for database
 - [x] Track how much you can spend if you don't consume all money for a particular tag
 - [ ] better stylings
