@@ -575,11 +575,13 @@ export default function PopupIncomesExpenses(props: Props) {
                         )}
                       </span>
 
-                      {getCategoryActionsInfoEl({
-                        ...startDateCategoryActionsInfo,
-                        omitRange: true,
-                        prefix: 'Seg: ',
-                      })}
+                      {filteredBy === 'tags'
+                        ? getCategoryActionsInfoEl({
+                            ...startDateCategoryActionsInfo,
+                            omitRange: true,
+                            prefix: 'Seg: ',
+                          })
+                        : null}
                     </p>
                   </div>
 
