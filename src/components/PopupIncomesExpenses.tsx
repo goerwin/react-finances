@@ -297,12 +297,16 @@ export default function PopupIncomesExpenses(props: Props) {
 
   // filterBy categories
 
-  let filteredByCaterogies: (ActionCategory & { actions: Action[] })[] = [];
+  let filteredByCaterogies: (ActionCategory & {
+    actions: Action[];
+    filteredBy: 'categories';
+  })[] = [];
 
   if (filterBy === 'categories')
     filteredByCaterogies = allCategories
       .map((cat) => ({
         ...cat,
+        filteredBy: 'categories' as const,
         actions: props.db.actions
           .filter((action) => action[actionCategoryKey] === cat.id)
           .filter(
@@ -321,7 +325,9 @@ export default function PopupIncomesExpenses(props: Props) {
 
   const tags = (
     props.actionType === 'expense' ? props.db.expenseTags : props.db.incomeTags
-  ).sort(sortByFnCreator('sortPriority', false));
+  )
+    .map((el) => ({ ...el, filteredBy: 'tags' as const }))
+    .sort(sortByFnCreator('sortPriority', false));
 
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
@@ -496,57 +502,18 @@ export default function PopupIncomesExpenses(props: Props) {
             )
           : null}
 
-        {filterBy === 'categories'
-          ? filteredByCaterogies.map((item) => (
-              <div
-                key={item.id + filterStartDate + filterEndDate}
-                className="relative"
-              >
-                <input
-                  type="checkbox"
-                  className="absolute w-full left-0 top-0 h-8 peer opacity-0"
-                />
+        {filterBy === 'tags' || filterBy === 'categories'
+          ? (filterBy === 'tags' ? tags : filteredByCaterogies).map((item) => {
+              const filteredBy = item.filteredBy;
+              const actionCategories =
+                filteredBy === 'tags' ? item.categories : [item.id];
 
-                <div className="text-left">
-                  <p className="border-b border-b-white/10 mb-2 pb-2">
-                    <span>{item.name} </span>
-                    <span className="text-xs c-description">
-                      <span>Items: {item.actions.length}, </span>
-                      <span>
-                        Total:{' '}
-                        {formatNumberValueToCurrency(
-                          item.actions.reduce((acc, el) => acc + el.value, 0)
-                        )}
-                      </span>
-                    </span>
-                  </p>
-                </div>
-
-                <div className="pl-2 mb-5 hidden peer-checked:block">
-                  {item.actions.map((item) =>
-                    getAction({
-                      action: item,
-                      props,
-                      getEditingItemForm,
-                      manuallySubmitForm,
-                      reset,
-                      setEditingItemId,
-                      editingItemId,
-                    })
-                  )}
-                </div>
-              </div>
-            ))
-          : null}
-
-        {filterBy === 'tags'
-          ? tags.map((item) => {
               const dateFilteredCategoryActionsInfo = getCategoryActionsInfo({
                 actionType: props.actionType,
                 allActions: props.db.actions,
                 allCategories,
                 actionCategoryKey,
-                actionCategories: item.categories,
+                actionCategories,
                 expectedPerMonth: item.expectedPerMonth ?? 0,
                 startDate: filterStartDate,
                 endDate: filterEndDate,
@@ -557,7 +524,7 @@ export default function PopupIncomesExpenses(props: Props) {
                 allActions: props.db.actions,
                 allCategories,
                 actionCategoryKey,
-                actionCategories: item.categories,
+                actionCategories: actionCategories,
                 expectedPerMonth: item.expectedPerMonth ?? 0,
                 startDate: item.startDate ?? initialDate,
                 endDate: today,
@@ -577,20 +544,34 @@ export default function PopupIncomesExpenses(props: Props) {
                     <p className="border-b border-b-white/10 mb-2 pb-1">
                       <span>{item.name} </span>
                       <span className="c-description">
-                        <span>
-                          {'('}
-                          {
-                            dateFilteredCategoryActionsInfo.filteredActions
-                              .length
-                          }
-                        </span>
-                        {') T: '}
-                        {formatNumberValueToCurrency(
-                          dateFilteredCategoryActionsInfo.filteredActionsTotal
-                        )}
-                        {', D: '}
-                        {formatNumberValueToCurrency(
-                          dateFilteredCategoryActionsInfo.deviationFromExpected
+                        {filteredBy === 'tags' ? (
+                          <span>
+                            {'('}
+                            {
+                              dateFilteredCategoryActionsInfo.filteredActions
+                                .length
+                            }
+                            {') T: '}
+                            {formatNumberValueToCurrency(
+                              dateFilteredCategoryActionsInfo.filteredActionsTotal
+                            )}
+                            {', D: '}
+                            {formatNumberValueToCurrency(
+                              dateFilteredCategoryActionsInfo.deviationFromExpected
+                            )}
+                          </span>
+                        ) : (
+                          <span>
+                            {'Items: '}
+                            {
+                              dateFilteredCategoryActionsInfo.filteredActions
+                                .length
+                            }
+                            {', Total: '}
+                            {formatNumberValueToCurrency(
+                              dateFilteredCategoryActionsInfo.filteredActionsTotal
+                            )}
+                          </span>
                         )}
                       </span>
 
@@ -609,7 +590,7 @@ export default function PopupIncomesExpenses(props: Props) {
                           Estimado Mensual:{' '}
                           {formatNumberValueToCurrency(item.expectedPerMonth)}
                         </span>
-                        Categorías {`(${item.categories.length}): `}
+                        Categorías {`(${actionCategories.length}): `}
                         {dateFilteredCategoryActionsInfo.parsedCategories
                           .map((el) => el.name)
                           .join(', ')}

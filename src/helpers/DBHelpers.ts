@@ -5,6 +5,8 @@ const actionCategorySchema = z.object({
   sortPriority: z.number(),
   name: z.string(),
   description: z.string().optional(),
+  startDate: z.string().datetime().optional(),
+  expectedPerMonth: z.number().optional(),
 });
 
 const actionTypeSchema = z.enum(['expense', 'income']);
@@ -24,6 +26,7 @@ const tagSchema = z.object({
   sortPriority: z.number(),
   name: z.string(),
   categories: z.array(actionCategorySchema.shape.id),
+  description: z.string().optional(),
   startDate: z.string().datetime().optional(),
   expectedPerMonth: z.number().optional(),
 });
