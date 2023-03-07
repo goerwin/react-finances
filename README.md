@@ -1,7 +1,5 @@
 # React Finances
 
-
-
 ## TODOs
 
 - [x] wallets

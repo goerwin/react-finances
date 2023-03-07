@@ -5,8 +5,8 @@ import { Action, DB, Category, Tag, Wallet } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
 import {
   getFilterByExpInc,
-  getFilteredBy as lsGetFilteredBy,
-  setFilteredBy as lsSetFilteredBy,
+  getFilterBy as lsGetFilteredBy,
+  setFilterBy as lsSetFilterdBy,
   setFilterByExpInc as lsSetFilterByExpInc,
 } from '../helpers/localStorage';
 import {
@@ -317,6 +317,11 @@ export default function PopupIncomesExpenses(props: Props) {
     lsSetFilterByExpInc(filter);
   };
 
+  const syncFilterBy = (filter: typeof filterBy) => {
+    setFilterBy(filter);
+    lsSetFilterdBy(filter);
+  };
+
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
       new Event('submit', {
@@ -450,14 +455,6 @@ export default function PopupIncomesExpenses(props: Props) {
       title="Entradas"
       bottomArea={
         <>
-          <div>
-            <button type="button" onClick={() => syncFilterByExpInc('income')}>
-              Ingresos
-            </button>
-            <button type="button" onClick={() => syncFilterByExpInc('expense')}>
-              Gastos
-            </button>
-          </div>
           <div className="mb-2 text-sm italic c-description">
             <p>
               Gastos: T: {formatNumberValueToCurrency(expActionsTotal)}, M:{' '}
@@ -511,26 +508,51 @@ export default function PopupIncomesExpenses(props: Props) {
             </button>
           </div>
 
+          <div className="grid grid-cols-4 mt-1 gap-px">
+            {(
+              [
+                { label: 'Fecha', filterBy: 'date' },
+                { label: 'Categoría', filterBy: 'categories' },
+                { label: 'Etiqueta', filterBy: 'tags' },
+                { label: 'Bolsillo', filterBy: 'wallets' },
+              ] as const
+            ).map((it, idx) => (
+              <button
+                className={`!text-xs !p-2 !py-4 !rounded-none !bg-black/40 ${
+                  it.filterBy === filterBy ? '!bg-green-900' : ''
+                }`}
+                type="button"
+                key={idx}
+                onClick={() => syncFilterBy(it.filterBy)}
+              >
+                {it.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-px">
+            {(
+              [
+                { label: 'Ingresos', filterBy: 'income' },
+                { label: 'Gasos', filterBy: 'expense' },
+              ] as const
+            ).map((it, idx) => (
+              <button
+                type="button"
+                className={`!text-xs !p-2 !py-4 !rounded-none !bg-black/20 ${
+                  it.filterBy === filterByExpInc ? '!bg-green-900' : ''
+                }`}
+                key={idx}
+                onClick={() => syncFilterByExpInc(it.filterBy)}
+              >
+                {it.label}
+              </button>
+            ))}
+          </div>
+
           <div className="pt-2">
             <button className="mr-2" onClick={props.onClose}>
               Cerrar
-            </button>
-            <button
-              onClick={() => {
-                const newFilterBy =
-                  filterBy === 'date'
-                    ? 'categories'
-                    : filterBy === 'categories'
-                    ? 'tags'
-                    : filterBy === 'tags'
-                    ? 'wallets'
-                    : 'date';
-
-                setFilterBy(newFilterBy);
-                lsSetFilteredBy(newFilterBy);
-              }}
-            >
-              Filtro: {filterBy}
             </button>
           </div>
         </>

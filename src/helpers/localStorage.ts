@@ -34,12 +34,12 @@ export function setTokenInfo(tokenInfo?: TokenInfo) {
 const filterByOpts = ['date', 'categories', 'tags', 'wallets'] as const;
 type FilterByOptions = typeof filterByOpts[number];
 
-export function setFilteredBy(filteredBy: FilterByOptions) {
+export function setFilterBy(filteredBy: FilterByOptions) {
   localStorage.removeItem(Keys.filteredBy);
   localStorage.setItem(Keys.filteredBy, filteredBy);
 }
 
-export function getFilteredBy(): FilterByOptions {
+export function getFilterBy(): FilterByOptions {
   const filteredBy = localStorage.getItem(Keys.filteredBy);
   return arrayIncludes(filterByOpts, filteredBy) ? filteredBy : 'date';
 }
