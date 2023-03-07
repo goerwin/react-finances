@@ -1,6 +1,6 @@
 import {
   Action,
-  ActionCategory,
+  Category,
   ActionType,
   DB,
   dbSchema,
@@ -110,7 +110,7 @@ export async function editAction(
 
 export async function addCategory(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { category: ActionCategory; type: ActionType }
+  attrs: DBApiRequiredAttrs & { category: Category; type: ActionType }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -135,7 +135,7 @@ export async function addCategory(
 
 export async function editCategory(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { category: ActionCategory }
+  attrs: DBApiRequiredAttrs & { category: Category }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();

@@ -29,15 +29,12 @@ export default function PopupTags({ db, ...props }: Props) {
   const title =
     props.actionType === 'expense' ? 'Etiquetas Gastos' : 'Etiquetas Ingresos';
 
-  const allCategories = [
-    ...db[
-      props.actionType === 'expense' ? 'expenseCategories' : 'incomeCategories'
-    ],
-  ];
+  const allCategories = db.categories.filter(
+    (it) => it.type === props.actionType
+  );
 
-  const tags = [
-    ...db[props.actionType === 'expense' ? 'expenseTags' : 'incomeTags'],
-  ]
+  const tags = db.tags
+    .filter((it) => it.type === props.actionType)
     .sort(sortByFnCreator('name'))
     .sort(sortByFnCreator('sortPriority', false));
 
@@ -69,7 +66,7 @@ export default function PopupTags({ db, ...props }: Props) {
   };
 
   const getItemForm = (item?: Tag) => {
-    const { id, name, sortPriority, expectedPerMonth, categories, startDate } =
+    const { id, name, sortPriority, expectedPerMonth, categoryIds, startDate } =
       item || {};
 
     if (!formItemId) return;
@@ -103,7 +100,7 @@ export default function PopupTags({ db, ...props }: Props) {
           placeholder="Prioridad de orden"
         />
         <select
-          {...register('categories', { required: true, value: categories })}
+          {...register('categoryIds', { required: true, value: categoryIds })}
           multiple
           className="w-full"
           placeholder="Categorías"
@@ -191,13 +188,7 @@ export default function PopupTags({ db, ...props }: Props) {
                     Items:{' '}
                     {db.actions.reduce(
                       (count, action) =>
-                        item.categories.includes(
-                          action[
-                            props.actionType === 'expense'
-                              ? 'expenseCategory'
-                              : 'incomeCategory'
-                          ] ?? ''
-                        )
+                        item.categoryIds.includes(action.categoryId ?? '')
                           ? count + 1
                           : count,
                       0
@@ -219,8 +210,8 @@ export default function PopupTags({ db, ...props }: Props) {
                 </span>
 
                 <span className="block c-description">
-                  Categorías {`(${item.categories.length}): `}
-                  {item.categories
+                  Categorías {`(${item.categoryIds.length}): `}
+                  {item.categoryIds
                     .map(
                       (catId) =>
                         allCategories.find((cat) => cat.id === catId)?.name

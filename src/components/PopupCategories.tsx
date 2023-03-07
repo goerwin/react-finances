@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ActionCategory, ActionType, DB } from '../helpers/DBHelpers';
+import { Category, ActionType, DB } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
 import Popup from './Popup';
 
@@ -8,8 +8,8 @@ export interface Props {
   db: DB;
   actionType: ActionType;
   onItemDelete: (itemId: string) => void;
-  onEditItemSubmit: (item: ActionCategory) => void;
-  onNewItemSubmit: (item: ActionCategory, type: ActionType) => void;
+  onEditItemSubmit: (item: Category) => void;
+  onNewItemSubmit: (item: Category, type: ActionType) => void;
   onClose: () => void;
 }
 
@@ -17,7 +17,7 @@ export default function PopupCategories({ db, ...props }: Props) {
   const itemFormRef = useRef<HTMLFormElement | null>(null);
   const [formItemId, setFormItemId] = useState<string>();
 
-  const { register, handleSubmit, reset } = useForm<ActionCategory>({
+  const { register, handleSubmit, reset } = useForm<Category>({
     shouldUnregister: true,
   });
 
@@ -33,7 +33,7 @@ export default function PopupCategories({ db, ...props }: Props) {
     );
   };
 
-  const handleItemFormSubmit = (item: ActionCategory) => {
+  const handleItemFormSubmit = (item: Category) => {
     setFormItemId(undefined);
     itemFormRef.current = null;
 
@@ -42,7 +42,7 @@ export default function PopupCategories({ db, ...props }: Props) {
     else props.onEditItemSubmit(item);
   };
 
-  const getItemForm = (item?: ActionCategory) => {
+  const getItemForm = (item?: Category) => {
     const { id, name, description, sortPriority } = item || {};
 
     if (!formItemId) return;
@@ -77,11 +77,8 @@ export default function PopupCategories({ db, ...props }: Props) {
     );
   };
 
-  const categories = [
-    ...db[
-      props.actionType === 'expense' ? 'expenseCategories' : 'incomeCategories'
-    ],
-  ]
+  const categories = db.categories
+    .filter((it) => it.type === props.actionType)
     .sort(sortByFnCreator('name'))
     .sort(sortByFnCreator('sortPriority', false));
 
@@ -143,13 +140,7 @@ export default function PopupCategories({ db, ...props }: Props) {
                     Items:{' '}
                     {db.actions.reduce(
                       (count, action) =>
-                        action[
-                          props.actionType === 'expense'
-                            ? 'expenseCategory'
-                            : 'incomeCategory'
-                        ] === item.id
-                          ? count + 1
-                          : count,
+                        action.categoryId === item.id ? count + 1 : count,
                       0
                     )}
                   </span>

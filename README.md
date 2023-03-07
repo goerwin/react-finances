@@ -1,9 +1,11 @@
 # React Finances
 
+
+
 ## TODOs
 
 - [x] wallets
-- [ ] can you just add a type to incomeTags/expenseTags instead of 2 arrays?
+- [x] can you just add a type to incomeTags/expenseTags instead of 2 arrays?
   - same for categories arrays
 - [ ] tags should be extendable
 - [ ] latest content in scrollable should be at bottom
