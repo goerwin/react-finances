@@ -1,16 +1,13 @@
+import { WithRequired } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useForm, UseFormReset } from 'react-hook-form';
-import {
-  Action,
-  ActionType,
-  DB,
-  ActionCategory,
-  Tag,
-} from '../helpers/DBHelpers';
+import { Action, DB, Category, Tag, Wallet } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
 import {
+  getFilterByExpInc,
   getFilteredBy as lsGetFilteredBy,
   setFilteredBy as lsSetFilteredBy,
+  setFilterByExpInc as lsSetFilterByExpInc,
 } from '../helpers/localStorage';
 import {
   getFirstDayOfMonthDate,
@@ -26,31 +23,22 @@ import { formatNumberValueToCurrency } from './Calculator';
 import Popup from './Popup';
 import PopupFilterByDates from './PopupFilterByDates';
 
-export type Props = {
+interface Props {
   db: DB;
-  actionType: ActionType;
   onItemDelete: (actionId: Action['id']) => void;
   onEditItemSubmit: (action: Action) => void;
   onClose: () => void;
-};
-
-// TODO: REFACTOR IT MAYBE?
-function getCategoryName(db: DB, action: Action) {
-  const { type, expenseCategory, incomeCategory } = action;
-  const category = db[
-    type === 'expense' ? 'expenseCategories' : 'incomeCategories'
-  ].find(
-    (el) => el.id === (type === 'expense' ? expenseCategory : incomeCategory)
-  );
-
-  return category?.name || '-';
 }
 
-function getWalletNameById(db: DB, walletId: string) {
-  return db.wallets.find((it) => it.id === walletId)?.name ?? '';
+function getCategoryName(categories: Category[], categoryId: string) {
+  return categories.find((el) => el.id === categoryId)?.name || '-';
 }
 
-function getAction({
+function getWalletName(wallets: Wallet[], walletId: string) {
+  return wallets.find((it) => it.id === walletId)?.name ?? '-';
+}
+
+function getActionNode({
   action,
   editingItemId,
   reset,
@@ -79,14 +67,14 @@ function getAction({
               {formatNumberValueToCurrency(action.value)}
               <span className="c-description">
                 {' '}
-                {getCategoryName(props.db, action)}
+                {getCategoryName(props.db.categories, action.categoryId)}
               </span>
             </span>
             <span className="block c-description">{action.description}</span>
             <span className="block c-description not-italic">
               {getFormattedLocalDatetime(action.date)}
               {' / Bolsillo: '}
-              {getWalletNameById(props.db, action.walletId)}
+              {getWalletName(props.db.wallets, action.walletId)}
             </span>
           </>
         )}
@@ -113,8 +101,8 @@ function getAction({
                   `Seguro que quieres eliminar este ${
                     action.type === 'expense' ? 'gasto' : 'ingreso'
                   } (${getCategoryName(
-                    props.db,
-                    action
+                    props.db.categories,
+                    action.categoryId
                   )} - ${formatNumberValueToCurrency(
                     action.value
                   )} - ${getFormattedLocalDatetime(action.date)})?`
@@ -149,96 +137,77 @@ function getAction({
   );
 }
 
-function filterActionsByTypeAndStartEndDates(
-  attrs: {
-    actionType: ActionType;
-    startDate: Date | string;
-    endDate: Date | string;
-  },
-  action: Action
-) {
-  const actionDate = new Date(action.date);
+function getActionsBy<K extends keyof Pick<Action, 'date' | 'value'>>(attrs: {
+  actions: Action[];
+  startDate?: Date | string;
+  endDate?: Date | string;
+  type?: 'income' | 'expense';
+  categoryIds?: string[];
+  walletIds?: string[];
+  sortBy?: [K, boolean?];
+}) {
+  const { actions, startDate, endDate } = attrs;
+  const { type, categoryIds, walletIds, sortBy } = attrs;
 
-  return (
-    action.type === attrs.actionType &&
-    actionDate >= new Date(attrs.startDate) &&
-    actionDate <= new Date(attrs.endDate)
-  );
+  const filteredActions = actions.filter((action) => {
+    const actionDate = new Date(action.date);
+    const isOfType = type ? action.type === type : true;
+
+    const isInDateRange =
+      startDate && endDate
+        ? actionDate >= new Date(startDate) && actionDate <= new Date(endDate)
+        : true;
+
+    const isOfCategoryId = categoryIds
+      ? categoryIds.includes(action.categoryId)
+      : true;
+
+    const isOfWalletId = walletIds ? walletIds.includes(action.walletId) : true;
+
+    return isOfType && isInDateRange && isOfCategoryId && isOfWalletId;
+  });
+
+  return sortBy
+    ? filteredActions.sort(sortByFnCreator(...sortBy))
+    : filteredActions;
 }
 
-function getCategoryActionsInfo(
-  attrs: {
-    startDate: string | Date;
-    endDate: string | Date;
-    actionType: ActionType;
-    expectedPerMonth: number;
-    actionCategoryKey: 'incomeCategory' | 'expenseCategory';
-
-    allActions: Action[];
-  } & (
-    | {
-        filterBy: 'tags' | 'categories';
-        allCategories: ActionCategory[];
-        actionCategories: string[];
-      }
-    | { filterBy: 'wallets'; walletId: string }
-  )
+function getActionsInfo(
+  attrs: WithRequired<
+    Parameters<typeof getActionsBy>[0],
+    'startDate' | 'endDate'
+  > & { expectedPerMonth?: number }
 ) {
-  const { startDate, endDate, allActions, actionType, filterBy } = attrs;
-  const { expectedPerMonth, actionCategoryKey } = attrs;
+  const { startDate, endDate, expectedPerMonth } = attrs;
 
-  let filteredActions: Action[] = [];
-  let parsedCategories: ActionCategory[] = [];
-
-  if (filterBy === 'categories' || filterBy === 'tags') {
-    const { actionCategories, allCategories } = attrs;
-
-    parsedCategories = actionCategories
-      .map((catId) => ({ ...allCategories.find((cat) => cat.id === catId) }))
-      .filter((el): el is ActionCategory => !!el.id);
-
-    filteredActions = allActions.filter((ac) =>
-      actionCategories.includes(ac[actionCategoryKey] ?? '')
-    );
-  } else if (filterBy === 'wallets') {
-    filteredActions = allActions.filter((ac) => ac.walletId === attrs.walletId);
-  }
-
-  filteredActions = filteredActions.filter(
-    filterActionsByTypeAndStartEndDates.bind(null, {
-      actionType,
-      startDate,
-      endDate,
-    })
-  );
-
-  const filteredActionsTotal = filteredActions.reduce(
-    (t, it) => t + it.value,
-    0
-  );
+  const filteredActions = getActionsBy(attrs);
+  const filteredActionsTotal = filteredActions.reduce((t, i) => t + i.value, 0);
   const monthDiff = getMonthDifference(endDate, startDate);
-  const averageValuePerMonth = filteredActionsTotal / monthDiff;
+  const valuePerMonth = filteredActionsTotal / monthDiff;
   const deviationFromExpected =
-    expectedPerMonth * monthDiff - filteredActionsTotal;
+    (expectedPerMonth ?? 0) * monthDiff - filteredActionsTotal;
 
   return {
     startDate,
     endDate,
     monthDiff,
     filteredActionsTotal,
-    averageValuePerMonth,
+    valuePerMonth,
     deviationFromExpected,
-    parsedCategories,
     filteredActions,
   };
 }
 
-function getCategoryActionsInfoEl(
-  attrs: ReturnType<typeof getCategoryActionsInfo> & {
-    omitRange?: boolean;
-    prefix?: string;
-  }
-) {
+function getActionsGroupInfoNode(attrs: {
+  startDate: Date | string;
+  endDate: Date | string;
+  monthDiff: number;
+  total: number;
+  valuePerMonth: number;
+  deviationFromExpected: number;
+  omitRange?: boolean;
+  prefix?: string;
+}) {
   return (
     <>
       {attrs.omitRange ? null : (
@@ -251,15 +220,15 @@ function getCategoryActionsInfoEl(
 
       <span className="block c-description">
         {attrs.prefix ?? ''}
-        T: {formatNumberValueToCurrency(attrs.filteredActionsTotal)}, M:{' '}
-        {formatNumberValueToCurrency(attrs.averageValuePerMonth)}, D:{' '}
+        T: {formatNumberValueToCurrency(attrs.total)}, M:{' '}
+        {formatNumberValueToCurrency(attrs.valuePerMonth)}, D:{' '}
         {formatNumberValueToCurrency(attrs.deviationFromExpected)}
       </span>
     </>
   );
 }
 
-function getInitialDate(actions: Action[]) {
+function getActionsInitialDate(actions: Action[]) {
   const action = actions.reduce<Action | null>(
     (prev, curr) =>
       !prev ? curr : new Date(curr.date) < new Date(prev.date) ? curr : prev,
@@ -269,7 +238,7 @@ function getInitialDate(actions: Action[]) {
   return new Date(action?.date || 0);
 }
 
-function getFinalDate(actions: Action[]) {
+function getActionsFinalDate(actions: Action[]) {
   const action = actions.reduce<Action | null>(
     (prev, curr) =>
       !prev ? curr : new Date(curr.date) > new Date(prev.date) ? curr : prev,
@@ -279,86 +248,74 @@ function getFinalDate(actions: Action[]) {
   return new Date(action?.date || 0);
 }
 
+function getActionsIncExpInfo(
+  allActions: Action[],
+  attrs: { startDate: Date | string; endDate: Date | string }
+) {
+  const { startDate, endDate } = attrs;
+
+  const {
+    filteredActions: expenseActions,
+    filteredActionsTotal: expActionsTotal,
+    valuePerMonth: expActionsPerMonth,
+  } = getActionsInfo({
+    actions: allActions,
+    type: 'expense',
+    startDate,
+    endDate,
+    sortBy: ['date', false],
+  });
+
+  const {
+    filteredActions: incomeActions,
+    filteredActionsTotal: incActionsTotal,
+    valuePerMonth: incActionsPerMonth,
+    monthDiff,
+  } = getActionsInfo({
+    actions: allActions,
+    type: 'income',
+    startDate,
+    endDate,
+    sortBy: ['date', false],
+  });
+
+  return {
+    incomeActions,
+    expenseActions,
+    incActionsTotal,
+    expActionsTotal,
+    diffTotal: incActionsTotal - expActionsTotal,
+    incActionsPerMonth,
+    expActionsPerMonth,
+    diffPerMonth: incActionsPerMonth - expActionsPerMonth,
+    monthDiff,
+  };
+}
+
 export default function PopupIncomesExpenses(props: Props) {
   const today = new Date();
   const itemFormRef = useRef<HTMLFormElement | null>(null);
   const [showFilterByDatesPopup, setShowFilterByDatesPopup] = useState(false);
   const [filterBy, setFilterBy] = useState(lsGetFilteredBy());
+  const [filterByExpInc, setFilterByExpInc] = useState(getFilterByExpInc());
   const [editingItemId, setEditingItemId] = useState<string>();
   const [{ filterStartDate, filterEndDate }, setFilterDates] = useState({
     filterStartDate: getFirstDayOfMonthDate(today),
     filterEndDate: getLastDayOfMonthDate(today),
   });
-
-  const [initialDate, finalDate] = [
-    getInitialDate(props.db.actions),
-    getFinalDate(props.db.actions),
-  ];
-
   const { register, handleSubmit, reset } = useForm<Action>({
     shouldUnregister: true,
   });
 
-  const allCategories =
-    props.actionType === 'expense'
-      ? props.db.expenseCategories
-      : props.db.incomeCategories;
+  const [initialDate, finalDate] = [
+    getActionsInitialDate(props.db.actions),
+    getActionsFinalDate(props.db.actions),
+  ];
 
-  const actionCategoryKey =
-    props.actionType === 'expense' ? 'expenseCategory' : 'incomeCategory';
-
-  const title = props.actionType === 'expense' ? 'Gastos' : 'Ingresos';
-
-  const filteredActions = props.db.actions
-    .filter(
-      filterActionsByTypeAndStartEndDates.bind(null, {
-        actionType: props.actionType,
-        startDate: filterStartDate,
-        endDate: filterEndDate,
-      })
-    )
-    .sort(sortByFnCreator('date', false));
-
-  const filteredTotal = filteredActions.reduce((acc, el) => acc + el.value, 0);
-
-  // filterBy categories
-
-  let filteredByCaterogies: (ActionCategory & {
-    actions: Action[];
-    filteredBy: 'categories';
-  })[] = [];
-
-  if (filterBy === 'categories')
-    filteredByCaterogies = allCategories
-      .map((cat) => ({
-        ...cat,
-        filteredBy: 'categories' as const,
-        actions: props.db.actions
-          .filter((action) => action[actionCategoryKey] === cat.id)
-          .filter(
-            filterActionsByTypeAndStartEndDates.bind(null, {
-              actionType: props.actionType,
-              startDate: filterStartDate,
-              endDate: filterEndDate,
-            })
-          )
-          .sort(sortByFnCreator('date', false)),
-      }))
-      .sort(sortByFnCreator('name'))
-      .sort(sortByFnCreator('sortPriority', false));
-
-  // filterBy tags
-
-  const tags = (
-    props.actionType === 'expense' ? props.db.expenseTags : props.db.incomeTags
-  )
-    .map((el) => ({ ...el, filteredBy: 'tags' as const }))
-    .sort(sortByFnCreator('sortPriority', false));
-
-  const wallets = props.db.wallets
-    .filter((it) => it.type === props.actionType)
-    .map((el) => ({ ...el, filteredBy: 'wallets' as const }))
-    .sort(sortByFnCreator('sortPriority', false));
+  const syncFilterByExpInc = (filter: typeof filterByExpInc) => {
+    setFilterByExpInc(filter);
+    lsSetFilterByExpInc(filter);
+  };
 
   const manuallySubmitForm = () => {
     itemFormRef.current?.dispatchEvent(
@@ -376,17 +333,12 @@ export default function PopupIncomesExpenses(props: Props) {
   };
 
   const getEditingItemForm = (action: Action) => {
-    const { id, value, type, expenseCategory } = action;
-    const { incomeCategory, date, description, walletId } = action;
+    const { id, value, date, description } = action;
+    const { categoryId, walletId } = action;
 
     if (editingItemId !== id) return;
 
-    const expenseIncomeCategoryName =
-      type === 'expense' ? 'expenseCategory' : 'incomeCategory';
-    const expenseIncomeCategoryVal =
-      type === 'expense' ? expenseCategory : incomeCategory;
-    const categories =
-      props.db[type === 'expense' ? 'expenseCategories' : 'incomeCategories'];
+    const categories = props.db.categories;
 
     return (
       <form
@@ -408,9 +360,7 @@ export default function PopupIncomesExpenses(props: Props) {
         <select
           placeholder="Categoría"
           className="block mb-1"
-          {...register(expenseIncomeCategoryName, {
-            value: expenseIncomeCategoryVal,
-          })}
+          {...register('categoryId', { required: true, value: categoryId })}
         >
           <option key="empty" value="" disabled>
             Categoría
@@ -432,7 +382,7 @@ export default function PopupIncomesExpenses(props: Props) {
           <option key="empty" value="" disabled>
             Bolsillo
           </option>
-          {wallets.map((option) => (
+          {props.db.wallets.map((option) => (
             <option key={option.id} value={option.id}>
               {option.name}
             </option>
@@ -459,262 +409,258 @@ export default function PopupIncomesExpenses(props: Props) {
     );
   };
 
+  const {
+    incomeActions,
+    expenseActions,
+    monthDiff,
+    diffTotal,
+    expActionsTotal,
+    incActionsTotal,
+    expActionsPerMonth,
+    incActionsPerMonth,
+    diffPerMonth,
+  } = getActionsIncExpInfo(props.db.actions, {
+    startDate: filterStartDate,
+    endDate: filterEndDate,
+  });
+
+  const visibleActions =
+    filterByExpInc === 'expense' ? expenseActions : incomeActions;
+
+  const visibleGroups: SafeIntersection<
+    SafeIntersection<Wallet, Category>,
+    Tag
+  >[] =
+    filterBy === 'categories'
+      ? props.db.categories
+          .filter((it) => it.type === filterByExpInc)
+          .sort(sortByFnCreator('sortPriority', false))
+      : filterBy === 'tags'
+      ? props.db.tags
+          .filter((it) => it.type === filterByExpInc)
+          .sort(sortByFnCreator('sortPriority', false))
+      : filterBy === 'wallets'
+      ? props.db.wallets
+          .filter((it) => it.type === filterByExpInc)
+          .sort(sortByFnCreator('sortPriority', false))
+      : [];
+
   return (
-    <>
-      <Popup
-        title={title}
-        bottomArea={
-          <>
-            <div className="mb-2 text-base font-bold">
-              Total: {formatNumberValueToCurrency(filteredTotal)}
-            </div>
+    <Popup
+      title="Entradas"
+      bottomArea={
+        <>
+          <div>
+            <button type="button" onClick={() => syncFilterByExpInc('income')}>
+              Ingresos
+            </button>
+            <button type="button" onClick={() => syncFilterByExpInc('expense')}>
+              Gastos
+            </button>
+          </div>
+          <div className="mb-2 text-sm italic c-description">
+            <p>
+              Gastos: T: {formatNumberValueToCurrency(expActionsTotal)}, M:{' '}
+              {formatNumberValueToCurrency(expActionsPerMonth)}
+            </p>
+            <p>
+              Ingresos: T: {formatNumberValueToCurrency(incActionsTotal)}, M:{' '}
+              {formatNumberValueToCurrency(incActionsPerMonth)}
+            </p>
+            <p>
+              Diferencia: T: {formatNumberValueToCurrency(diffTotal)}, M:{' '}
+              {formatNumberValueToCurrency(diffPerMonth)}
+            </p>
+            <p>Meses: {monthDiff}</p>
+          </div>
 
-            <div className="flex items-center gap-2 justify-between capitalize">
-              <button
-                onClick={() =>
-                  setFilterDates({
-                    filterStartDate:
-                      getPreviousMonthFirstDayDate(filterStartDate),
-                    filterEndDate: getLastDayOfMonthDate(
-                      getPreviousMonthFirstDayDate(filterStartDate)
-                    ),
-                  })
-                }
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                className="!px-2 text-xs leading-none"
-                onClick={() => setShowFilterByDatesPopup(true)}
-              >
-                {getFormattedLocalDate(filterStartDate)}
-                <br />
-                {getFormattedLocalDate(filterEndDate)}
-              </button>
-              <button
-                onClick={() =>
-                  setFilterDates({
-                    filterStartDate: getNextMonthFirstDayDate(filterStartDate),
-                    filterEndDate: getLastDayOfMonthDate(
-                      getNextMonthFirstDayDate(filterStartDate)
-                    ),
-                  })
-                }
-              >
-                →
-              </button>
-            </div>
-
-            <div className="pt-2">
-              <button className="mr-2" onClick={props.onClose}>
-                Cerrar
-              </button>
-              <button
-                onClick={() => {
-                  const newFilterBy =
-                    filterBy === 'date'
-                      ? 'categories'
-                      : filterBy === 'categories'
-                      ? 'tags'
-                      : filterBy === 'tags'
-                      ? 'wallets'
-                      : 'date';
-
-                  setFilterBy(newFilterBy);
-                  lsSetFilteredBy(newFilterBy);
-                }}
-              >
-                Filtro: {filterBy}
-              </button>
-            </div>
-          </>
-        }
-      >
-        {filterBy === 'date'
-          ? filteredActions.map((item) =>
-              getAction({
-                action: item,
-                props,
-                getEditingItemForm,
-                manuallySubmitForm,
-                reset,
-                setEditingItemId,
-                editingItemId,
-              })
-            )
-          : null}
-
-        {filterBy === 'tags' ||
-        filterBy === 'categories' ||
-        filterBy === 'wallets'
-          ? (filterBy === 'tags'
-              ? tags
-              : filterBy === 'categories'
-              ? filteredByCaterogies
-              : wallets
-            ).map((item) => {
-              const filteredBy = item.filteredBy;
-
-              let dateFilteredCategoryActionsInfo: ReturnType<
-                typeof getCategoryActionsInfo
-                // TODO: REMOVE AS ANY
-              > = {} as any;
-              let startDateCategoryActionsInfo: ReturnType<
-                typeof getCategoryActionsInfo
-                // TODO: REMOVE AS ANY
-              > = {} as any;
-
-              if (filterBy === 'categories' || filterBy === 'tags') {
-                const actionCategories =
-                  filteredBy === 'tags' ? item.categories : [item.id];
-
-                dateFilteredCategoryActionsInfo = getCategoryActionsInfo({
-                  actionType: props.actionType,
-                  allActions: props.db.actions,
-                  actionCategoryKey,
-                  filterBy,
-                  expectedPerMonth: item.expectedPerMonth ?? 0,
-                  startDate: filterStartDate,
-                  endDate: filterEndDate,
-
-                  allCategories,
-                  actionCategories,
-                });
-
-                startDateCategoryActionsInfo = getCategoryActionsInfo({
-                  actionType: props.actionType,
-                  allActions: props.db.actions,
-                  filterBy,
-                  actionCategoryKey,
-                  expectedPerMonth: item.expectedPerMonth ?? 0,
-                  startDate: item.startDate ?? initialDate,
-                  endDate: today,
-
-                  allCategories,
-                  actionCategories,
-                });
-              } else if (filteredBy === 'wallets') {
-                dateFilteredCategoryActionsInfo = getCategoryActionsInfo({
-                  actionType: props.actionType,
-                  allActions: props.db.actions,
-                  actionCategoryKey,
-                  filterBy,
-                  expectedPerMonth: item.expectedPerMonth ?? 0,
-                  startDate: filterStartDate,
-                  endDate: filterEndDate,
-
-                  walletId: item.id,
-                });
-
-                startDateCategoryActionsInfo = getCategoryActionsInfo({
-                  actionType: props.actionType,
-                  allActions: props.db.actions,
-                  filterBy,
-                  actionCategoryKey,
-                  expectedPerMonth: item.expectedPerMonth ?? 0,
-                  startDate: item.startDate ?? initialDate,
-                  endDate: today,
-
-                  walletId: item.id,
-                });
+          <div className="flex items-center gap-2 justify-between capitalize">
+            <button
+              onClick={() =>
+                setFilterDates({
+                  filterStartDate:
+                    getPreviousMonthFirstDayDate(filterStartDate),
+                  filterEndDate: getLastDayOfMonthDate(
+                    getPreviousMonthFirstDayDate(filterStartDate)
+                  ),
+                })
               }
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              className="!px-2 text-xs leading-none"
+              onClick={() => setShowFilterByDatesPopup(true)}
+            >
+              {getFormattedLocalDate(filterStartDate)}
+              <br />
+              {getFormattedLocalDate(filterEndDate)}
+            </button>
+            <button
+              onClick={() =>
+                setFilterDates({
+                  filterStartDate: getNextMonthFirstDayDate(filterStartDate),
+                  filterEndDate: getLastDayOfMonthDate(
+                    getNextMonthFirstDayDate(filterStartDate)
+                  ),
+                })
+              }
+            >
+              →
+            </button>
+          </div>
 
-              return (
-                <div
-                  key={item.id + filterStartDate + filterEndDate}
-                  className="relative"
-                >
-                  <input
-                    type="checkbox"
-                    className="absolute w-full left-0 top-0 h-full peer opacity-0"
-                  />
+          <div className="pt-2">
+            <button className="mr-2" onClick={props.onClose}>
+              Cerrar
+            </button>
+            <button
+              onClick={() => {
+                const newFilterBy =
+                  filterBy === 'date'
+                    ? 'categories'
+                    : filterBy === 'categories'
+                    ? 'tags'
+                    : filterBy === 'tags'
+                    ? 'wallets'
+                    : 'date';
 
-                  <div className="text-left">
-                    <p className="border-b border-b-white/10 mb-2 pb-1">
-                      <span>{item.name} </span>
-                      <span className="c-description">
-                        {filteredBy === 'tags' || filteredBy === 'wallets' ? (
-                          <span>
-                            {'('}
-                            {
-                              dateFilteredCategoryActionsInfo.filteredActions
-                                .length
-                            }
-                            {') T: '}
-                            {formatNumberValueToCurrency(
-                              dateFilteredCategoryActionsInfo.filteredActionsTotal
-                            )}
-                            {', D: '}
-                            {formatNumberValueToCurrency(
-                              dateFilteredCategoryActionsInfo.deviationFromExpected
-                            )}
-                          </span>
-                        ) : (
-                          <span>
-                            {'Items: '}
-                            {
-                              dateFilteredCategoryActionsInfo.filteredActions
-                                .length
-                            }
-                            {', Total: '}
-                            {formatNumberValueToCurrency(
-                              dateFilteredCategoryActionsInfo.filteredActionsTotal
-                            )}
-                          </span>
-                        )}
-                      </span>
+                setFilterBy(newFilterBy);
+                lsSetFilteredBy(newFilterBy);
+              }}
+            >
+              Filtro: {filterBy}
+            </button>
+          </div>
+        </>
+      }
+    >
+      {filterBy === 'date'
+        ? visibleActions.map((item) =>
+            getActionNode({
+              action: item,
+              props,
+              getEditingItemForm,
+              manuallySubmitForm,
+              reset,
+              setEditingItemId,
+              editingItemId,
+            })
+          )
+        : null}
 
-                      {filteredBy === 'tags' || filteredBy === 'wallets'
-                        ? getCategoryActionsInfoEl({
-                            ...startDateCategoryActionsInfo,
+      {filterBy !== 'date'
+        ? visibleGroups.map((item) => {
+            const categoryIds =
+              filterBy === 'tags'
+                ? item.categoryIds
+                : filterBy === 'categories'
+                ? [item.id]
+                : undefined;
+            const walletIds = filterBy === 'wallets' ? [item.id] : undefined;
+
+            const dateFilteredActionsInfo = getActionsInfo({
+              actions: visibleActions,
+              startDate: filterStartDate,
+              endDate: filterEndDate,
+              categoryIds,
+              walletIds,
+              expectedPerMonth: item.expectedPerMonth,
+              sortBy: ['date', false],
+            });
+
+            const trackedActionsInfo = getActionsInfo({
+              actions: visibleActions,
+              startDate: item.startDate ?? initialDate,
+              endDate: finalDate,
+              categoryIds,
+              walletIds,
+              expectedPerMonth: item.expectedPerMonth,
+              sortBy: ['date', false],
+            });
+
+            return (
+              <div
+                key={item.id + filterStartDate + filterEndDate}
+                className="relative"
+              >
+                <input
+                  type="checkbox"
+                  className="absolute w-full left-0 top-0 h-full peer opacity-0"
+                />
+
+                <div className="text-left">
+                  <p className="border-b border-b-white/10 mb-2 pb-1">
+                    <span>{item.name} </span>
+                    <span className="c-description">
+                      {filterBy === 'categories' ? (
+                        <span>
+                          {'Items: '}
+                          {dateFilteredActionsInfo.filteredActions.length}
+                          {', Total: '}
+                          {formatNumberValueToCurrency(
+                            dateFilteredActionsInfo.filteredActionsTotal
+                          )}
+                        </span>
+                      ) : (
+                        <span>
+                          {`(${
+                            dateFilteredActionsInfo.filteredActions.length
+                          }) T: ${formatNumberValueToCurrency(
+                            dateFilteredActionsInfo.filteredActionsTotal
+                          )}, D: ${formatNumberValueToCurrency(
+                            dateFilteredActionsInfo.deviationFromExpected
+                          )}`}
+
+                          {getActionsGroupInfoNode({
+                            ...trackedActionsInfo,
+                            total: trackedActionsInfo.filteredActionsTotal,
                             omitRange: true,
                             prefix: 'Seg: ',
-                          })
-                        : null}
-                    </p>
-                  </div>
-
-                  <div className="pl-2 mb-5 hidden peer-checked:block">
-                    <div className="text-left relative mb-2">
-                      <span className="block text-xs c-description">
-                        <span className="block">
-                          Estimado Mensual:{' '}
-                          {formatNumberValueToCurrency(item.expectedPerMonth)}
+                          })}
                         </span>
-                        Categorías{' '}
-                        {`(${dateFilteredCategoryActionsInfo.parsedCategories.length}): `}
-                        {dateFilteredCategoryActionsInfo.parsedCategories
-                          .map((el) => el.name)
-                          .join(', ')}
-                      </span>
-                      <span className="block">-------</span>
-                      {getCategoryActionsInfoEl(startDateCategoryActionsInfo)}
-                      <span className="block">-------</span>
-
-                      {getCategoryActionsInfoEl(
-                        dateFilteredCategoryActionsInfo
                       )}
-                    </div>
-
-                    {dateFilteredCategoryActionsInfo.filteredActions.map(
-                      (item) =>
-                        getAction({
-                          action: item,
-                          props,
-                          getEditingItemForm,
-                          manuallySubmitForm,
-                          reset,
-                          setEditingItemId,
-                          editingItemId,
-                        })
-                    )}
-                  </div>
+                    </span>
+                  </p>
                 </div>
-              );
-            })
-          : null}
-      </Popup>
+
+                <div className="pl-2 mb-5 hidden peer-checked:block">
+                  <div className="text-left relative mb-2">
+                    <span className="block text-xs c-description">
+                      <span className="block">
+                        Estimado Mensual:{' '}
+                        {formatNumberValueToCurrency(item.expectedPerMonth)}
+                      </span>
+                    </span>
+                    <span className="block">-------</span>
+                    {getActionsGroupInfoNode({
+                      ...trackedActionsInfo,
+                      total: trackedActionsInfo.filteredActionsTotal,
+                    })}
+                    <span className="block">-------</span>
+                    {getActionsGroupInfoNode({
+                      ...dateFilteredActionsInfo,
+                      total: dateFilteredActionsInfo.filteredActionsTotal,
+                    })}
+                  </div>
+
+                  {dateFilteredActionsInfo.filteredActions.map((item) =>
+                    getActionNode({
+                      action: item,
+                      props,
+                      getEditingItemForm,
+                      manuallySubmitForm,
+                      reset,
+                      setEditingItemId,
+                      editingItemId,
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })
+        : null}
 
       {showFilterByDatesPopup && (
         <PopupFilterByDates
@@ -736,6 +682,6 @@ export default function PopupIncomesExpenses(props: Props) {
           }}
         />
       )}
-    </>
+    </Popup>
   );
 }

@@ -38,7 +38,7 @@ import {
 } from './config';
 import {
   Action,
-  ActionCategory,
+  Category,
   ActionType,
   DB,
   Tag,
@@ -144,10 +144,7 @@ export default function App() {
         editAction(tokenInfo, { gdFileId, action }),
     });
 
-  const handleAddCategorySubmit = (
-    category: ActionCategory,
-    type: ActionType
-  ) =>
+  const handleAddCategorySubmit = (category: Category, type: ActionType) =>
     mutate({
       tokenInfo,
       lsDb,
@@ -156,7 +153,7 @@ export default function App() {
         addCategory(tokenInfo, { gdFileId, category, type }),
     });
 
-  const handleEditCategorySubmit = (category: ActionCategory) =>
+  const handleEditCategorySubmit = (category: Category) =>
     mutate({
       tokenInfo,
       lsDb,
@@ -336,14 +333,10 @@ export default function App() {
           </button>
         </div>
 
-        <div className="h-14 bg-black/20 grid grid-cols-2 gap-px shrink-0">
+        <div className="h-14 bg-black/20 grid grid-cols-1 gap-px shrink-0">
           {[
             {
-              label: 'Ingresos',
-              onClick: () => setPopup({ action: 'show', actionType: 'income' }),
-            },
-            {
-              label: 'Gastos',
+              label: 'Entradas',
               onClick: () =>
                 setPopup({ action: 'show', actionType: 'expense' }),
             },
@@ -406,7 +399,6 @@ export default function App() {
         {lsDb && popup?.action === 'show' ? (
           <PopupIncomesExpenses
             db={lsDb.db}
-            actionType={popup.actionType}
             onClose={() => setPopup(undefined)}
             onItemDelete={handleActionDelete}
             onEditItemSubmit={handleEditActionSubmit}

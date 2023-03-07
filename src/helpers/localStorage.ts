@@ -8,6 +8,7 @@ const Keys = {
   filteredBy: `${LOCAL_STORAGE_NAMESPACE}_filteredBy`,
   tokenInfo: `${LOCAL_STORAGE_NAMESPACE}_ti`,
   db: `${LOCAL_STORAGE_NAMESPACE}_db`,
+  filterByExpInc: `${LOCAL_STORAGE_NAMESPACE}_filterByExpInc`,
 };
 
 function safeGetLSItem(key: string) {
@@ -30,16 +31,30 @@ export function setTokenInfo(tokenInfo?: TokenInfo) {
     : localStorage.removeItem(Keys.tokenInfo);
 }
 
-const filteredOptions = ['date', 'categories', 'tags', 'wallets'] as const;
+const filterByOpts = ['date', 'categories', 'tags', 'wallets'] as const;
+type FilterByOptions = typeof filterByOpts[number];
 
-export function setFilteredBy(filteredBy: typeof filteredOptions[number]) {
+export function setFilteredBy(filteredBy: FilterByOptions) {
   localStorage.removeItem(Keys.filteredBy);
   localStorage.setItem(Keys.filteredBy, filteredBy);
 }
 
-export function getFilteredBy(): typeof filteredOptions[number] {
+export function getFilteredBy(): FilterByOptions {
   const filteredBy = localStorage.getItem(Keys.filteredBy);
-  return arrayIncludes(filteredOptions, filteredBy) ? filteredBy : 'date';
+  return arrayIncludes(filterByOpts, filteredBy) ? filteredBy : 'date';
+}
+
+const filterByExpIncOpts = ['expense', 'income'] as const;
+type FilterByExpInc = typeof filterByExpIncOpts[number];
+
+export function setFilterByExpInc(filter: FilterByExpInc) {
+  localStorage.removeItem(Keys.filterByExpInc);
+  localStorage.setItem(Keys.filterByExpInc, filter);
+}
+
+export function getFilterByExpInc(): FilterByExpInc {
+  const filter = localStorage.getItem(Keys.filterByExpInc);
+  return arrayIncludes(filterByExpIncOpts, filter) ? filter : 'expense';
 }
 
 const LSDBSchema = z.object({

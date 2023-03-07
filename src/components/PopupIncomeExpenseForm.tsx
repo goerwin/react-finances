@@ -15,17 +15,14 @@ export interface Props {
 export default function PopupIncomeExpenseForm(props: Props) {
   const { handleSubmit, register } = useForm<Action>({
     defaultValues: {
-      expenseCategory: undefined,
-      incomeCategory: undefined,
+      categoryId: '',
       description: '',
     },
   });
 
-  const categories = [
-    ...props.db[
-      props.actionType === 'income' ? 'incomeCategories' : 'expenseCategories'
-    ],
-  ].sort(sortByFnCreator('name'));
+  const categories = props.db.categories
+    .filter((it) => it.type === props.actionType)
+    .sort(sortByFnCreator('name'));
 
   const wallets = props.db.wallets.filter((it) => it.type === props.actionType);
 
@@ -80,12 +77,7 @@ export default function PopupIncomeExpenseForm(props: Props) {
                 className="opacity-0 w-1 h-1 absolute top-0 left-0 peer"
                 type="radio"
                 value={`${id}`}
-                {...register(
-                  props.actionType === 'income'
-                    ? 'incomeCategory'
-                    : 'expenseCategory',
-                  { required: true }
-                )}
+                {...register('categoryId', { required: true })}
               />
 
               <span className="ml-2 mb-2 p-2 inline-block border-2 border-white rounded-lg peer-checked:border-green-500 peer-checked:text-green-500">
