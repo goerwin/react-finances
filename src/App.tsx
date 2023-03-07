@@ -144,31 +144,31 @@ export default function App() {
         editAction(tokenInfo, { gdFileId, action }),
     });
 
-  const handleAddCategorySubmit = (category: Category, type: ActionType) =>
+  const handleAddCategorySubmit = (data: Category, type: ActionType) =>
     mutate({
       tokenInfo,
       lsDb,
       alertMsg: 'Categoría agregada',
       fn: ({ tokenInfo, gdFileId }) =>
-        addCategory(tokenInfo, { gdFileId, category, type }),
+        addCategory(tokenInfo, { gdFileId, data, type }),
     });
 
-  const handleEditCategorySubmit = (category: Category) =>
+  const handleEditCategorySubmit = (data: Category) =>
     mutate({
       tokenInfo,
       lsDb,
       alertMsg: 'Categoría editada',
       fn: ({ tokenInfo, gdFileId }) =>
-        editCategory(tokenInfo, { gdFileId, category }),
+        editCategory(tokenInfo, { gdFileId, data }),
     });
 
-  const handleCategoryDelete = (categoryId: string) =>
+  const handleCategoryDelete = (id: string) =>
     mutate({
       tokenInfo,
       lsDb,
       alertMsg: 'Categoría eliminada',
       fn: ({ tokenInfo, gdFileId }) =>
-        deleteCategory(tokenInfo, { gdFileId, categoryId }),
+        deleteCategory(tokenInfo, { gdFileId, id }),
     });
 
   const handleAddTagSubmit = (tag: Tag, type: ActionType) =>
@@ -177,15 +177,15 @@ export default function App() {
       lsDb,
       alertMsg: 'Etiqueta agregada',
       fn: ({ tokenInfo, gdFileId }) =>
-        addTag(tokenInfo, { gdFileId, tag, type }),
+        addTag(tokenInfo, { gdFileId, data: tag, type }),
     });
 
-  const handleEditTagSubmit = (tag: Tag) =>
+  const handleEditTagSubmit = (data: Tag) =>
     mutate({
       tokenInfo,
       lsDb,
       alertMsg: 'Etiqueta editada',
-      fn: ({ tokenInfo, gdFileId }) => editTag(tokenInfo, { gdFileId, tag }),
+      fn: ({ tokenInfo, gdFileId }) => editTag(tokenInfo, { gdFileId, data }),
     });
 
   const handleWalletDelete = (id: string) =>
@@ -215,13 +215,12 @@ export default function App() {
         editWallet(tokenInfo, { gdFileId, data }),
     });
 
-  const handleTagDelete = (tagId: string) =>
+  const handleTagDelete = (id: string) =>
     mutate({
       tokenInfo,
       lsDb,
       alertMsg: 'Categoría eliminada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        deleteTag(tokenInfo, { gdFileId, tagId }),
+      fn: ({ tokenInfo, gdFileId }) => deleteTag(tokenInfo, { gdFileId, id }),
     });
 
   const handleActionClick = (actionType: ActionType) => {

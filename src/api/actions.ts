@@ -110,7 +110,7 @@ export async function editAction(
 
 export async function addCategory(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { category: Category; type: ActionType }
+  attrs: DBApiRequiredAttrs & { data: Category; type: ActionType }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -121,21 +121,14 @@ export async function addCategory(
     db: {
       ...db,
       updatedAt: date,
-      incomeCategories: [
-        ...(attrs.type === 'income' ? [{ ...attrs.category, id }] : []),
-        ...db.incomeCategories,
-      ],
-      expenseCategories: [
-        ...(attrs.type === 'expense' ? [{ ...attrs.category, id }] : []),
-        ...db.expenseCategories,
-      ],
+      categories: [{ ...attrs.data, id }, ...db.categories],
     },
   });
 }
 
 export async function editCategory(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { category: Category }
+  attrs: DBApiRequiredAttrs & { data: Category }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -145,11 +138,8 @@ export async function editCategory(
     db: {
       ...db,
       updatedAt: date,
-      incomeCategories: db.incomeCategories.map((it) =>
-        it.id === attrs.category.id ? { ...attrs.category } : it
-      ),
-      expenseCategories: db.expenseCategories.map((it) =>
-        it.id === attrs.category.id ? { ...attrs.category } : it
+      categories: db.categories.map((it) =>
+        it.id === attrs.data.id ? { ...attrs.data } : it
       ),
     },
   });
@@ -157,7 +147,7 @@ export async function editCategory(
 
 export async function deleteCategory(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { categoryId: string }
+  attrs: DBApiRequiredAttrs & { id: string }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -167,19 +157,14 @@ export async function deleteCategory(
     db: {
       ...db,
       updatedAt: date,
-      incomeCategories: db.incomeCategories.filter(
-        (it) => it.id !== attrs.categoryId
-      ),
-      expenseCategories: db.expenseCategories.filter(
-        (it) => it.id !== attrs.categoryId
-      ),
+      categories: db.categories.filter((it) => it.id !== attrs.id),
     },
   });
 }
 
 export async function addTag(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { tag: Tag; type: ActionType }
+  attrs: DBApiRequiredAttrs & { data: Tag; type: ActionType }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -190,21 +175,14 @@ export async function addTag(
     db: {
       ...db,
       updatedAt: date,
-      incomeTags: [
-        ...(attrs.type === 'income' ? [{ ...attrs.tag, id }] : []),
-        ...db.incomeTags,
-      ],
-      expenseTags: [
-        ...(attrs.type === 'expense' ? [{ ...attrs.tag, id }] : []),
-        ...db.expenseTags,
-      ],
+      tags: [{ ...attrs.data, id }, ...db.tags],
     },
   });
 }
 
 export async function editTag(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { tag: Tag }
+  attrs: DBApiRequiredAttrs & { data: Tag }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -214,11 +192,8 @@ export async function editTag(
     db: {
       ...db,
       updatedAt: date,
-      incomeTags: db.incomeTags.map((it) =>
-        it.id === attrs.tag.id ? { ...attrs.tag } : it
-      ),
-      expenseTags: db.expenseTags.map((it) =>
-        it.id === attrs.tag.id ? { ...attrs.tag } : it
+      tags: db.tags.map((it) =>
+        it.id === attrs.data.id ? { ...attrs.data } : it
       ),
     },
   });
@@ -226,7 +201,7 @@ export async function editTag(
 
 export async function deleteTag(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { tagId: string }
+  attrs: DBApiRequiredAttrs & { id: string }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -236,8 +211,7 @@ export async function deleteTag(
     db: {
       ...db,
       updatedAt: date,
-      incomeTags: db.incomeTags.filter((it) => it.id !== attrs.tagId),
-      expenseTags: db.expenseTags.filter((it) => it.id !== attrs.tagId),
+      tags: db.tags.filter((it) => it.id !== attrs.id),
     },
   });
 }
