@@ -1,43 +1,44 @@
 import { z } from 'zod';
 
-const typeSchema = z.enum(['expense', 'income']);
+const itemTypeSchema = z.enum(['expense', 'income']);
 
-const categorySchema = z.object({
+export const categorySchema = z.object({
   id: z.string(),
   name: z.string(),
   sortPriority: z.number(),
-  type: typeSchema,
+  type: itemTypeSchema,
   description: z.string().optional(),
   startDate: z.string().datetime().optional(),
   expectedPerMonth: z.number().optional(),
 });
 
-const walletSchema = z.object({
+export const walletSchema = z.object({
   id: z.string(),
   name: z.string(),
   sortPriority: z.number(),
-  type: typeSchema,
+  type: itemTypeSchema,
   description: z.string().optional(),
   startDate: z.string().datetime().optional(),
   expectedPerMonth: z.number().optional(),
 });
 
-const tagSchema = z.object({
+export const tagSchema = z.object({
   id: z.string(),
   sortPriority: z.number(),
   name: z.string(),
-  type: typeSchema,
+  type: itemTypeSchema,
   categoryIds: z.array(categorySchema.shape.id),
+  walletIds: z.array(walletSchema.shape.id),
   description: z.string().optional(),
   startDate: z.string().datetime().optional(),
   expectedPerMonth: z.number().optional(),
 });
 
-const actionSchema = z.object({
+export const actionSchema = z.object({
   id: z.string(),
   date: z.string().datetime(),
   value: z.number(),
-  type: typeSchema,
+  type: itemTypeSchema,
   description: z.string().optional(),
   walletId: walletSchema.shape.id,
   categoryId: categorySchema.shape.id,
@@ -53,7 +54,7 @@ export const dbSchema = z.object({
 });
 
 export type DB = z.infer<typeof dbSchema>;
-export type ActionType = z.infer<typeof typeSchema>;
+export type ItemType = z.infer<typeof itemTypeSchema>;
 export type Action = z.infer<typeof actionSchema>;
 export type Category = z.infer<typeof categorySchema>;
 export type Wallet = z.infer<typeof walletSchema>;

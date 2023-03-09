@@ -1,12 +1,12 @@
 import { useForm } from 'react-hook-form';
-import { Action, ActionType, DB } from '../helpers/DBHelpers';
+import { Action, ItemType, DB } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
 import { removeCurrencyFormattingToValue } from './Calculator';
 import Popup from './Popup';
 
 export interface Props {
   db: DB;
-  actionType: ActionType;
+  actionType: ItemType;
   value?: string;
   onClose: () => void;
   onSubmit: (value: Action) => void;

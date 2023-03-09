@@ -1,86 +1,37 @@
-import { useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Category, ActionType, DB } from '../helpers/DBHelpers';
+import { useState } from 'react';
+import { ItemType, Category, categorySchema, DB } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
+import ItemForm from './ItemForm';
+import ItemView from './ItemView';
 import Popup from './Popup';
 
 export interface Props {
   db: DB;
-  actionType: ActionType;
+  actionType: ItemType;
   onItemDelete: (itemId: string) => void;
   onEditItemSubmit: (item: Category) => void;
-  onNewItemSubmit: (item: Category, type: ActionType) => void;
+  onNewItemSubmit: (item: Category) => void;
   onClose: () => void;
 }
 
 export default function PopupCategories({ db, ...props }: Props) {
-  const itemFormRef = useRef<HTMLFormElement | null>(null);
   const [formItemId, setFormItemId] = useState<string>();
-
-  const { register, handleSubmit, reset } = useForm<Category>({
-    shouldUnregister: true,
-  });
 
   const title =
     props.actionType === 'expense' ? 'Categoría Gastos' : 'Categoría Ingresos';
-
-  const manuallySubmitForm = () => {
-    itemFormRef.current?.dispatchEvent(
-      new Event('submit', {
-        cancelable: true,
-        bubbles: true,
-      })
-    );
-  };
-
-  const handleItemFormSubmit = (item: Category) => {
-    setFormItemId(undefined);
-    itemFormRef.current = null;
-
-    if (!formItemId) return;
-    if (formItemId === 'new') props.onNewItemSubmit(item, props.actionType);
-    else props.onEditItemSubmit(item);
-  };
-
-  const getItemForm = (item?: Category) => {
-    const { id, name, description, sortPriority } = item || {};
-
-    if (!formItemId) return;
-
-    return (
-      <form onSubmit={handleSubmit(handleItemFormSubmit)} ref={itemFormRef}>
-        <input type="hidden" {...register('id', { value: id })} />
-        <input
-          className="mb-1"
-          {...register('name', { required: true, value: name })}
-          type="text"
-          placeholder="Nombre"
-        />
-        <input
-          className="mb-1"
-          {...register('sortPriority', {
-            required: true,
-            value: sortPriority,
-            valueAsNumber: true,
-          })}
-          type="number"
-          placeholder="Prioridad de orden"
-        />
-        <input
-          className="mb-1"
-          {...register('description', { value: description })}
-          type="text"
-          placeholder="Descripción"
-        />
-        <button type="submit" hidden />
-      </form>
-    );
-  };
 
   const categories = db.categories
     .filter((it) => it.type === props.actionType)
     .sort(sortByFnCreator('name'))
     .sort(sortByFnCreator('sortPriority', false));
+
+  const handleItemFormSubmit = (data: unknown) => {
+    setFormItemId(undefined);
+
+    const item = categorySchema.parse(data);
+    if (item.id === 'new') props.onNewItemSubmit(item);
+    else props.onEditItemSubmit(item);
+  };
 
   return (
     <Popup
@@ -91,115 +42,116 @@ export default function PopupCategories({ db, ...props }: Props) {
           <button onClick={props.onClose}>Cerrar</button>
           <button
             className="btn-success ml-4"
-            onClick={() => {
-              reset();
-              setFormItemId('new');
-              setTimeout(() =>
-                itemFormRef.current
-                  ?.querySelector<HTMLInputElement>('input[name="name"]')
-                  ?.focus()
-              );
-            }}
+            onClick={() => setFormItemId('new')}
           >
             Agregar
           </button>
         </>
       }
     >
-      {formItemId === 'new' && (
+      {formItemId === 'new' ? (
         <div className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center">
-          <div className="grow mr-2 break-words min-w-0">{getItemForm()}</div>
-
-          <div className="flex gap-2 max-h-10">
-            <button
-              className="btn-success p-0 text-2xl h-10 aspect-square"
-              onClick={manuallySubmitForm}
-            >
-              ✓
-            </button>
-            <button
-              className="btn-danger p-0 text-2xl h-10 aspect-square"
-              onClick={() => setFormItemId(undefined)}
-              dangerouslySetInnerHTML={{ __html: '&times;' }}
-            />
-          </div>
+          <ItemForm
+            formItems={[
+              {
+                type: 'input',
+                required: true,
+                hidden: true,
+                name: 'id',
+                value: 'new',
+              },
+              {
+                type: 'input',
+                required: true,
+                hidden: true,
+                name: 'type',
+                value: props.actionType,
+              },
+              {
+                type: 'input',
+                name: 'name',
+                required: true,
+                label: 'Nombre',
+              },
+              {
+                type: 'inputNumber',
+                name: 'sortPriority',
+                required: true,
+                label: 'Prioridad de orden',
+              },
+              {
+                type: 'input',
+                name: 'description',
+                label: 'Descripción',
+              },
+            ]}
+            onSubmit={handleItemFormSubmit}
+            onCancel={() => setFormItemId(undefined)}
+          />
         </div>
+      ) : null}
+
+      {categories.map((item) =>
+        formItemId !== item.id ? (
+          <ItemView
+            key={'view' + item.id}
+            id={item.id}
+            title={item.name}
+            description={`Items: ${db.actions.reduce(
+              (t, ac) => (ac.categoryId === item.id ? t + 1 : t),
+              0
+            )}`}
+            texts={[
+              `Prioridad de orden: ${item.sortPriority}`,
+              item.description,
+            ]}
+            onRemoveClick={props.onItemDelete}
+            onEditClick={setFormItemId}
+          />
+        ) : (
+          <ItemForm
+            key={'form' + item.id}
+            formItems={[
+              {
+                type: 'input',
+                required: true,
+                hidden: true,
+                name: 'id',
+                value: item.id,
+              },
+              {
+                type: 'input',
+                required: true,
+                hidden: true,
+                name: 'type',
+                value: item.type,
+              },
+              {
+                type: 'input',
+                name: 'name',
+                required: true,
+                label: 'Nombre',
+                value: item.name,
+              },
+              {
+                type: 'inputNumber',
+                name: 'sortPriority',
+                required: true,
+                label: 'Prioridad de orden',
+                value: item.sortPriority,
+              },
+              {
+                type: 'input',
+                name: 'description',
+                label: 'Descripción',
+                value: item.description,
+              },
+            ]}
+            onSubmit={handleItemFormSubmit}
+            onCancel={() => setFormItemId(undefined)}
+          />
+        )
       )}
-
-      {categories.map((item) => (
-        <div
-          key={item.id}
-          className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center"
-        >
-          <div className="grow mr-2 break-words min-w-0">
-            {formItemId !== item.id && (
-              <>
-                <span className="block">
-                  {item.name}{' '}
-                  <span className="c-description text-xs">
-                    Items:{' '}
-                    {db.actions.reduce(
-                      (count, action) =>
-                        action.categoryId === item.id ? count + 1 : count,
-                      0
-                    )}
-                  </span>
-                </span>
-                <span className="block c-description">
-                  Prioridad de orden: {item.sortPriority}
-                </span>
-                <span className="block c-description">{item.description}</span>
-              </>
-            )}
-            {formItemId === item.id && getItemForm(item)}
-          </div>
-
-          <div className="flex gap-2 max-h-10">
-            {formItemId !== item.id && (
-              <>
-                <button
-                  className="btn-success p-0 text-2xl h-10 aspect-square"
-                  onClick={() => {
-                    reset();
-                    setFormItemId(item.id);
-                  }}
-                >
-                  ✎
-                </button>
-                <button
-                  className="btn-danger p-0 text-2xl h-10 aspect-square"
-                  onClick={async () => {
-                    const resp = window.confirm(
-                      `Seguro que quieres eliminar esta categoría (${item.name})?`
-                    );
-
-                    if (!resp) return;
-                    props.onItemDelete(item.id);
-                  }}
-                >
-                  🗑
-                </button>
-              </>
-            )}
-
-            {formItemId === item.id && (
-              <>
-                <button
-                  className="btn-success p-0 text-2xl h-10 aspect-square"
-                  onClick={manuallySubmitForm}
-                >
-                  ✓
-                </button>
-                <button
-                  className="btn-danger p-0 text-2xl h-10 aspect-square"
-                  onClick={() => setFormItemId(undefined)}
-                  dangerouslySetInnerHTML={{ __html: '&times;' }}
-                />
-              </>
-            )}
-          </div>
-        </div>
-      ))}
     </Popup>
   );
 }

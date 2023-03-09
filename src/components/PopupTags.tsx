@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ActionType, DB, Tag } from '../helpers/DBHelpers';
+import { ItemType, DB, Tag } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
 import {
   getDateFormattedForInput,
@@ -11,10 +11,10 @@ import Popup from './Popup';
 
 export interface Props {
   db: DB;
-  actionType: ActionType;
+  actionType: ItemType;
   onItemDelete: (itemId: string) => void;
   onEditItemSubmit: (item: Tag) => void;
-  onNewItemSubmit: (item: Tag, type: ActionType) => void;
+  onNewItemSubmit: (item: Tag, type: ItemType) => void;
   onClose: () => void;
 }
 

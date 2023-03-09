@@ -5,6 +5,7 @@
 - [x] wallets
 - [x] can you just add a type to incomeTags/expenseTags instead of 2 arrays?
   - same for categories arrays
+- [ ] show info relating to untracked data (invalid category/wallet/tag/etc)
 - [ ] tags should also be like smart filters (you can create a tag that can track wallets/categories for example)
 - [ ] latest content in scrollable should be at bottom
 - [x] categories should also have the same info as tags

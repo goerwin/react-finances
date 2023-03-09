@@ -539,8 +539,8 @@ export default function PopupIncomesExpenses(props: Props) {
             ).map((it, idx) => (
               <button
                 type="button"
-                className={`!text-xs !p-2 !py-4 !rounded-none !bg-black/20 ${
-                  it.filterBy === filterByExpInc ? '!bg-green-900' : ''
+                className={`!text-xs !p-2 !py-4 !rounded-none ${
+                  it.filterBy === filterByExpInc ? '!bg-green-900' : '!bg-black/20'
                 }`}
                 key={idx}
                 onClick={() => syncFilterByExpInc(it.filterBy)}

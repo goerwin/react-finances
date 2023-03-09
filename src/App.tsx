@@ -13,6 +13,7 @@ import {
   addWallet,
   deleteAction,
   deleteCategory,
+  deleteItem,
   deleteTag,
   deleteWallet,
   editAction,
@@ -23,8 +24,10 @@ import {
   TokenInfoSchema,
 } from './api/actions';
 import Calculator from './components/Calculator';
+import ItemView from './components/ItemView';
 import Loading from './components/Loading';
 import PopupCategories from './components/PopupCategories';
+import PopupCRUD from './components/PopupCRUD';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import PopupManageDB from './components/PopupManageDB';
@@ -39,10 +42,11 @@ import {
 import {
   Action,
   Category,
-  ActionType,
+  ItemType,
   DB,
   Tag,
   Wallet,
+  categorySchema,
 } from './helpers/DBHelpers';
 import { handleErrorWithNotifications, loadScript } from './helpers/general';
 import {
@@ -69,7 +73,7 @@ export default function App() {
       | 'showTags'
       | 'showWallets'
       | 'manageDB';
-    actionType: ActionType;
+    actionType: ItemType;
   }>();
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
   const [lsDb, setLsDb] = useState(LSGetLsDB());
@@ -144,13 +148,13 @@ export default function App() {
         editAction(tokenInfo, { gdFileId, action }),
     });
 
-  const handleAddCategorySubmit = (data: Category, type: ActionType) =>
+  const handleAddCategorySubmit = (data: Category) =>
     mutate({
       tokenInfo,
       lsDb,
       alertMsg: 'Categoría agregada',
       fn: ({ tokenInfo, gdFileId }) =>
-        addCategory(tokenInfo, { gdFileId, data, type }),
+        addCategory(tokenInfo, { gdFileId, data }),
     });
 
   const handleEditCategorySubmit = (data: Category) =>
@@ -168,10 +172,11 @@ export default function App() {
       lsDb,
       alertMsg: 'Categoría eliminada',
       fn: ({ tokenInfo, gdFileId }) =>
-        deleteCategory(tokenInfo, { gdFileId, id }),
+        deleteItem(tokenInfo, { gdFileId, id, type: 'categories' }),
+      // deleteCategory(tokenInfo, { gdFileId, id }),
     });
 
-  const handleAddTagSubmit = (tag: Tag, type: ActionType) =>
+  const handleAddTagSubmit = (tag: Tag, type: ItemType) =>
     mutate({
       tokenInfo,
       lsDb,
@@ -197,7 +202,7 @@ export default function App() {
         deleteWallet(tokenInfo, { gdFileId, id }),
     });
 
-  const handleAddWalletSubmit = (data: Wallet, type: ActionType) =>
+  const handleAddWalletSubmit = (data: Wallet, type: ItemType) =>
     mutate({
       tokenInfo,
       lsDb,
@@ -223,7 +228,7 @@ export default function App() {
       fn: ({ tokenInfo, gdFileId }) => deleteTag(tokenInfo, { gdFileId, id }),
     });
 
-  const handleActionClick = (actionType: ActionType) => {
+  const handleActionClick = (actionType: ItemType) => {
     if (!value) return;
     setPopup({ action: 'add', actionType });
   };
@@ -405,13 +410,64 @@ export default function App() {
         ) : null}
 
         {lsDb && popup?.action === 'showCategories' ? (
-          <PopupCategories
-            db={lsDb.db}
+          <PopupCRUD
+            dbNamespace="categories"
+            title="Categorías"
             actionType={popup.actionType}
-            onClose={() => setPopup(undefined)}
+            actions={lsDb.db.actions}
+            items={lsDb.db.categories}
             onItemDelete={handleCategoryDelete}
             onEditItemSubmit={handleEditCategorySubmit}
             onNewItemSubmit={handleAddCategorySubmit}
+            onClose={() => setPopup(undefined)}
+            itemZodSchema={categorySchema}
+            getItemView={({ item, actions, onRemoveClick, onEditClick }) => (
+              <ItemView
+                id={item.id}
+                title={item.name}
+                description={`Items: ${actions.reduce(
+                  (t, ac) => (ac.categoryId === item.id ? t + 1 : t),
+                  0
+                )}`}
+                texts={[
+                  `Prioridad de orden: ${item.sortPriority}`,
+                  item.description,
+                ]}
+                onRemoveClick={onRemoveClick}
+                onEditClick={onEditClick}
+              />
+            )}
+            formItemElements={[
+              {
+                type: 'input',
+                required: true,
+                hidden: true,
+                name: 'id',
+              },
+              {
+                type: 'input',
+                required: true,
+                hidden: true,
+                name: 'type',
+              },
+              {
+                type: 'input',
+                name: 'name',
+                required: true,
+                label: 'Nombre',
+              },
+              {
+                type: 'inputNumber',
+                name: 'sortPriority',
+                required: true,
+                label: 'Prioridad de orden',
+              },
+              {
+                type: 'input',
+                name: 'description',
+                label: 'Descripción',
+              },
+            ]}
           />
         ) : null}
 

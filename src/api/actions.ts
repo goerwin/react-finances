@@ -1,7 +1,7 @@
 import {
   Action,
   Category,
-  ActionType,
+  ItemType,
   DB,
   dbSchema,
   Tag,
@@ -110,7 +110,7 @@ export async function editAction(
 
 export async function addCategory(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { data: Category; type: ActionType }
+  attrs: DBApiRequiredAttrs & { data: Category }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -164,7 +164,8 @@ export async function deleteCategory(
 
 export async function addTag(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { data: Tag; type: ActionType }
+  // todo: remove type from all of these
+  attrs: DBApiRequiredAttrs & { data: Tag; type: ItemType }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -218,7 +219,7 @@ export async function deleteTag(
 
 export async function addWallet(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { data: Wallet; type: ActionType }
+  attrs: DBApiRequiredAttrs & { data: Wallet; type: ItemType }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
@@ -266,6 +267,69 @@ export async function deleteWallet(
       ...db,
       updatedAt: date,
       wallets: db.wallets.filter((it) => it.id !== attrs.id),
+    },
+  });
+}
+
+export async function addItem<T extends { id: string }>(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & {
+    // todo: put this in dbapirequiredattrs
+    type: 'categories' | 'tags' | 'wallets' | 'actions';
+    data: T;
+  }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+  const id = uuidv4();
+  const { type, data } = attrs;
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: { ...db, updatedAt: date, [type]: [{ ...data, id }, ...db[type]] },
+  });
+}
+
+export async function editItem<T extends { id: string }>(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & {
+    type: 'categories' | 'tags' | 'wallets' | 'actions';
+    data: T;
+  }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+  const { type, data } = attrs;
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      [type]: db[type].map((it) => (it.id === data.id ? { ...data } : it)),
+    },
+  });
+}
+
+export async function deleteItem(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & {
+    type: 'categories' | 'tags' | 'wallets' | 'actions';
+    id: string;
+  }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+  const { type, id } = attrs;
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      // @ts-ignore todo: its throwing because of actions in type
+      // but this is safe
+      [type]: db[type].filter((it) => it.id !== id),
     },
   });
 }
