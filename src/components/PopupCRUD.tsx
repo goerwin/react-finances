@@ -1,11 +1,12 @@
 import { Fragment, ReactNode, useState } from 'react';
 import { ZodSchema } from 'zod';
-import { Action, ItemType } from '../helpers/DBHelpers';
+import { Action, Category, ItemType, Tag, Wallet } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
 import ItemForm, { FormItem } from './ItemForm';
+import ItemView from './ItemView';
 import Popup from './Popup';
 
-type ItemCommon = {
+type ItemCommon2 = {
   id: string;
   type: ItemType;
   name: string;
@@ -14,6 +15,16 @@ type ItemCommon = {
   [x: string]: any;
 };
 
+type TagOrWallet = SafeIntersection<Tag, Wallet>;
+type ActionOrCategory = SafeIntersection<Action, Category>;
+type Bb = SafeIntersection<ActionOrCategory, { [x: string]: any }>;
+type ItemCommon = SafeIntersection<TagOrWallet, Bb>;
+
+type W = SafeIntersection<{ d: string; name: string }, { name: string }>;
+const w = {} as W;
+const a = {} as ActionOrCategory;
+const b = {} as ItemCommon;
+
 interface Props<T extends ItemCommon> {
   items: T[];
   dbNamespace: 'actions' | 'categories' | 'tags' | 'wallets';
@@ -21,13 +32,11 @@ interface Props<T extends ItemCommon> {
   title: string;
   actions: Action[];
   actionType: ItemType;
-  itemZodSchema: ZodSchema;
-  getItemView: (attrs: {
-    item: T;
-    actions: Action[];
-    onRemoveClick: (itemId: string) => void;
-    onEditClick: (itemId: string) => void;
-  }) => ReactNode;
+  getItemInfo: (attrs: { item: T; actions: Action[] }) => {
+    title: string;
+    description?: string;
+    texts?: (string | undefined)[];
+  };
   onItemDelete: (itemId: string) => void;
   onEditItemSubmit: (item: ItemCommon) => void;
   onNewItemSubmit: (item: ItemCommon) => void;
@@ -48,12 +57,11 @@ export default function PopupCRUD<T extends ItemCommon>({
     // @ts-ignore todo:
     .sort(sortByFnCreator('sortPriority', false));
 
-  const handleItemFormSubmit = (data: unknown) => {
+  const handleItemFormSubmit = (data: any) => {
     setFormItemId(undefined);
 
-    const item = props.itemZodSchema.parse(data);
-    if (item.id === 'new') props.onNewItemSubmit(item);
-    else props.onEditItemSubmit(item);
+    if (data?.id === 'new') props.onNewItemSubmit(data);
+    else props.onEditItemSubmit(data);
   };
 
   return (
@@ -93,16 +101,19 @@ export default function PopupCRUD<T extends ItemCommon>({
         </div>
       ) : null}
 
-      {parsedItems.map((item) =>
-        formItemId !== item.id ? (
-          <Fragment key={'view' + item.id}>
-            {props.getItemView({
-              item,
-              actions,
-              onEditClick: setFormItemId,
-              onRemoveClick: props.onItemDelete,
-            })}
-          </Fragment>
+      {parsedItems.map((item) => {
+        const resp = props.getItemInfo({ item, actions });
+
+        return formItemId !== item.id ? (
+          <ItemView
+            key={'view' + item.id}
+            id={item.id}
+            title={resp.title}
+            description={resp.description}
+            texts={resp.texts}
+            onRemoveClick={props.onItemDelete}
+            onEditClick={setFormItemId}
+          />
         ) : (
           <ItemForm
             key={'form' + item.id}
@@ -113,8 +124,8 @@ export default function PopupCRUD<T extends ItemCommon>({
             onSubmit={handleItemFormSubmit}
             onCancel={() => setFormItemId(undefined)}
           />
-        )
-      )}
+        );
+      })}
     </Popup>
   );
 }

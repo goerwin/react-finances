@@ -22,11 +22,29 @@ type NonOptionalPropertiesOf<T extends object> = Exclude<
  */
 
 type SafeIntersection<T, U> = {
+  // K is optional in interception
   [K in OptionalPropertiesOf<T> & OptionalPropertiesOf<U>]?: T[K] | U[K];
 } & {
+  // K is non optional in interception
   [K in NonOptionalPropertiesOf<T> & NonOptionalPropertiesOf<U>]: T[K] | U[K];
 } & {
-  [K in Exclude<keyof T, keyof T & keyof U>]?: T[K];
+  [K in Exclude<
+    keyof T,
+    OptionalPropertiesOf<T> & OptionalPropertiesOf<U>
+  >]?: T[K];
 } & {
-  [K in Exclude<keyof U, keyof T & keyof U>]?: U[K];
+  [K in Exclude<
+    keyof U,
+    OptionalPropertiesOf<T> & OptionalPropertiesOf<U>
+  >]?: U[K];
+} & {
+  [K in Exclude<
+    keyof T,
+    NonOptionalPropertiesOf<T> & NonOptionalPropertiesOf<U>
+  >]?: T[K];
+} & {
+  [K in Exclude<
+    keyof U,
+    NonOptionalPropertiesOf<T> & NonOptionalPropertiesOf<U>
+  >]?: U[K];
 };

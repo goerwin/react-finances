@@ -7,7 +7,7 @@ import {
   Tag,
   Wallet,
 } from '../helpers/DBHelpers';
-import { z } from 'zod';
+import { z, ZodSchema } from 'zod';
 
 // https://github.com/uuidjs/uuid/pull/654
 import { v4 as uuidv4 } from 'uuid';
@@ -271,42 +271,52 @@ export async function deleteWallet(
   });
 }
 
-export async function addItem<T extends { id: string }>(
+export async function addItem<T>(
   tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & {
+    schema: ZodSchema<T>;
     // todo: put this in dbapirequiredattrs
     type: 'categories' | 'tags' | 'wallets' | 'actions';
-    data: T;
+    data: unknown;
   }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();
   const id = uuidv4();
-  const { type, data } = attrs;
-
-  return updateDB(tokenInfo, {
-    ...attrs,
-    db: { ...db, updatedAt: date, [type]: [{ ...data, id }, ...db[type]] },
-  });
-}
-
-export async function editItem<T extends { id: string }>(
-  tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & {
-    type: 'categories' | 'tags' | 'wallets' | 'actions';
-    data: T;
-  }
-) {
-  const db = await getDB(tokenInfo, attrs);
-  const date = new Date().toISOString();
-  const { type, data } = attrs;
+  const { type, data, schema } = attrs;
+  const parsedData = schema.parse(data);
 
   return updateDB(tokenInfo, {
     ...attrs,
     db: {
       ...db,
       updatedAt: date,
-      [type]: db[type].map((it) => (it.id === data.id ? { ...data } : it)),
+      [type]: [{ ...parsedData, id }, ...db[type]],
+    },
+  });
+}
+
+export async function editItem<T extends { id: string }>(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & {
+    schema: ZodSchema<T>;
+    type: 'categories' | 'tags' | 'wallets' | 'actions';
+    data: unknown;
+  }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  const date = new Date().toISOString();
+  const { type, data, schema } = attrs;
+  const parsedData = schema.parse(data);
+
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: {
+      ...db,
+      updatedAt: date,
+      [type]: db[type].map((it) =>
+        it.id === parsedData.id ? { ...parsedData } : it
+      ),
     },
   });
 }

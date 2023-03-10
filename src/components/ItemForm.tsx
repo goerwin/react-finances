@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { getDateFormattedForInput } from '../helpers/time';
 
 type Common = {
   name: string;
@@ -12,6 +13,7 @@ export type FormItem = Common &
   (
     | ({ type: 'input' } & { value?: string; defaultValue?: string })
     | ({ type: 'inputNumber' } & { value?: number; defaultValue?: number })
+    | ({ type: 'date' } & { value?: string; defaultValue?: string })
     | ({ type: 'select' } & {
         value?: string;
         defaultValue?: string;
@@ -42,7 +44,7 @@ export default function ItemForm(props: Props) {
   return (
     <form className="flex gap-2" onSubmit={handleSubmit(props.onSubmit)}>
       <div className="grow">
-        {props.formItems.map(({ value, name, label, ...it }) => {
+        {props.formItems.map(({ name, label, ...it }) => {
           if (it.type === 'input')
             return (
               <fieldset key={name}>
@@ -51,7 +53,10 @@ export default function ItemForm(props: Props) {
                   hidden={it.hidden}
                   type="text"
                   placeholder={label}
-                  {...register(name, { value, required: it.required })}
+                  {...register(name, {
+                    value: it.value,
+                    required: it.required,
+                  })}
                 />
               </fieldset>
             );
@@ -65,7 +70,7 @@ export default function ItemForm(props: Props) {
                   type="number"
                   placeholder={label}
                   {...register(name, {
-                    value,
+                    value: it.value,
                     required: it.required,
                     valueAsNumber: true,
                   })}
@@ -81,7 +86,10 @@ export default function ItemForm(props: Props) {
                   hidden={it.hidden}
                   multiple={it.type === 'selectMultiple'}
                   placeholder={label}
-                  {...register(name, { value, required: it.required })}
+                  {...register(name, {
+                    value: it.value,
+                    required: it.required,
+                  })}
                 >
                   <option value="" disabled>
                     {label}
@@ -94,6 +102,24 @@ export default function ItemForm(props: Props) {
                 </select>
               </fieldset>
             );
+
+          if (it.type === 'date') {
+            return (
+              <fieldset key={name}>
+                {label ? <label>{label}</label> : null}
+                <input
+                  type="date"
+                  {...register(name, {
+                    value: it.value ? getDateFormattedForInput(it.value) : '',
+                    // val is yyyy-MM-dd
+                    // append T00:00 to convert it to local date
+                    setValueAs: (val) =>
+                      val ? new Date(val + 'T00:00').toISOString() : undefined,
+                  })}
+                />
+              </fieldset>
+            );
+          }
         })}
       </div>
 
@@ -113,31 +139,5 @@ export default function ItemForm(props: Props) {
         </button>
       </div>
     </form>
-    // <form onSubmit={handleSubmit(handleItemFormSubmit)} ref={itemFormRef}>
-    //   <input type="hidden" {...register('id', { value: id })} />
-    //   <input
-    //     className="mb-1"
-    //     {...register('name', { required: true, value: name })}
-    //     type="text"
-    //     placeholder="Nombre"
-    //   />
-    //   <input
-    //     className="mb-1"
-    //     {...register('sortPriority', {
-    //       required: true,
-    //       value: sortPriority,
-    //       valueAsNumber: true,
-    //     })}
-    //     type="number"
-    //     placeholder="Prioridad de orden"
-    //   />
-    //   <input
-    //     className="mb-1"
-    //     {...register('description', { value: description })}
-    //     type="text"
-    //     placeholder="Descripción"
-    //   />
-    //   <button type="submit" hidden />
-    // </form>
   );
 }

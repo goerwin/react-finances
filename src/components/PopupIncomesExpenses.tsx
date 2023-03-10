@@ -158,11 +158,15 @@ function getActionsBy<K extends keyof Pick<Action, 'date' | 'value'>>(attrs: {
         ? actionDate >= new Date(startDate) && actionDate <= new Date(endDate)
         : true;
 
-    const isOfCategoryId = categoryIds
-      ? categoryIds.includes(action.categoryId)
-      : true;
+    const isOfCategoryId =
+      categoryIds && categoryIds.length > 0
+        ? categoryIds.includes(action.categoryId)
+        : true;
 
-    const isOfWalletId = walletIds ? walletIds.includes(action.walletId) : true;
+    const isOfWalletId =
+      walletIds && walletIds.length > 0
+        ? walletIds.includes(action.walletId)
+        : true;
 
     return isOfType && isInDateRange && isOfCategoryId && isOfWalletId;
   });
@@ -540,7 +544,9 @@ export default function PopupIncomesExpenses(props: Props) {
               <button
                 type="button"
                 className={`!text-xs !p-2 !py-4 !rounded-none ${
-                  it.filterBy === filterByExpInc ? '!bg-green-900' : '!bg-black/20'
+                  it.filterBy === filterByExpInc
+                    ? '!bg-green-900'
+                    : '!bg-black/20'
                 }`}
                 key={idx}
                 onClick={() => syncFilterByExpInc(it.filterBy)}
@@ -580,7 +586,12 @@ export default function PopupIncomesExpenses(props: Props) {
                 : filterBy === 'categories'
                 ? [item.id]
                 : undefined;
-            const walletIds = filterBy === 'wallets' ? [item.id] : undefined;
+            const walletIds =
+              filterBy === 'wallets'
+                ? [item.id]
+                : filterBy === 'tags'
+                ? item.walletIds
+                : undefined;
 
             const dateFilteredActionsInfo = getActionsInfo({
               actions: visibleActions,
