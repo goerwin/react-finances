@@ -70,6 +70,7 @@ export default function ItemForm(props: Props) {
                   type="number"
                   placeholder={label}
                   {...register(name, {
+                    value: it.value,
                     setValueAs: (val) => (val === '' ? undefined : Number(val)),
                     required: it.required,
                   })}
