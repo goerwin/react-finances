@@ -1,5 +1,4 @@
-import { Fragment, ReactNode, useState } from 'react';
-import { ZodSchema } from 'zod';
+import { useState } from 'react';
 import { Action, Category, ItemType, Tag, Wallet } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
 import ItemForm, { FormItem } from './ItemForm';
@@ -87,13 +86,8 @@ export default function PopupCRUD<T extends ItemCommon>({
           <ItemForm
             formItems={props.formItemElements.map((ie) => ({
               ...ie,
-              // populate fields 'new' and type for new item
-              value:
-                ie.name === 'id'
-                  ? 'new'
-                  : ie.name === 'type'
-                  ? props.actionType
-                  : (ie.defaultValue as any),
+              // populate field id as 'new' new item
+              value: ie.name === 'id' ? 'new' : (ie.value as any),
             }))}
             onSubmit={handleItemFormSubmit}
             onCancel={() => setFormItemId(undefined)}

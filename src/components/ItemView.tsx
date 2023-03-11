@@ -36,7 +36,7 @@ export default function ItemView(props: Props) {
         <button
           className="btn-danger p-0 text-2xl h-10 aspect-square"
           onClick={() => {
-            if (window.confirm(`Eliminar esta categoría (${props.title})?`))
+            if (window.confirm(`Eliminar este item (${props.title})?`))
               props.onRemoveClick?.(props.id);
           }}
         >

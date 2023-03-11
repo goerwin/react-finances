@@ -1,6 +1,7 @@
 import { WithRequired } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useForm, UseFormReset } from 'react-hook-form';
+import { it } from 'vitest';
 import { Action, DB, Category, Tag, Wallet } from '../helpers/DBHelpers';
 import { sortByFnCreator } from '../helpers/general';
 import {
@@ -20,13 +21,15 @@ import {
   getMonthDifference,
 } from '../helpers/time';
 import { formatNumberValueToCurrency } from './Calculator';
+import ItemForm from './ItemForm';
+import ItemView from './ItemView';
 import Popup from './Popup';
 import PopupFilterByDates from './PopupFilterByDates';
 
 interface Props {
   db: DB;
-  onItemDelete: (actionId: Action['id']) => void;
-  onEditItemSubmit: (action: Action) => void;
+  onItemDelete: (actionId: string) => void;
+  onEditItemSubmit: (action: unknown) => void;
   onClose: () => void;
 }
 
@@ -40,100 +43,88 @@ function getWalletName(wallets: Wallet[], walletId: string) {
 
 function getActionNode({
   action,
-  editingItemId,
-  reset,
-  setEditingItemId,
-  getEditingItemForm,
   props,
-  manuallySubmitForm,
+  editingItemId,
+  setEditingItemId,
+  handleItemFormSubmit,
 }: {
   action: Action;
   props: Props;
   editingItemId?: string;
-  reset: UseFormReset<Action>;
   setEditingItemId: React.Dispatch<React.SetStateAction<string | undefined>>;
-  getEditingItemForm: (action: Action) => JSX.Element | undefined;
-  manuallySubmitForm: () => void;
+  handleItemFormSubmit: (data: unknown) => void;
 }) {
-  return (
-    <div
-      key={action.id}
-      className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center"
-    >
-      <div className="grow mr-2 break-words min-w-0">
-        {editingItemId !== action.id && (
-          <>
-            <span className="block">
-              {formatNumberValueToCurrency(action.value)}
-              <span className="c-description">
-                {' '}
-                {getCategoryName(props.db.categories, action.categoryId)}
-              </span>
-            </span>
-            <span className="block c-description">{action.description}</span>
-            <span className="block c-description not-italic">
-              {getFormattedLocalDatetime(action.date)}
-              {' / Bolsillo: '}
-              {getWalletName(props.db.wallets, action.walletId)}
-            </span>
-          </>
-        )}
-
-        {getEditingItemForm(action)}
-      </div>
-
-      <div className="flex gap-2 max-h-10">
-        {editingItemId !== action.id && (
-          <>
-            <button
-              className="btn-success p-0 text-2xl h-10 aspect-square"
-              onClick={() => {
-                reset();
-                setEditingItemId(action.id);
-              }}
-            >
-              ✎
-            </button>
-            <button
-              className="btn-danger p-0 text-2xl h-10 aspect-square"
-              onClick={async () => {
-                const resp = window.confirm(
-                  `Seguro que quieres eliminar este ${
-                    action.type === 'expense' ? 'gasto' : 'ingreso'
-                  } (${getCategoryName(
-                    props.db.categories,
-                    action.categoryId
-                  )} - ${formatNumberValueToCurrency(
-                    action.value
-                  )} - ${getFormattedLocalDatetime(action.date)})?`
-                );
-
-                if (!resp) return;
-                props.onItemDelete(action.id);
-              }}
-            >
-              🗑
-            </button>
-          </>
-        )}
-
-        {editingItemId === action.id && (
-          <>
-            <button
-              className="btn-success p-0 text-2xl h-10 aspect-square"
-              onClick={manuallySubmitForm}
-            >
-              ✓
-            </button>
-            <button
-              className="btn-danger p-0 text-2xl h-10 aspect-square"
-              onClick={() => setEditingItemId(undefined)}
-              dangerouslySetInnerHTML={{ __html: '&times;' }}
-            />
-          </>
-        )}
-      </div>
-    </div>
+  return editingItemId === action.id ? (
+    <ItemForm
+      onSubmit={handleItemFormSubmit}
+      key={'form' + action.id}
+      formItems={[
+        {
+          name: 'id',
+          type: 'input',
+          hidden: true,
+          value: action.id,
+          required: true,
+        },
+        {
+          name: 'type',
+          type: 'input',
+          hidden: true,
+          required: true,
+          value: action.type,
+        },
+        {
+          name: 'value',
+          type: 'inputNumber',
+          label: 'Valor',
+          required: true,
+          value: action.value,
+        },
+        {
+          name: 'categoryId',
+          type: 'select',
+          label: 'Categoría',
+          value: action.categoryId,
+          required: true,
+          options: props.db.categories.map((it) => ({
+            value: it.id,
+            label: it.name,
+          })),
+        },
+        {
+          name: 'walletId',
+          type: 'select',
+          label: 'Bolsillo',
+          required: true,
+          value: action.walletId,
+          options: props.db.wallets.map((it) => ({
+            value: it.id,
+            label: it.name,
+          })),
+        },
+        {
+          type: 'inputDate',
+          name: 'date',
+          label: 'Fecha',
+          value: action.date,
+          required: true,
+        },
+      ]}
+      onCancel={() => setEditingItemId(undefined)}
+    />
+  ) : (
+    <ItemView
+      key={'view' + action.id}
+      id={action.id}
+      title={formatNumberValueToCurrency(action.value)}
+      description={getCategoryName(props.db.categories, action.categoryId)}
+      texts={[
+        `Bolsillo: ${getWalletName(props.db.wallets, action.walletId)}`,
+        getFormattedLocalDatetime(action.date),
+      ]}
+      onEditClick={setEditingItemId}
+      onRemoveClick={props.onItemDelete}
+    />
   );
 }
 
@@ -298,7 +289,6 @@ function getActionsIncExpInfo(
 
 export default function PopupIncomesExpenses(props: Props) {
   const today = new Date();
-  const itemFormRef = useRef<HTMLFormElement | null>(null);
   const [showFilterByDatesPopup, setShowFilterByDatesPopup] = useState(false);
   const [filterBy, setFilterBy] = useState(lsGetFilteredBy());
   const [filterByExpInc, setFilterByExpInc] = useState(getFilterByExpInc());
@@ -306,9 +296,6 @@ export default function PopupIncomesExpenses(props: Props) {
   const [{ filterStartDate, filterEndDate }, setFilterDates] = useState({
     filterStartDate: getFirstDayOfMonthDate(today),
     filterEndDate: getLastDayOfMonthDate(today),
-  });
-  const { register, handleSubmit, reset } = useForm<Action>({
-    shouldUnregister: true,
   });
 
   const [initialDate, finalDate] = [
@@ -326,96 +313,9 @@ export default function PopupIncomesExpenses(props: Props) {
     lsSetFilterdBy(filter);
   };
 
-  const manuallySubmitForm = () => {
-    itemFormRef.current?.dispatchEvent(
-      new Event('submit', {
-        cancelable: true,
-        bubbles: true,
-      })
-    );
-  };
-
-  const handleItemFormSubmit = (item: Action) => {
+  const handleItemFormSubmit = (data: unknown) => {
     setEditingItemId(undefined);
-    itemFormRef.current = null;
-    props.onEditItemSubmit(item);
-  };
-
-  const getEditingItemForm = (action: Action) => {
-    const { id, value, date, description } = action;
-    const { categoryId, walletId } = action;
-
-    if (editingItemId !== id) return;
-
-    const categories = props.db.categories;
-
-    return (
-      <form
-        name={new Date().toISOString()}
-        onSubmit={handleSubmit(handleItemFormSubmit)}
-        ref={itemFormRef}
-      >
-        <input
-          className="mb-1"
-          type="hidden"
-          {...register('id', { value: id })}
-        />
-        <input
-          className="mb-1 block"
-          placeholder="Valor"
-          {...register('value', { value, valueAsNumber: true })}
-          type="number"
-        />
-        <select
-          placeholder="Categoría"
-          className="block mb-1"
-          {...register('categoryId', { required: true, value: categoryId })}
-        >
-          <option key="empty" value="" disabled>
-            Categoría
-          </option>
-          {categories.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          placeholder="Bolsillo"
-          className="block mb-1"
-          {...register('walletId', {
-            value: walletId,
-          })}
-        >
-          <option key="empty" value="" disabled>
-            Bolsillo
-          </option>
-          {props.db.wallets.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-
-        <input
-          className="mb-1 block"
-          type="text"
-          placeholder="Descripción"
-          {...register('description', { value: description })}
-        />
-        <input
-          className="mb-1 block w-full"
-          {...register('date', {
-            value: getDatetimeLocalFormattedForInputDate(new Date(date)),
-            setValueAs: (val) =>
-              (val ? new Date(val) : new Date()).toISOString(),
-          })}
-          type="datetime-local"
-        />
-        <button type="submit" hidden />
-      </form>
-    );
+    props.onEditItemSubmit(data);
   };
 
   const {
@@ -565,15 +465,13 @@ export default function PopupIncomesExpenses(props: Props) {
       }
     >
       {filterBy === 'date'
-        ? visibleActions.map((item) =>
+        ? visibleActions.map((action) =>
             getActionNode({
-              action: item,
-              props,
-              getEditingItemForm,
-              manuallySubmitForm,
-              reset,
-              setEditingItemId,
+              action,
               editingItemId,
+              setEditingItemId,
+              props,
+              handleItemFormSubmit,
             })
           )
         : null}
@@ -678,15 +576,13 @@ export default function PopupIncomesExpenses(props: Props) {
                     })}
                   </div>
 
-                  {dateFilteredActionsInfo.filteredActions.map((item) =>
+                  {dateFilteredActionsInfo.filteredActions.map((action) =>
                     getActionNode({
-                      action: item,
-                      props,
-                      getEditingItemForm,
-                      manuallySubmitForm,
-                      reset,
-                      setEditingItemId,
+                      action,
                       editingItemId,
+                      setEditingItemId,
+                      props,
+                      handleItemFormSubmit,
                     })
                   )}
                 </div>

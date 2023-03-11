@@ -11,17 +11,16 @@ type Common = {
 
 export type FormItem = Common &
   (
-    | ({ type: 'input' } & { value?: string; defaultValue?: string })
-    | ({ type: 'inputNumber' } & { value?: number; defaultValue?: number })
-    | ({ type: 'date' } & { value?: string; defaultValue?: string })
+    | ({ type: 'input' } & { value?: string })
+    | ({ type: 'inputNumber' } & { value?: number })
+    | ({ type: 'inputDate' } & { value?: string })
     | ({ type: 'select' } & {
         value?: string;
-        defaultValue?: string;
+
         options: { label: string; value: string }[];
       })
     | ({ type: 'selectMultiple' } & {
         value?: string[];
-        defaultValue?: string[];
         options: { label: string; value: string }[];
       })
   );
@@ -103,7 +102,7 @@ export default function ItemForm(props: Props) {
               </fieldset>
             );
 
-          if (it.type === 'date') {
+          if (it.type === 'inputDate') {
             return (
               <fieldset key={name}>
                 {label ? <label>{label}</label> : null}
@@ -111,6 +110,8 @@ export default function ItemForm(props: Props) {
                   type="date"
                   {...register(name, {
                     value: it.value ? getDateFormattedForInput(it.value) : '',
+                    required: it.required,
+
                     // val is yyyy-MM-dd
                     // append T00:00 to convert it to local date
                     setValueAs: (val) =>

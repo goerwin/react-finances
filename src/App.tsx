@@ -481,6 +481,7 @@ export default function App() {
                 required: true,
                 hidden: true,
                 name: 'type',
+                value: popup.actionType,
               },
               {
                 type: 'input',
@@ -563,6 +564,7 @@ export default function App() {
                 required: true,
                 hidden: true,
                 name: 'type',
+                value: popup.actionType,
               },
               {
                 type: 'input',
@@ -582,7 +584,7 @@ export default function App() {
                 label: 'Esperado mensual',
               },
               {
-                type: 'date',
+                type: 'inputDate',
                 name: 'startDate',
                 label: 'Día inicial',
               },
@@ -651,6 +653,7 @@ export default function App() {
                 required: true,
                 hidden: true,
                 name: 'type',
+                value: popup.actionType,
               },
               {
                 type: 'input',
@@ -670,7 +673,7 @@ export default function App() {
                 label: 'Esperado mensual',
               },
               {
-                type: 'date',
+                type: 'inputDate',
                 name: 'startDate',
                 label: 'Día inicial',
               },
