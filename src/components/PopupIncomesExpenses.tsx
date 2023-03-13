@@ -46,12 +46,14 @@ function getActionNode({
   props,
   editingItemId,
   setEditingItemId,
+  filterByExpInc,
   handleItemFormSubmit,
 }: {
   action: Action;
   props: Props;
   editingItemId?: string;
   setEditingItemId: React.Dispatch<React.SetStateAction<string | undefined>>;
+  filterByExpInc: 'expense' | 'income';
   handleItemFormSubmit: (data: unknown) => void;
 }) {
   return editingItemId === action.id ? (
@@ -87,10 +89,12 @@ function getActionNode({
           label: 'Categoría',
           value: action.categoryId,
           required: true,
-          options: props.db.categories.map((it) => ({
-            value: it.id,
-            label: it.name,
-          })),
+          options: props.db.categories
+            .filter((it) => it.type === filterByExpInc)
+            .map((it) => ({
+              value: it.id,
+              label: it.name,
+            })),
         },
         {
           name: 'walletId',
@@ -98,10 +102,12 @@ function getActionNode({
           label: 'Bolsillo',
           required: true,
           value: action.walletId,
-          options: props.db.wallets.map((it) => ({
-            value: it.id,
-            label: it.name,
-          })),
+          options: props.db.wallets
+            .filter((it) => it.type === filterByExpInc)
+            .map((it) => ({
+              value: it.id,
+              label: it.name,
+            })),
         },
         {
           type: 'inputDate',
@@ -471,6 +477,7 @@ export default function PopupIncomesExpenses(props: Props) {
               action,
               editingItemId,
               setEditingItemId,
+              filterByExpInc,
               props,
               handleItemFormSubmit,
             })
@@ -603,6 +610,7 @@ export default function PopupIncomesExpenses(props: Props) {
                       action,
                       editingItemId,
                       setEditingItemId,
+                      filterByExpInc,
                       props,
                       handleItemFormSubmit,
                     })
