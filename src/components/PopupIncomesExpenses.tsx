@@ -56,6 +56,7 @@ function getActionNode({
 }) {
   return editingItemId === action.id ? (
     <ItemForm
+      className="relative"
       onSubmit={handleItemFormSubmit}
       key={'form' + action.id}
       formItems={[
@@ -563,7 +564,28 @@ export default function PopupIncomesExpenses(props: Props) {
                         Estimado Mensual:{' '}
                         {formatNumberValueToCurrency(item.expectedPerMonth)}
                       </span>
+                      {filterBy === 'tags' && categoryIds ? (
+                        <span className="block">
+                          Categorías ({categoryIds.length}):{' '}
+                          {categoryIds
+                            .map((id) =>
+                              getCategoryName(props.db.categories, id)
+                            )
+                            .join(', ')}
+                        </span>
+                      ) : null}
+                      {filterBy === 'tags' && walletIds ? (
+                        <span className="block">
+                          Bolsillos ({walletIds.length}):{' '}
+                          {walletIds
+                            .map((id) =>
+                              getWalletName(props.db.wallets, id).split(', ')
+                            )
+                            .join(', ')}
+                        </span>
+                      ) : null}
                     </span>
+
                     <span className="block">-------</span>
                     {getActionsGroupInfoNode({
                       ...trackedActionsInfo,

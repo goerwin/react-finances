@@ -28,6 +28,7 @@ export type FormItem = Common &
 export interface Props {
   formItems: FormItem[];
   onCancel?: () => void;
+  className?: React.HTMLAttributes<HTMLFormElement>['className'];
   onSubmit: (data: unknown) => void;
 }
 
@@ -41,7 +42,10 @@ export default function ItemForm(props: Props) {
   }, [setFocus]);
 
   return (
-    <form className="flex gap-2" onSubmit={handleSubmit(props.onSubmit)}>
+    <form
+      className={`flex gap-2 ${props.className}`}
+      onSubmit={handleSubmit(props.onSubmit)}
+    >
       <div className="grow">
         {props.formItems.map(({ name, label, ...it }) => {
           if (it.type === 'input')
