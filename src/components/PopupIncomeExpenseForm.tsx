@@ -15,8 +15,10 @@ export interface Props {
 export default function PopupIncomeExpenseForm(props: Props) {
   const { handleSubmit, register } = useForm<Action>({
     defaultValues: {
+      id: 'new',
       categoryId: '',
       description: '',
+      date: new Date().toISOString(),
     },
   });
 
