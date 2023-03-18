@@ -116,6 +116,12 @@ function getActionNode({
           value: action.date,
           required: true,
         },
+        {
+          name: 'description',
+          type: 'input',
+          label: 'Descripción',
+          value: action.description,
+        },
       ]}
       onCancel={() => setEditingItemId(undefined)}
     />
@@ -128,6 +134,7 @@ function getActionNode({
       texts={[
         `Bolsillo: ${getWalletName(props.db.wallets, action.walletId)}`,
         getFormattedLocalDatetime(action.date),
+        action.description ?? undefined,
       ]}
       onEditClick={setEditingItemId}
       onRemoveClick={props.onItemDelete}
