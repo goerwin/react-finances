@@ -1,4 +1,5 @@
 import { toast } from 'react-toastify';
+import { Category, Wallet } from './DBHelpers';
 
 type SortablePropertyType = string | number;
 
@@ -83,4 +84,16 @@ export function handleErrorWithNotifications(err: unknown) {
   else message = `Error general: ${err.message}`;
 
   toast(message, { type: 'error', autoClose: false });
+}
+
+export function getCategoryById(categories: Category[], categoryId: string) {
+  return categories.find((el) => el.id === categoryId);
+}
+
+export function getCategoryName(categories: Category[], categoryId: string) {
+  return categories.find((el) => el.id === categoryId)?.name || '-';
+}
+
+export function getWalletName(wallets: Wallet[], walletId: string) {
+  return wallets.find((it) => it.id === walletId)?.name ?? '-';
 }

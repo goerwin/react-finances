@@ -2,16 +2,6 @@ import { z } from 'zod';
 
 const itemTypeSchema = z.enum(['expense', 'income']);
 
-export const categorySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  sortPriority: z.number(),
-  type: itemTypeSchema,
-  description: z.string().optional(),
-  startDate: z.string().datetime().optional(),
-  expectedPerMonth: z.number().optional(),
-});
-
 export const walletSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -22,16 +12,27 @@ export const walletSchema = z.object({
   expectedPerMonth: z.number().optional(),
 });
 
+export const categorySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  sortPriority: z.number(),
+  type: itemTypeSchema,
+  walletId: walletSchema.shape.id,
+  description: z.string().optional(),
+  startDate: z.string().datetime().optional(),
+  expectedPerMonth: z.number().optional(),
+});
+
 export const tagSchema = z.object({
   id: z.string(),
   sortPriority: z.number(),
   name: z.string(),
   type: itemTypeSchema,
-  categoryIds: z.array(categorySchema.shape.id),
-  walletIds: z.array(walletSchema.shape.id),
   description: z.string().optional(),
   startDate: z.string().datetime().optional(),
   expectedPerMonth: z.number().optional(),
+  categoryIds: z.array(categorySchema.shape.id),
+  walletIds: z.array(walletSchema.shape.id),
 });
 
 export const actionSchema = z.object({
@@ -40,7 +41,6 @@ export const actionSchema = z.object({
   value: z.number(),
   type: itemTypeSchema,
   description: z.string().optional(),
-  walletId: walletSchema.shape.id,
   categoryId: categorySchema.shape.id,
 });
 

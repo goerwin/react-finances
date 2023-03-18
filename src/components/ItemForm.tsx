@@ -90,7 +90,7 @@ export default function ItemForm(props: Props) {
                   multiple={it.type === 'selectMultiple'}
                   placeholder={label}
                   {...register(name, {
-                    value: it.value,
+                    value: it.value ?? '',
                     required: it.required,
                   })}
                 >

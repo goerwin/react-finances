@@ -1,24 +1,26 @@
 import { WithRequired } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
-import { useForm, UseFormReset } from 'react-hook-form';
-import { it } from 'vitest';
-import { Action, DB, Category, Tag, Wallet } from '../helpers/DBHelpers';
-import { sortByFnCreator } from '../helpers/general';
+import { useState } from 'react';
+import { Action, Category, DB, Tag, Wallet } from '../helpers/DBHelpers';
 import {
-  getFilterByExpInc,
+  getCategoryById,
+  getCategoryName,
+  getWalletName,
+  sortByFnCreator,
+} from '../helpers/general';
+import {
   getFilterBy as lsGetFilteredBy,
+  getFilterByExpInc,
   setFilterBy as lsSetFilterdBy,
   setFilterByExpInc as lsSetFilterByExpInc,
 } from '../helpers/localStorage';
 import {
   getFirstDayOfMonthDate,
-  getLastDayOfMonthDate,
+  getFormattedLocalDate,
   getFormattedLocalDatetime,
-  getDatetimeLocalFormattedForInputDate,
+  getLastDayOfMonthDate,
+  getMonthDifference,
   getNextMonthFirstDayDate,
   getPreviousMonthFirstDayDate,
-  getFormattedLocalDate,
-  getMonthDifference,
 } from '../helpers/time';
 import { formatNumberValueToCurrency } from './Calculator';
 import ItemForm from './ItemForm';
@@ -31,14 +33,6 @@ interface Props {
   onItemDelete: (actionId: string) => void;
   onEditItemSubmit: (action: unknown) => void;
   onClose: () => void;
-}
-
-function getCategoryName(categories: Category[], categoryId: string) {
-  return categories.find((el) => el.id === categoryId)?.name || '-';
-}
-
-function getWalletName(wallets: Wallet[], walletId: string) {
-  return wallets.find((it) => it.id === walletId)?.name ?? '-';
 }
 
 function getActionNode({
@@ -96,19 +90,19 @@ function getActionNode({
               label: it.name,
             })),
         },
-        {
-          name: 'walletId',
-          type: 'select',
-          label: 'Bolsillo',
-          required: true,
-          value: action.walletId,
-          options: props.db.wallets
-            .filter((it) => it.type === filterByExpInc)
-            .map((it) => ({
-              value: it.id,
-              label: it.name,
-            })),
-        },
+        // {
+        //   name: 'walletId',
+        //   type: 'select',
+        //   label: 'Bolsillo',
+        //   required: true,
+        //   value: action.walletId,
+        //   options: props.db.wallets
+        //     .filter((it) => it.type === filterByExpInc)
+        //     .map((it) => ({
+        //       value: it.id,
+        //       label: it.name,
+        //     })),
+        // },
         {
           type: 'inputDate',
           name: 'date',
@@ -132,7 +126,6 @@ function getActionNode({
       title={formatNumberValueToCurrency(action.value)}
       description={getCategoryName(props.db.categories, action.categoryId)}
       texts={[
-        `Bolsillo: ${getWalletName(props.db.wallets, action.walletId)}`,
         getFormattedLocalDatetime(action.date),
         action.description ?? undefined,
       ]}
@@ -144,6 +137,7 @@ function getActionNode({
 
 function getActionsBy<K extends keyof Pick<Action, 'date' | 'value'>>(attrs: {
   actions: Action[];
+  categories: Category[];
   startDate?: Date | string;
   endDate?: Date | string;
   type?: 'income' | 'expense';
@@ -151,7 +145,7 @@ function getActionsBy<K extends keyof Pick<Action, 'date' | 'value'>>(attrs: {
   walletIds?: string[];
   sortBy?: [K, boolean?];
 }) {
-  const { actions, startDate, endDate } = attrs;
+  const { actions, startDate, endDate, categories } = attrs;
   const { type, categoryIds, walletIds, sortBy } = attrs;
 
   const filteredActions = actions.filter((action) => {
@@ -168,9 +162,14 @@ function getActionsBy<K extends keyof Pick<Action, 'date' | 'value'>>(attrs: {
         ? categoryIds.includes(action.categoryId)
         : true;
 
+    const actionWalletId = getCategoryById(
+      categories,
+      action.categoryId
+    )?.walletId;
+
     const isOfWalletId =
-      walletIds && walletIds.length > 0
-        ? walletIds.includes(action.walletId)
+      actionWalletId && walletIds && walletIds.length > 0
+        ? walletIds.includes(actionWalletId)
         : true;
 
     return isOfType && isInDateRange && isOfCategoryId && isOfWalletId;
@@ -259,9 +258,13 @@ function getActionsFinalDate(actions: Action[]) {
 
 function getActionsIncExpInfo(
   allActions: Action[],
-  attrs: { startDate: Date | string; endDate: Date | string }
+  attrs: {
+    startDate: Date | string;
+    endDate: Date | string;
+    categories: Category[];
+  }
 ) {
-  const { startDate, endDate } = attrs;
+  const { startDate, endDate, categories } = attrs;
 
   const {
     filteredActions: expenseActions,
@@ -269,6 +272,7 @@ function getActionsIncExpInfo(
     valuePerMonth: expActionsPerMonth,
   } = getActionsInfo({
     actions: allActions,
+    categories,
     type: 'expense',
     startDate,
     endDate,
@@ -282,6 +286,7 @@ function getActionsIncExpInfo(
     monthDiff,
   } = getActionsInfo({
     actions: allActions,
+    categories,
     type: 'income',
     startDate,
     endDate,
@@ -343,6 +348,7 @@ export default function PopupIncomesExpenses(props: Props) {
     incActionsPerMonth,
     diffPerMonth,
   } = getActionsIncExpInfo(props.db.actions, {
+    categories: props.db.categories,
     startDate: filterStartDate,
     endDate: filterEndDate,
   });
@@ -429,10 +435,10 @@ export default function PopupIncomesExpenses(props: Props) {
           <div className="grid grid-cols-4 mt-1 gap-px">
             {(
               [
-                { label: 'Fecha', filterBy: 'date' },
-                { label: 'Categoría', filterBy: 'categories' },
-                { label: 'Etiqueta', filterBy: 'tags' },
-                { label: 'Bolsillo', filterBy: 'wallets' },
+                { label: 'Fechas', filterBy: 'date' },
+                { label: 'Categorías', filterBy: 'categories' },
+                { label: 'Bolsillos', filterBy: 'wallets' },
+                { label: 'Etiquetas', filterBy: 'tags' },
               ] as const
             ).map((it, idx) => (
               <button
@@ -508,6 +514,7 @@ export default function PopupIncomesExpenses(props: Props) {
 
             const dateFilteredActionsInfo = getActionsInfo({
               actions: visibleActions,
+              categories: props.db.categories,
               startDate: filterStartDate,
               endDate: filterEndDate,
               categoryIds,
@@ -518,6 +525,7 @@ export default function PopupIncomesExpenses(props: Props) {
 
             const trackedActionsInfo = getActionsInfo({
               actions: visibleActions,
+              categories: props.db.categories,
               startDate: item.startDate ?? initialDate,
               endDate: finalDate,
               categoryIds,

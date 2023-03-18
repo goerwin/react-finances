@@ -35,7 +35,12 @@ import {
   tagSchema,
   walletSchema,
 } from './helpers/DBHelpers';
-import { handleErrorWithNotifications, loadScript } from './helpers/general';
+import {
+  getCategoryById,
+  getWalletName,
+  handleErrorWithNotifications,
+  loadScript,
+} from './helpers/general';
 import {
   getLsDB as LSGetLsDB,
   getTokenInfo as LSGetTokenInfo,
@@ -397,16 +402,6 @@ export default function App() {
                 setPopup({ action: 'showCategories', actionType: 'expense' }),
             },
             {
-              label: 'Etiqueta ingresos',
-              onClick: () =>
-                setPopup({ action: 'showTags', actionType: 'income' }),
-            },
-            {
-              label: 'Etiqueta gastos',
-              onClick: () =>
-                setPopup({ action: 'showTags', actionType: 'expense' }),
-            },
-            {
               label: 'Bolsillo ingresos',
               onClick: () =>
                 setPopup({ action: 'showWallets', actionType: 'income' }),
@@ -415,6 +410,16 @@ export default function App() {
               label: 'Bolsillo gastos',
               onClick: () =>
                 setPopup({ action: 'showWallets', actionType: 'expense' }),
+            },
+            {
+              label: 'Etiqueta ingresos',
+              onClick: () =>
+                setPopup({ action: 'showTags', actionType: 'income' }),
+            },
+            {
+              label: 'Etiqueta gastos',
+              onClick: () =>
+                setPopup({ action: 'showTags', actionType: 'expense' }),
             },
           ].map((it) => (
             <div
@@ -466,6 +471,7 @@ export default function App() {
               )}`,
               texts: [
                 `Prioridad de orden: ${item.sortPriority}`,
+                `Bolsillo: ${getWalletName(lsDb.db.wallets, item.walletId)}`,
                 item.description,
               ],
             })}
@@ -496,6 +502,15 @@ export default function App() {
                 label: 'Prioridad de orden',
               },
               {
+                type: 'select',
+                name: 'walletId',
+                required: true,
+                label: 'Bolsillo',
+                options: lsDb.db.wallets
+                  .filter((it) => it.type === popup.actionType)
+                  .map((it) => ({ value: it.id, label: it.name })),
+              },
+              {
                 type: 'input',
                 name: 'description',
                 label: 'Descripción',
@@ -520,7 +535,10 @@ export default function App() {
               description: `Items: ${actions.reduce(
                 (t, ac) =>
                   item.categoryIds.includes(ac.categoryId) ||
-                  item.walletIds.includes(ac.walletId)
+                  item.walletIds.includes(
+                    getCategoryById(lsDb.db.categories, ac.categoryId)
+                      ?.walletId ?? ''
+                  )
                     ? t + 1
                     : t,
                 0
@@ -627,11 +645,19 @@ export default function App() {
             getItemInfo={({ item, actions }) => ({
               title: item.name,
               description: `Items: ${actions.reduce(
-                (t, ac) => (ac.walletId === item.id ? t + 1 : t),
+                (t, it) =>
+                  getCategoryById(lsDb.db.categories, it.categoryId)
+                    ?.walletId === item.id
+                    ? t + 1
+                    : t,
                 0
               )}`,
               texts: [
                 `Prioridad de orden: ${item.sortPriority}`,
+                `Categorías: ${lsDb.db.categories.reduce(
+                  (t, it) => (it.walletId === item.id ? t + 1 : t),
+                  0
+                )}`,
                 `Esperado mensual: ${formatNumberValueToCurrency(
                   item.expectedPerMonth
                 )}`,

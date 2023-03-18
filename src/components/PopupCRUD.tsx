@@ -19,11 +19,6 @@ type ActionOrCategory = SafeIntersection<Action, Category>;
 type Bb = SafeIntersection<ActionOrCategory, { [x: string]: any }>;
 type ItemCommon = SafeIntersection<TagOrWallet, Bb>;
 
-type W = SafeIntersection<{ d: string; name: string }, { name: string }>;
-const w = {} as W;
-const a = {} as ActionOrCategory;
-const b = {} as ItemCommon;
-
 interface Props<T extends ItemCommon> {
   items: T[];
   dbNamespace: 'actions' | 'categories' | 'tags' | 'wallets';

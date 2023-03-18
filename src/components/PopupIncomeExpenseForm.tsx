@@ -26,8 +26,6 @@ export default function PopupIncomeExpenseForm(props: Props) {
     .filter((it) => it.type === props.actionType)
     .sort(sortByFnCreator('name'));
 
-  const wallets = props.db.wallets.filter((it) => it.type === props.actionType);
-
   return (
     <form onSubmit={handleSubmit(props.onSubmit)}>
       <Popup
@@ -80,24 +78,6 @@ export default function PopupIncomeExpenseForm(props: Props) {
                 type="radio"
                 value={`${id}`}
                 {...register('categoryId', { required: true })}
-              />
-
-              <span className="ml-2 mb-2 p-2 inline-block border-2 border-white rounded-lg peer-checked:border-green-500 peer-checked:text-green-500">
-                {name}
-              </span>
-            </label>
-          ))}
-        </div>
-
-        <div className="border-t pt-2">
-          <h4>Bolsillo</h4>
-          {wallets.map(({ id, name }) => (
-            <label key={id} className="relative cursor-pointer">
-              <input
-                className="opacity-0 w-1 h-1 absolute top-0 left-0 peer"
-                type="radio"
-                value={`${id}`}
-                {...register('walletId', { required: true })}
               />
 
               <span className="ml-2 mb-2 p-2 inline-block border-2 border-white rounded-lg peer-checked:border-green-500 peer-checked:text-green-500">
