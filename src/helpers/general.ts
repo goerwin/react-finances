@@ -83,7 +83,9 @@ export function handleErrorWithNotifications(err: unknown) {
     message = 'Directorio no encontrado';
   else message = `Error general: ${err.message}`;
 
-  toast(message, { type: 'error', autoClose: false });
+  // NOTE: monkeypatch since it is throwing an undefined error
+  // github.com/fkhadra/react-toastify/issues/858
+  setTimeout(() => toast(message, { type: 'error', autoClose: false }));
 }
 
 export function getCategoryById(categories: Category[], categoryId: string) {

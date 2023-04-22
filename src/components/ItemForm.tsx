@@ -33,7 +33,7 @@ export interface Props {
 }
 
 export default function ItemForm(props: Props) {
-  const { register, handleSubmit, setFocus } = useForm();
+  const { register, handleSubmit, setFocus, setValue } = useForm();
 
   // focus first non hidden input on mount
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function ItemForm(props: Props) {
                   multiple={it.type === 'selectMultiple'}
                   placeholder={label}
                   {...register(name, {
-                    value: it.value ?? '',
+                    value: it.value ?? [],
                     required: it.required,
                   })}
                 >
@@ -103,6 +103,9 @@ export default function ItemForm(props: Props) {
                     </option>
                   ))}
                 </select>
+                <button type="button" onClick={() => setValue(name, [])}>
+                  x
+                </button>
               </fieldset>
             );
 
