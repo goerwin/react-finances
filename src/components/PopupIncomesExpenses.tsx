@@ -458,7 +458,7 @@ export default function PopupIncomesExpenses(props: Props) {
             {(
               [
                 { label: 'Ingresos', filterBy: 'income' },
-                { label: 'Gasos', filterBy: 'expense' },
+                { label: 'Gastos', filterBy: 'expense' },
               ] as const
             ).map((it, idx) => (
               <button
