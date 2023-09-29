@@ -79,15 +79,10 @@ export function getPreviousMonthFirstDayDate(date: Date) {
   const newDate = new Date();
   const newLocalMonth = localMonth === 0 ? 11 : localMonth - 1;
   const newLocalYear = localMonth === 0 ? localYear - 1 : localYear;
-
-  newDate.setHours(0);
-  newDate.setMinutes(0);
-  newDate.setSeconds(0);
-  newDate.setDate(1);
   newDate.setMonth(newLocalMonth);
   newDate.setFullYear(newLocalYear);
 
-  return newDate;
+  return getFirstDayOfMonthDate(newDate);
 }
 
 export function getNextMonthFirstDayDate(date: Date) {
@@ -97,15 +92,10 @@ export function getNextMonthFirstDayDate(date: Date) {
   const newDate = new Date();
   const newLocalMonth = localMonth === 11 ? 0 : localMonth + 1;
   const newLocalYear = localMonth === 11 ? localYear + 1 : localYear;
-
-  newDate.setHours(0);
-  newDate.setMinutes(0);
-  newDate.setSeconds(0);
-  newDate.setDate(1);
   newDate.setMonth(newLocalMonth);
   newDate.setFullYear(newLocalYear);
 
-  return newDate;
+  return getFirstDayOfMonthDate(newDate);
 }
 
 export function getMonthDifference(date1: Date | string, date2: Date | string) {
