@@ -49,6 +49,8 @@ import {
   setTokenInfo as LSSetTokenInfo,
 } from './helpers/localStorage';
 import { getFormattedLocalDate } from './helpers/time';
+import supabaseClient from './supabase/supabaseClient';
+import PopupSignup from './components/PopupSignup';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
@@ -308,6 +310,13 @@ export default function App() {
         console.log(err?.stack);
         toast(err?.message || 'Error.', { type: 'error', autoClose: false });
       }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabaseClient.from('wallets').select();
+      if (data) console.log('bb', data);
     })();
   }, []);
 
@@ -724,6 +733,7 @@ export default function App() {
         {mutateLoading && <Loading />}
         <ToastContainer transition={Slide} position="top-center" />
       </div>
+      <PopupSignup />
     </QueryClientProvider>
   );
 }

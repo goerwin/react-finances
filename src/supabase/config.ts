@@ -1,0 +1,4 @@
+export const SUPABASE_PROJECT_URL = 'https://pdhqqafgraznptjezznc.supabase.co';
+
+export const SUPABASE_API_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkaHFxYWZncmF6bnB0amV6em5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTc0NzExOTMsImV4cCI6MjAxMzA0NzE5M30.eyuX97DdXDF-n58Z4jUNT_gqjHoMIoFYijQzFb0Y3-o';
