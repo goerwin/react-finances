@@ -13,7 +13,7 @@ export default function ItemView(props: Props) {
     <div className="mb-2 pb-2 border-b border-white/20 text-left relative flex items-center">
       <div className="grow mr-2 break-words min-w-0">
         <span className="block">
-          <span className={props.trackOnly ? 'c-description' : ''}>
+          <span className={props.trackOnly ? 'text-white/50' : ''}>
             {props.title}
           </span>
           {props.description ? (
