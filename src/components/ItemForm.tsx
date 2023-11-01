@@ -12,6 +12,7 @@ type Common = {
 export type FormItem = Common &
   (
     | ({ type: 'input' } & { value?: string })
+    | ({ type: 'checkbox' } & { value?: boolean })
     | ({ type: 'inputNumber' } & { value?: number })
     | ({ type: 'inputDate' } & { value?: string })
     | ({ type: 'select' } & {
@@ -48,13 +49,13 @@ export default function ItemForm(props: Props) {
     >
       <div className="grow">
         {props.formItems.map(({ name, label, ...it }) => {
-          if (it.type === 'input')
+          if (it.type === 'input' || it.type === 'checkbox')
             return (
               <fieldset key={name}>
                 {label ? <label>{label}</label> : null}
                 <input
                   hidden={it.hidden}
-                  type="text"
+                  type={it.type === 'input' ? ' text' : 'checkbox'}
                   placeholder={label}
                   {...register(name, {
                     value: it.value,

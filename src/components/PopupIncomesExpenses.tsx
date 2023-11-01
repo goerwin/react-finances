@@ -90,19 +90,6 @@ function getActionNode({
               label: it.name,
             })),
         },
-        // {
-        //   name: 'walletId',
-        //   type: 'select',
-        //   label: 'Bolsillo',
-        //   required: true,
-        //   value: action.walletId,
-        //   options: props.db.wallets
-        //     .filter((it) => it.type === filterByExpInc)
-        //     .map((it) => ({
-        //       value: it.id,
-        //       label: it.name,
-        //     })),
-        // },
         {
           type: 'inputDate',
           name: 'date',
@@ -116,6 +103,12 @@ function getActionNode({
           label: 'Descripción',
           value: action.description,
         },
+        {
+          name: 'trackOnly',
+          type: 'checkbox',
+          label: 'Solo Seguimiento',
+          value: action.trackOnly,
+        },
       ]}
       onCancel={() => setEditingItemId(undefined)}
     />
@@ -123,6 +116,7 @@ function getActionNode({
     <ItemView
       key={'view' + action.id}
       id={action.id}
+      trackOnly={action.trackOnly}
       title={formatNumberValueToCurrency(action.value)}
       description={getCategoryName(props.db.categories, action.categoryId)}
       texts={[
@@ -189,7 +183,11 @@ function getActionsInfo(
   const { startDate, endDate, expectedPerMonth } = attrs;
 
   const filteredActions = getActionsBy(attrs);
-  const filteredActionsTotal = filteredActions.reduce((t, i) => t + i.value, 0);
+  const filteredActionsTotal = filteredActions.reduce((t, i) => {
+    if (i.trackOnly) return t;
+    return t + i.value;
+  }, 0);
+
   const monthDiff = getMonthDifference(endDate, startDate);
   const valuePerMonth = filteredActionsTotal / monthDiff;
   const deviationFromExpected =

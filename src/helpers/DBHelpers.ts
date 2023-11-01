@@ -40,6 +40,7 @@ export const actionSchema = z.object({
   date: z.string().datetime(),
   value: z.number(),
   type: itemTypeSchema,
+  trackOnly: z.boolean().optional(),
   description: z.string().optional(),
   categoryId: categorySchema.shape.id,
 });
