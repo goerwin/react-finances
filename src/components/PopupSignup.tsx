@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import supabaseClient from '../supabase/supabaseClient';
-import { getSession, getUserWallets, signup } from '../supabase/api';
+import { getSession, getWallets, signup } from '../supabase/api';
 
 const emailSignupSchema = z
   .object({
@@ -30,7 +30,7 @@ export default function PopupSignup(props: Props) {
   useEffect(() => {
     (async () => {
       console.log('bb', await getSession());
-      console.log('bb', await getUserWallets());
+      console.log('bb', await getWallets());
     })();
   }, []);
 

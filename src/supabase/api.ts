@@ -30,8 +30,15 @@ export async function getSession() {
   return { session };
 }
 
-export async function getUserWallets() {
+export async function getWallets() {
   const { data, error } = await supabaseClient.from('wallets').select();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getActions() {
+  const { data, error } = await supabaseClient.from('actions').select();
 
   if (error) throw error;
   return data;

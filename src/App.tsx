@@ -49,8 +49,8 @@ import {
   setTokenInfo as LSSetTokenInfo,
 } from './helpers/localStorage';
 import { getFormattedLocalDate } from './helpers/time';
-import supabaseClient from './supabase/supabaseClient';
 import PopupSignup from './components/PopupSignup';
+import { getActions } from './supabase/api';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
@@ -315,8 +315,9 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabaseClient.from('wallets').select();
-      if (data) console.log('bb', data);
+      console.log('bb', 222);
+      const actions = await getActions();
+      console.log('bb', actions);
     })();
   }, []);
 
@@ -733,7 +734,7 @@ export default function App() {
         {mutateLoading && <Loading />}
         <ToastContainer transition={Slide} position="top-center" />
       </div>
-      <PopupSignup />
+      {/* <PopupSignup /> */}
     </QueryClientProvider>
   );
 }
