@@ -472,6 +472,8 @@ export default function PopupIncomesExpenses(props: Props) {
             </p>
           </div>
 
+          <div className="relative before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] pb-2" />
+
           <div className="flex items-center gap-2 justify-between capitalize">
             <button
               onClick={() =>
