@@ -230,6 +230,8 @@ function getActionsGroupInfoNode(
     return (
       <>
         {`(${attrs.actions.length})`}
+        {' - T: '}
+        {formatNumberValueToCurrency(attrs.total)}
         {' - TcS: '}
         {formatNumberValueToCurrency(attrs.totalWithTrack)}
       </>
