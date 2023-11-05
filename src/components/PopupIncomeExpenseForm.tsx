@@ -89,7 +89,7 @@ export default function PopupIncomeExpenseForm(props: Props) {
 
         <div className="p-2">
           <label>
-            <span className="align-middle">Solo seguimiento: </span>
+            <span className="align-middle">Solo seguimiento (🦶): </span>
             <input
               type="checkbox"
               className="align-middle h-4 w-4"

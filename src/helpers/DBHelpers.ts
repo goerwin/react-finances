@@ -8,7 +8,6 @@ export const walletSchema = z.object({
   sortPriority: z.number(),
   type: itemTypeSchema,
   description: z.string().optional(),
-  startDate: z.string().datetime().optional(),
   expectedPerMonth: z.number().optional(),
 });
 
@@ -19,7 +18,6 @@ export const categorySchema = z.object({
   type: itemTypeSchema,
   walletId: walletSchema.shape.id,
   description: z.string().optional(),
-  startDate: z.string().datetime().optional(),
   expectedPerMonth: z.number().optional(),
 });
 
@@ -29,7 +27,6 @@ export const tagSchema = z.object({
   name: z.string(),
   type: itemTypeSchema,
   description: z.string().optional(),
-  startDate: z.string().datetime().optional(),
   expectedPerMonth: z.number().optional(),
   categoryIds: z.array(categorySchema.shape.id),
   walletIds: z.array(walletSchema.shape.id),

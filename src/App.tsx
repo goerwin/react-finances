@@ -548,9 +548,6 @@ export default function App() {
                 `Esperado mensual: ${formatNumberValueToCurrency(
                   item.expectedPerMonth
                 )}`,
-                `Dia inicial: ${
-                  item.startDate ? getFormattedLocalDate(item.startDate) : '-'
-                }`,
                 `Bolsillos (${item.walletIds.length}):
                   ${
                     item.walletIds
@@ -600,11 +597,6 @@ export default function App() {
                 type: 'inputNumber',
                 name: 'expectedPerMonth',
                 label: 'Esperado mensual',
-              },
-              {
-                type: 'inputDate',
-                name: 'startDate',
-                label: 'Día inicial',
               },
               {
                 type: 'selectMultiple',
@@ -661,9 +653,6 @@ export default function App() {
                 `Esperado mensual: ${formatNumberValueToCurrency(
                   item.expectedPerMonth
                 )}`,
-                `Dia inicial: ${
-                  item.startDate ? getFormattedLocalDate(item.startDate) : '-'
-                }`,
                 item.description,
               ],
             })}
@@ -697,11 +686,6 @@ export default function App() {
                 type: 'inputNumber',
                 name: 'expectedPerMonth',
                 label: 'Esperado mensual',
-              },
-              {
-                type: 'inputDate',
-                name: 'startDate',
-                label: 'Día inicial',
               },
               {
                 type: 'input',

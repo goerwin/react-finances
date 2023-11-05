@@ -52,16 +52,18 @@ export default function ItemForm(props: Props) {
           if (it.type === 'input' || it.type === 'checkbox')
             return (
               <fieldset key={name}>
-                {label ? <label>{label}</label> : null}
-                <input
-                  hidden={it.hidden}
-                  type={it.type === 'input' ? ' text' : 'checkbox'}
-                  placeholder={label}
-                  {...register(name, {
-                    value: it.value,
-                    required: it.required,
-                  })}
-                />
+                <label>
+                  {label || ''}
+                  <input
+                    hidden={it.hidden}
+                    type={it.type === 'input' ? ' text' : 'checkbox'}
+                    placeholder={label}
+                    {...register(name, {
+                      value: it.value,
+                      required: it.required,
+                    })}
+                  />
+                </label>
               </fieldset>
             );
 
@@ -115,7 +117,7 @@ export default function ItemForm(props: Props) {
               <fieldset key={name}>
                 {label ? <label>{label}</label> : null}
                 <input
-                  type="date"
+                  type="datetime"
                   {...register(name, {
                     value: it.value ? getDateFormattedForInput(it.value) : '',
                     required: it.required,

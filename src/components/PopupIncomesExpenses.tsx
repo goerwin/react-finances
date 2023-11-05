@@ -106,7 +106,7 @@ function getActionNode({
         {
           name: 'trackOnly',
           type: 'checkbox',
-          label: 'Solo Seguimiento',
+          label: 'Solo Seguimiento (🦶)',
           value: action.trackOnly,
         },
       ]}
@@ -182,53 +182,89 @@ function getActionsInfo(
 ) {
   const { startDate, endDate, expectedPerMonth } = attrs;
 
-  const filteredActions = getActionsBy(attrs);
-  const filteredActionsTotal = filteredActions.reduce((t, i) => {
-    if (i.trackOnly) return t;
-    return t + i.value;
-  }, 0);
+  const actions = getActionsBy(attrs);
+  const { total, totalOnlyTrack } = actions.reduce<{
+    total: number;
+    totalOnlyTrack: number;
+  }>(
+    (t, i) => {
+      if (i.trackOnly)
+        return { ...t, totalOnlyTrack: t.totalOnlyTrack + i.value };
+      return { ...t, total: t.total + i.value };
+    },
+    { totalOnlyTrack: 0, total: 0 }
+  );
 
   const monthDiff = getMonthDifference(endDate, startDate);
-  const valuePerMonth = filteredActionsTotal / monthDiff;
-  const deviationFromExpected =
-    (expectedPerMonth ?? 0) * monthDiff - filteredActionsTotal;
+  const totalWithTrack = totalOnlyTrack + total;
+
+  const valuePerMonth = total / monthDiff;
+  const valuePerMonthWithTrack = totalWithTrack / monthDiff;
+
+  const deviationFromExpected = (expectedPerMonth ?? 0) * monthDiff - total;
+  const deviationFromExpectedWithTrack =
+    (expectedPerMonth ?? 0) * monthDiff - totalWithTrack;
 
   return {
     startDate,
     endDate,
     monthDiff,
-    filteredActionsTotal,
+    total,
+    totalOnlyTrack,
+    totalWithTrack,
     valuePerMonth,
+    valuePerMonthWithTrack,
+    expectedPerMonth,
     deviationFromExpected,
-    filteredActions,
+    deviationFromExpectedWithTrack,
+    actions,
   };
 }
 
-function getActionsGroupInfoNode(attrs: {
-  startDate: Date | string;
-  endDate: Date | string;
-  monthDiff: number;
-  total: number;
-  valuePerMonth: number;
-  deviationFromExpected: number;
-  omitRange?: boolean;
-  prefix?: string;
-}) {
+function getActionsGroupInfoNode(
+  attrs: ReturnType<typeof getActionsInfo> & {
+    resumed?: boolean;
+  }
+) {
+  if (attrs.resumed)
+    return (
+      <>
+        {`(${attrs.actions.length})`}
+        {' - TcS: '}
+        {formatNumberValueToCurrency(attrs.totalWithTrack)}
+      </>
+    );
+
   return (
     <>
-      {attrs.omitRange ? null : (
+      {attrs.expectedPerMonth ? (
         <span className="block c-description">
-          Rango: {getFormattedLocalDate(attrs.startDate)}
-          {' - '}
-          {getFormattedLocalDate(attrs.endDate)} (Meses: {attrs.monthDiff})
+          Estimado Mensual:{' '}
+          {formatNumberValueToCurrency(attrs.expectedPerMonth)}
         </span>
-      )}
+      ) : null}
 
       <span className="block c-description">
-        {attrs.prefix ?? ''}
-        T: {formatNumberValueToCurrency(attrs.total)}, M:{' '}
-        {formatNumberValueToCurrency(attrs.valuePerMonth)}, D:{' '}
-        {formatNumberValueToCurrency(attrs.deviationFromExpected)}
+        Rango: {getFormattedLocalDate(attrs.startDate)}
+        {' - '}
+        {getFormattedLocalDate(attrs.endDate)} (Meses: {attrs.monthDiff})
+      </span>
+
+      <span className="block c-description">
+        T: {formatNumberValueToCurrency(attrs.total)}
+        {' - M: '} {formatNumberValueToCurrency(attrs.valuePerMonth)}
+        {' - D: '} {formatNumberValueToCurrency(attrs.deviationFromExpected)}
+      </span>
+
+      <span className="block c-description">
+        S: {formatNumberValueToCurrency(attrs.totalOnlyTrack)}
+      </span>
+
+      <span className="block c-description">
+        TcS: {formatNumberValueToCurrency(attrs.totalWithTrack)}
+        {' - McS: '} {formatNumberValueToCurrency(attrs.valuePerMonthWithTrack)}
+        {' - DcS: '}{' '}
+        {formatNumberValueToCurrency(attrs.deviationFromExpectedWithTrack)}
       </span>
     </>
   );
@@ -265,9 +301,12 @@ function getActionsIncExpInfo(
   const { startDate, endDate, categories } = attrs;
 
   const {
-    filteredActions: expenseActions,
-    filteredActionsTotal: expActionsTotal,
+    actions: expenseActions,
+    total: expActionsTotal,
+    totalOnlyTrack: expTrackOnlyTotal,
+    totalWithTrack: expActionsTotalWithTrack,
     valuePerMonth: expActionsPerMonth,
+    valuePerMonthWithTrack: expActionsPerMonthWithTrack,
   } = getActionsInfo({
     actions: allActions,
     categories,
@@ -278,9 +317,12 @@ function getActionsIncExpInfo(
   });
 
   const {
-    filteredActions: incomeActions,
-    filteredActionsTotal: incActionsTotal,
+    actions: incomeActions,
+    total: incActionsTotal,
+    totalOnlyTrack: incTrackOnlyTotal,
+    totalWithTrack: incActionsTotalWithTrack,
     valuePerMonth: incActionsPerMonth,
+    valuePerMonthWithTrack: incActionsPerMonthWithTrack,
     monthDiff,
   } = getActionsInfo({
     actions: allActions,
@@ -295,11 +337,20 @@ function getActionsIncExpInfo(
     incomeActions,
     expenseActions,
     incActionsTotal,
+    incActionsTotalWithTrack,
     expActionsTotal,
+    expActionsTotalWithTrack,
+    expTrackOnlyTotal,
+    incTrackOnlyTotal,
     diffTotal: incActionsTotal - expActionsTotal,
+    diffTotalWithTrack: incActionsTotalWithTrack - expActionsTotalWithTrack,
     incActionsPerMonth,
+    incActionsPerMonthWithTrack,
     expActionsPerMonth,
+    expActionsPerMonthWithTrack,
     diffPerMonth: incActionsPerMonth - expActionsPerMonth,
+    diffPerMonthWithTrack:
+      incActionsPerMonthWithTrack - expActionsPerMonthWithTrack,
     monthDiff,
   };
 }
@@ -336,23 +387,31 @@ export default function PopupIncomesExpenses(props: Props) {
   };
 
   const {
-    incomeActions,
-    expenseActions,
-    monthDiff,
-    diffTotal,
-    expActionsTotal,
-    incActionsTotal,
-    expActionsPerMonth,
-    incActionsPerMonth,
-    diffPerMonth,
+    incomeActions: filteredIncomeActions,
+    expenseActions: filteredExpenseActions,
+    monthDiff: filteredMonthDiff,
+    diffTotal: filteredDiffTotal,
+    diffTotalWithTrack: filteredDiffTotalWithTrack,
+    expActionsTotal: filteredExpActionsTotal,
+    expActionsTotalWithTrack: filteredExpActionsTotalWithTrack,
+    incActionsTotal: filteredIncActionsTotal,
+    incActionsTotalWithTrack: filteredIncActionsTotalWithTrack,
+    expActionsPerMonth: filteredExpActionsPerMonth,
+    expActionsPerMonthWithTrack: filteredExpActionsPerMonthWithTrack,
+    incActionsPerMonth: filteredIncActionsPerMonth,
+    incActionsPerMonthWithTrack: filteredIncActionsPerMonthWithTrack,
+    diffPerMonth: filteredDiffPerMonth,
+    diffPerMonthWithTrack: filteredDiffPerMonthWithTrack,
   } = getActionsIncExpInfo(props.db.actions, {
     categories: props.db.categories,
     startDate: filterStartDate,
     endDate: filterEndDate,
   });
 
-  const visibleActions =
-    filterByExpInc === 'expense' ? expenseActions : incomeActions;
+  const filteredVisibleActions =
+    filterByExpInc === 'expense'
+      ? filteredExpenseActions
+      : filteredIncomeActions;
 
   const visibleGroups: SafeIntersection<
     SafeIntersection<Wallet, Category>,
@@ -377,20 +436,40 @@ export default function PopupIncomesExpenses(props: Props) {
       title="Entradas"
       bottomArea={
         <>
-          <div className="mb-2 text-sm italic c-description">
+          <div className="mb-2 text-sm italic c-description overflow-auto h-20">
             <p>
-              Gastos: T: {formatNumberValueToCurrency(expActionsTotal)}, M:{' '}
-              {formatNumberValueToCurrency(expActionsPerMonth)}
+              Gastos: T: {formatNumberValueToCurrency(filteredExpActionsTotal)},
+              M: {formatNumberValueToCurrency(filteredExpActionsPerMonth)}
             </p>
             <p>
-              Ingresos: T: {formatNumberValueToCurrency(incActionsTotal)}, M:{' '}
-              {formatNumberValueToCurrency(incActionsPerMonth)}
+              Ingresos: T:{' '}
+              {formatNumberValueToCurrency(filteredIncActionsTotal)}, M:{' '}
+              {formatNumberValueToCurrency(filteredIncActionsPerMonth)}
             </p>
             <p>
-              Diferencia: T: {formatNumberValueToCurrency(diffTotal)}, M:{' '}
-              {formatNumberValueToCurrency(diffPerMonth)}
+              Diff.: T: {formatNumberValueToCurrency(filteredDiffTotal)}, M:{' '}
+              {formatNumberValueToCurrency(filteredDiffPerMonth)}
             </p>
-            <p>Meses: {monthDiff}</p>
+
+            <p>Meses: {filteredMonthDiff}</p>
+
+            <p>
+              Gastos con Seg.: T:{' '}
+              {formatNumberValueToCurrency(filteredExpActionsPerMonthWithTrack)}
+              , M:{' '}
+              {formatNumberValueToCurrency(filteredExpActionsPerMonthWithTrack)}
+            </p>
+            <p>
+              Ingresos con Seg.: T:{' '}
+              {formatNumberValueToCurrency(filteredIncActionsTotalWithTrack)},
+              M:{' '}
+              {formatNumberValueToCurrency(filteredIncActionsPerMonthWithTrack)}
+            </p>
+            <p>
+              Diff. con Seg.: T:{' '}
+              {formatNumberValueToCurrency(filteredDiffTotalWithTrack)}, M:{' '}
+              {formatNumberValueToCurrency(filteredDiffPerMonthWithTrack)}
+            </p>
           </div>
 
           <div className="flex items-center gap-2 justify-between capitalize">
@@ -483,7 +562,7 @@ export default function PopupIncomesExpenses(props: Props) {
       }
     >
       {filterBy === 'date'
-        ? visibleActions.map((action) =>
+        ? filteredVisibleActions.map((action) =>
             getActionNode({
               action,
               editingItemId,
@@ -511,21 +590,10 @@ export default function PopupIncomesExpenses(props: Props) {
                 : undefined;
 
             const dateFilteredActionsInfo = getActionsInfo({
-              actions: visibleActions,
+              actions: filteredVisibleActions,
               categories: props.db.categories,
               startDate: filterStartDate,
               endDate: filterEndDate,
-              categoryIds,
-              walletIds,
-              expectedPerMonth: item.expectedPerMonth,
-              sortBy: ['date', false],
-            });
-
-            const trackedActionsInfo = getActionsInfo({
-              actions: visibleActions,
-              categories: props.db.categories,
-              startDate: item.startDate ?? initialDate,
-              endDate: finalDate,
               categoryIds,
               walletIds,
               expectedPerMonth: item.expectedPerMonth,
@@ -546,33 +614,10 @@ export default function PopupIncomesExpenses(props: Props) {
                   <p className="border-b border-b-white/10 mb-2 pb-1">
                     <span>{item.name} </span>
                     <span className="c-description">
-                      {filterBy === 'categories' ? (
-                        <span>
-                          {'Items: '}
-                          {dateFilteredActionsInfo.filteredActions.length}
-                          {', Total: '}
-                          {formatNumberValueToCurrency(
-                            dateFilteredActionsInfo.filteredActionsTotal
-                          )}
-                        </span>
-                      ) : (
-                        <span>
-                          {`(${
-                            dateFilteredActionsInfo.filteredActions.length
-                          }) T: ${formatNumberValueToCurrency(
-                            dateFilteredActionsInfo.filteredActionsTotal
-                          )}, D: ${formatNumberValueToCurrency(
-                            dateFilteredActionsInfo.deviationFromExpected
-                          )}`}
-
-                          {getActionsGroupInfoNode({
-                            ...trackedActionsInfo,
-                            total: trackedActionsInfo.filteredActionsTotal,
-                            omitRange: true,
-                            prefix: 'Seg: ',
-                          })}
-                        </span>
-                      )}
+                      {getActionsGroupInfoNode({
+                        ...dateFilteredActionsInfo,
+                        resumed: true,
+                      })}
                     </span>
                   </p>
                 </div>
@@ -580,10 +625,6 @@ export default function PopupIncomesExpenses(props: Props) {
                 <div className="pl-2 mb-5 hidden peer-checked:block">
                   <div className="text-left relative mb-2">
                     <span className="block text-xs c-description">
-                      <span className="block">
-                        Estimado Mensual:{' '}
-                        {formatNumberValueToCurrency(item.expectedPerMonth)}
-                      </span>
                       {filterBy === 'tags' && categoryIds ? (
                         <span className="block">
                           Categorías ({categoryIds.length}):{' '}
@@ -604,21 +645,14 @@ export default function PopupIncomesExpenses(props: Props) {
                             .join(', ')}
                         </span>
                       ) : null}
-                    </span>
 
-                    <span className="block">-------</span>
-                    {getActionsGroupInfoNode({
-                      ...trackedActionsInfo,
-                      total: trackedActionsInfo.filteredActionsTotal,
-                    })}
-                    <span className="block">-------</span>
-                    {getActionsGroupInfoNode({
-                      ...dateFilteredActionsInfo,
-                      total: dateFilteredActionsInfo.filteredActionsTotal,
-                    })}
+                      {getActionsGroupInfoNode({
+                        ...dateFilteredActionsInfo,
+                      })}
+                    </span>
                   </div>
 
-                  {dateFilteredActionsInfo.filteredActions.map((action) =>
+                  {dateFilteredActionsInfo.actions.map((action) =>
                     getActionNode({
                       action,
                       editingItemId,
