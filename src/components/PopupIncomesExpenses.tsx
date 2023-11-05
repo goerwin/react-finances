@@ -343,14 +343,9 @@ function getActionsIncExpInfo(
     expTrackOnlyTotal,
     incTrackOnlyTotal,
     diffTotal: incActionsTotal - expActionsTotal,
-    diffTotalWithTrack: incActionsTotalWithTrack - expActionsTotalWithTrack,
     incActionsPerMonth,
-    incActionsPerMonthWithTrack,
     expActionsPerMonth,
-    expActionsPerMonthWithTrack,
     diffPerMonth: incActionsPerMonth - expActionsPerMonth,
-    diffPerMonthWithTrack:
-      incActionsPerMonthWithTrack - expActionsPerMonthWithTrack,
     monthDiff,
   };
 }
@@ -391,17 +386,13 @@ export default function PopupIncomesExpenses(props: Props) {
     expenseActions: filteredExpenseActions,
     monthDiff: filteredMonthDiff,
     diffTotal: filteredDiffTotal,
-    diffTotalWithTrack: filteredDiffTotalWithTrack,
     expActionsTotal: filteredExpActionsTotal,
-    expActionsTotalWithTrack: filteredExpActionsTotalWithTrack,
     incActionsTotal: filteredIncActionsTotal,
-    incActionsTotalWithTrack: filteredIncActionsTotalWithTrack,
     expActionsPerMonth: filteredExpActionsPerMonth,
-    expActionsPerMonthWithTrack: filteredExpActionsPerMonthWithTrack,
     incActionsPerMonth: filteredIncActionsPerMonth,
-    incActionsPerMonthWithTrack: filteredIncActionsPerMonthWithTrack,
     diffPerMonth: filteredDiffPerMonth,
-    diffPerMonthWithTrack: filteredDiffPerMonthWithTrack,
+    expTrackOnlyTotal: filteredExpActionsPerMonthOnlyTrack,
+    incTrackOnlyTotal: filteredIncActionsTotalOnlyTrack,
   } = getActionsIncExpInfo(props.db.actions, {
     categories: props.db.categories,
     startDate: filterStartDate,
@@ -436,39 +427,32 @@ export default function PopupIncomesExpenses(props: Props) {
       title="Entradas"
       bottomArea={
         <>
-          <div className="mb-2 text-sm italic c-description overflow-auto h-20">
+          <div className="mb-2 text-sm italic c-description overflow-auto">
             <p>
-              Gastos: T: {formatNumberValueToCurrency(filteredExpActionsTotal)},
-              M: {formatNumberValueToCurrency(filteredExpActionsPerMonth)}
+              Gastos: T: {formatNumberValueToCurrency(filteredExpActionsTotal)}
+              {' - M: '}
+              {formatNumberValueToCurrency(filteredExpActionsPerMonth)}
             </p>
             <p>
               Ingresos: T:{' '}
-              {formatNumberValueToCurrency(filteredIncActionsTotal)}, M:{' '}
+              {formatNumberValueToCurrency(filteredIncActionsTotal)}
+              {' - M: '}
               {formatNumberValueToCurrency(filteredIncActionsPerMonth)}
             </p>
             <p>
-              Diff.: T: {formatNumberValueToCurrency(filteredDiffTotal)}, M:{' '}
+              Diff.: T: {formatNumberValueToCurrency(filteredDiffTotal)}
+              {' - M: '}
               {formatNumberValueToCurrency(filteredDiffPerMonth)}
             </p>
 
             <p>Meses: {filteredMonthDiff}</p>
 
             <p>
-              Gastos con Seg.: T:{' '}
-              {formatNumberValueToCurrency(filteredExpActionsPerMonthWithTrack)}
-              , M:{' '}
-              {formatNumberValueToCurrency(filteredExpActionsPerMonthWithTrack)}
-            </p>
-            <p>
-              Ingresos con Seg.: T:{' '}
-              {formatNumberValueToCurrency(filteredIncActionsTotalWithTrack)},
-              M:{' '}
-              {formatNumberValueToCurrency(filteredIncActionsPerMonthWithTrack)}
-            </p>
-            <p>
-              Diff. con Seg.: T:{' '}
-              {formatNumberValueToCurrency(filteredDiffTotalWithTrack)}, M:{' '}
-              {formatNumberValueToCurrency(filteredDiffPerMonthWithTrack)}
+              Seg: GT:{' '}
+              {formatNumberValueToCurrency(filteredExpActionsPerMonthOnlyTrack)}
+              {' - '}
+              IT:{' '}
+              {formatNumberValueToCurrency(filteredIncActionsTotalOnlyTrack)}
             </p>
           </div>
 

@@ -74,6 +74,7 @@ export default function ItemForm(props: Props) {
                 <input
                   hidden={it.hidden}
                   type="number"
+                  step="0.01"
                   placeholder={label}
                   {...register(name, {
                     value: it.value,
@@ -117,7 +118,7 @@ export default function ItemForm(props: Props) {
               <fieldset key={name}>
                 {label ? <label>{label}</label> : null}
                 <input
-                  type="datetime"
+                  type="date"
                   {...register(name, {
                     value: it.value ? getDateFormattedForInput(it.value) : '',
                     required: it.required,
