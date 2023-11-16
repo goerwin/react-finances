@@ -37,6 +37,7 @@ import {
 } from './helpers/DBHelpers';
 import {
   getCategoryById,
+  getCategoryName,
   getWalletName,
   handleErrorWithNotifications,
   loadScript,
@@ -48,7 +49,11 @@ import {
   setLsDB as LSSetLsDB,
   setTokenInfo as LSSetTokenInfo,
 } from './helpers/localStorage';
-import { getFormattedLocalDate } from './helpers/time';
+import {
+  getFormattedLocalDate,
+  getFormattedLocalDatetime,
+} from './helpers/time';
+import ItemView from './components/ItemView';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
@@ -314,9 +319,24 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex flex-col direct-first-child:mt-auto overflow-auto fixed inset-0">
-        <div className="text-sm text-center text-neutral-500">
-          Version: {APP_VERSION}
+        <div className="overflow-auto px-4 py-4">
+          {lsDb?.db.actions.slice(0, 5).map((it) => (
+            <ItemView
+              key={it.id}
+              viewType="small"
+              id={it.id}
+              title={formatNumberValueToCurrency(it.value)}
+              description={getCategoryName(lsDb.db.categories, it.categoryId)}
+              texts={[
+                `${
+                  it.type === 'expense' ? 'Gasto' : 'Ingreso'
+                } - ${getFormattedLocalDatetime(it.date)}`,
+              ]}
+            />
+          ))}
         </div>
+        <div className="relative before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] mb-4" />
+
         <div className="flex flex-wrap gap-2 px-1 justify-center">
           {!tokenInfo && client ? (
             <button onClick={() => client.requestCode()}>
@@ -349,6 +369,11 @@ export default function App() {
 
           <button onClick={() => redirectToCleanHomePage()}>Recargar</button>
         </div>
+
+        <div className="text-sm text-center text-neutral-500">
+          Version: {APP_VERSION}
+        </div>
+
         <div className="w-1/2 mx-auto mt-7 mb-2 border-b-4 border-b-[#333]" />
         <Calculator
           value={value}
