@@ -319,7 +319,12 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex flex-col direct-first-child:mt-auto overflow-auto fixed inset-0">
-        <h2 className="text-2xl mt-0 mb-2 font-bold text-center pt-8 px-4">Recientes</h2>
+        <h2 className="text-2xl mt-0 mb-1 font-bold text-center pt-8 px-4 relative">
+          Recientes
+          <span className="text-sm text-center text-neutral-500 absolute top-2 right-2">
+            v{APP_VERSION}
+          </span>
+        </h2>
         <div className="overflow-auto px-4 py-4 flex-grow">
           {lsDb?.db.actions.slice(0, 5).map((it) => (
             <ItemView
@@ -372,11 +377,7 @@ export default function App() {
           <button onClick={() => redirectToCleanHomePage()}>Recargar</button>
         </div>
 
-        <div className="text-sm text-center text-neutral-500">
-          Version: {APP_VERSION}
-        </div>
-
-        <div className="w-1/2 mx-auto mt-7 mb-2 border-b-4 border-b-[#333]" />
+        <div className="w-1/2 mx-auto mt-4 mb-2 border-b-4 border-b-[#333]" />
         <Calculator
           value={value}
           onButtonClick={setValue}
