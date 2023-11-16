@@ -325,6 +325,7 @@ export default function App() {
               key={it.id}
               viewType="small"
               id={it.id}
+              trackOnly={it.trackOnly}
               title={formatNumberValueToCurrency(it.value)}
               description={getCategoryName(lsDb.db.categories, it.categoryId)}
               texts={[
