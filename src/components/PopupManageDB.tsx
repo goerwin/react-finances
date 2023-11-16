@@ -120,14 +120,14 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
         title="Gestionar DB"
         autoHeight
         bottomArea={
-          <div>
+          <div className='flex gap-1 flex-wrap justify-center'>
             <button
               type="button"
               disabled={isLoading}
               onClick={handleSubmit((data) => verifyDBMutate(data))}
             >
               {isVerifyDBLoading ? LoadingForBtn : null}
-              Actualizar DB
+              Actualizar
             </button>
 
             <button
@@ -136,7 +136,7 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
               onClick={handleSubmit((data) => createDBMutate(data))}
             >
               {isCreateDBLoading ? LoadingForBtn : null}
-              Crear DB
+              Crear
             </button>
 
             <button
@@ -145,7 +145,7 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
               onClick={handleSubmit((data) => deleteDBMutate(data))}
             >
               {isDeleteDBLoading ? LoadingForBtn : null}
-              Eliminar DB
+              Eliminar
             </button>
 
             <button onClick={props.onClose} type="button">
