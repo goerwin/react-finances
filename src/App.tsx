@@ -319,7 +319,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex flex-col direct-first-child:mt-auto overflow-auto fixed inset-0">
-        <div className="overflow-auto px-4 py-4">
+        <div className="overflow-auto px-4 py-4 flex-grow">
           {lsDb?.db.actions.slice(0, 5).map((it) => (
             <ItemView
               key={it.id}
