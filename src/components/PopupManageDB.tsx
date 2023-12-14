@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { toast } from 'react-toastify';
+import toast from 'react-hot-toast';
 import { getDB, TokenInfo } from '../api/actions';
 import { initialDB } from '../helpers/DBHelpers';
 import { handleErrorWithNotifications } from '../helpers/general';

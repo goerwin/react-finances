@@ -4,8 +4,7 @@ import {
   useMutation,
 } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Slide, toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   addItem,
   deleteItem,
@@ -91,8 +90,7 @@ export default function App() {
     onError: handleErrorWithNotifications,
     onSuccess: (lsDb, attrs) => {
       syncLsDB(lsDb);
-      attrs?.alertMsg &&
-        toast(attrs.alertMsg, { type: 'success', autoClose: 1000 });
+      attrs.alertMsg && toast.success(attrs.alertMsg, { duration: 2000 });
     },
     mutationFn: async (attrs: {
       tokenInfo: typeof tokenInfo;
@@ -311,7 +309,7 @@ export default function App() {
         setClient(client);
       } catch (err: any) {
         console.log(err?.stack);
-        toast(err?.message || 'Error.', { type: 'error', autoClose: false });
+        toast.error(err?.message || 'Error.');
       }
     })();
   }, []);
@@ -734,7 +732,7 @@ export default function App() {
         ) : null}
 
         {mutateLoading && <Loading />}
-        <ToastContainer transition={Slide} position="top-center" />
+        <Toaster position="top-center" />
       </div>
     </QueryClientProvider>
   );

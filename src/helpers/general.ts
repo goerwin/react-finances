@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { toast } from 'react-hot-toast';
 import { Category, Wallet } from './DBHelpers';
 
 type SortablePropertyType = string | number;
@@ -85,7 +85,7 @@ export function handleErrorWithNotifications(err: unknown) {
 
   // NOTE: monkeypatch since it is throwing an undefined error
   // github.com/fkhadra/react-toastify/issues/858
-  setTimeout(() => toast(message, { type: 'error', autoClose: false }));
+  setTimeout(() => toast.error(message));
 }
 
 export function getCategoryById(categories: Category[], categoryId: string) {
