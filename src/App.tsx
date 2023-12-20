@@ -40,6 +40,7 @@ import {
   getWalletName,
   handleErrorWithNotifications,
   loadScript,
+  sortByFnCreator,
 } from './helpers/general';
 import {
   getLsDB as LSGetLsDB,
@@ -47,11 +48,10 @@ import {
   LSDB,
   setLsDB as LSSetLsDB,
   setTokenInfo as LSSetTokenInfo,
+  getDatabasePath as LSGetDatabasePath,
+  setDatabasePath as LSSetDatabasePath,
 } from './helpers/localStorage';
-import {
-  getFormattedLocalDate,
-  getFormattedLocalDatetime,
-} from './helpers/time';
+import { getFormattedLocalDatetime } from './helpers/time';
 import ItemView from './components/ItemView';
 
 function redirectToCleanHomePage() {
@@ -84,6 +84,7 @@ export default function App() {
   const syncLsDB = (lsDb?: LSDB) => {
     setLsDb(lsDb);
     LSSetLsDB(lsDb);
+    LSSetDatabasePath(lsDb?.path);
   };
 
   const { isLoading: mutateLoading, mutate } = useMutation({
@@ -324,21 +325,24 @@ export default function App() {
           </span>
         </h2>
         <div className="overflow-auto px-4 py-4 flex-grow">
-          {lsDb?.db.actions.slice(0, 5).map((it) => (
-            <ItemView
-              key={it.id}
-              viewType="small"
-              id={it.id}
-              trackOnly={it.trackOnly}
-              title={formatNumberValueToCurrency(it.value)}
-              description={getCategoryName(lsDb.db.categories, it.categoryId)}
-              texts={[
-                `${
-                  it.type === 'expense' ? 'Gasto' : 'Ingreso'
-                } - ${getFormattedLocalDatetime(it.date)}`,
-              ]}
-            />
-          ))}
+          {lsDb?.db.actions
+            .sort(sortByFnCreator('date', false))
+            .slice(0, 10)
+            .map((it) => (
+              <ItemView
+                key={it.id}
+                viewType="small"
+                id={it.id}
+                trackOnly={it.trackOnly}
+                title={formatNumberValueToCurrency(it.value)}
+                description={getCategoryName(lsDb.db.categories, it.categoryId)}
+                texts={[
+                  `${
+                    it.type === 'expense' ? 'Gasto' : 'Ingreso'
+                  } - ${getFormattedLocalDatetime(it.date)}`,
+                ]}
+              />
+            ))}
         </div>
         <div className="relative before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] mb-4" />
 
@@ -724,7 +728,7 @@ export default function App() {
 
         {tokenInfo && popup?.action === 'manageDB' ? (
           <PopupManageDB
-            dbPath={lsDb?.path ?? ''}
+            dbPath={lsDb?.path ?? LSGetDatabasePath() ?? ''}
             tokenInfo={tokenInfo}
             onDBSync={syncLsDB}
             onClose={() => setPopup(undefined)}

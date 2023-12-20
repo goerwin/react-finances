@@ -9,6 +9,7 @@ const Keys = {
   tokenInfo: `${LOCAL_STORAGE_NAMESPACE}_ti`,
   db: `${LOCAL_STORAGE_NAMESPACE}_db`,
   filterByExpInc: `${LOCAL_STORAGE_NAMESPACE}_filterByExpInc`,
+  databasePath: `${LOCAL_STORAGE_NAMESPACE}_databasePath`,
 };
 
 function safeGetLSItem(key: string) {
@@ -32,7 +33,7 @@ export function setTokenInfo(tokenInfo?: TokenInfo) {
 }
 
 const filterByOpts = ['date', 'categories', 'tags', 'wallets'] as const;
-type FilterByOptions = typeof filterByOpts[number];
+type FilterByOptions = (typeof filterByOpts)[number];
 
 export function setFilterBy(filteredBy: FilterByOptions) {
   localStorage.removeItem(Keys.filteredBy);
@@ -45,7 +46,7 @@ export function getFilterBy(): FilterByOptions {
 }
 
 const filterByExpIncOpts = ['expense', 'income'] as const;
-type FilterByExpInc = typeof filterByExpIncOpts[number];
+type FilterByExpInc = (typeof filterByExpIncOpts)[number];
 
 export function setFilterByExpInc(filter: FilterByExpInc) {
   localStorage.removeItem(Keys.filterByExpInc);
@@ -74,4 +75,17 @@ export function setLsDB(lsDB?: LSDB) {
   lsDB
     ? localStorage.setItem(Keys.db, JSON.stringify(lsDB))
     : localStorage.removeItem(Keys.db);
+}
+
+export function getDatabasePath() {
+  return localStorage.getItem(Keys.databasePath);
+}
+
+export function setDatabasePath(dbPath?: string) {
+  if (!dbPath) return;
+  localStorage.setItem(Keys.databasePath, dbPath);
+}
+
+export function removeDatabaePath() {
+  localStorage.removeItem(Keys.databasePath);
 }
