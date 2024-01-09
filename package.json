@@ -2,7 +2,7 @@
   "name": "react-finances",
   "description": "PWA Finances made with React/Vite/Tailwindcss",
   "private": true,
-  "version": "2.2.6",
+  "version": "2.2.7",
   "type": "module",
   "scripts": {
     "build": "tsc && vite build",
@@ -19,6 +19,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.46.2",
     "react-hot-toast": "^2.4.1",
+    "tailwind-merge": "^2.2.0",
     "use-long-press": "^3.2.0",
     "uuid": "^9.0.1",
     "zod": "^3.22.2"

@@ -38,6 +38,7 @@ export const actionSchema = z.object({
   value: z.number(),
   type: itemTypeSchema,
   trackOnly: z.boolean().optional(),
+  withCreditCard: z.boolean().optional(),
   description: z.string().optional(),
   categoryId: categorySchema.shape.id,
 });

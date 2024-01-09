@@ -5,6 +5,7 @@ interface Props {
   title: string;
   description?: string | number;
   trackOnly?: boolean;
+  withCreditCard?: boolean;
   texts?: (string | undefined)[];
   viewType?: 'small';
   onEditClick?: (id: string) => void;
@@ -17,7 +18,8 @@ export default function ItemView(props: Props) {
       <div className="grow mr-2 break-words min-w-0">
         <span className="block">
           <span>
-            {props.title} {props.trackOnly ? ' 🦶' : null}
+            {props.title} {props.trackOnly ? '🦶' : null}{' '}
+            {props.withCreditCard ? '💳' : null}
           </span>
           {props.description ? (
             <span className="c-description text-xs"> {props.description}</span>

@@ -99,3 +99,7 @@ export function getCategoryName(categories: Category[], categoryId: string) {
 export function getWalletName(wallets: Wallet[], walletId: string) {
   return wallets.find((it) => it.id === walletId)?.name ?? '-';
 }
+
+export function getWalletCategories(walletId: string, categories: Category[]) {
+  return categories.filter((it) => it.walletId === walletId);
+}

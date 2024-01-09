@@ -5,15 +5,6 @@ import ItemForm, { FormItem } from './ItemForm';
 import ItemView from './ItemView';
 import Popup from './Popup';
 
-type ItemCommon2 = {
-  id: string;
-  type: ItemType;
-  name: string;
-  sortPriority: number;
-  description?: string;
-  [x: string]: any;
-};
-
 type TagOrWallet = SafeIntersection<Tag, Wallet>;
 type ActionOrCategory = SafeIntersection<Action, Category>;
 type Bb = SafeIntersection<ActionOrCategory, { [x: string]: any }>;

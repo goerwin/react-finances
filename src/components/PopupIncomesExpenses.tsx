@@ -4,6 +4,7 @@ import { Action, Category, DB, Tag, Wallet } from '../helpers/DBHelpers';
 import {
   getCategoryById,
   getCategoryName,
+  getWalletCategories,
   getWalletName,
   sortByFnCreator,
 } from '../helpers/general';
@@ -106,8 +107,14 @@ function getActionNode({
         {
           name: 'trackOnly',
           type: 'checkbox',
-          label: 'Solo Seguimiento (🦶)',
+          label: 'Seguimiento (🦶)',
           value: action.trackOnly,
+        },
+        {
+          name: 'withCreditCard',
+          type: 'checkbox',
+          label: 'TC (💳)',
+          value: action.withCreditCard,
         },
       ]}
       onCancel={() => setEditingItemId(undefined)}
@@ -117,6 +124,7 @@ function getActionNode({
       key={'view' + action.id}
       id={action.id}
       trackOnly={action.trackOnly}
+      withCreditCard={action.withCreditCard}
       title={formatNumberValueToCurrency(action.value)}
       description={getCategoryName(props.db.categories, action.categoryId)}
       texts={[
@@ -183,16 +191,24 @@ function getActionsInfo(
   const { startDate, endDate, expectedPerMonth } = attrs;
 
   const actions = getActionsBy(attrs);
-  const { total, totalOnlyTrack } = actions.reduce<{
+  const { total, totalOnlyTrack, totalOnlyCreditCard } = actions.reduce<{
     total: number;
     totalOnlyTrack: number;
+    totalOnlyCreditCard: number;
   }>(
     (t, i) => {
-      if (i.trackOnly)
-        return { ...t, totalOnlyTrack: t.totalOnlyTrack + i.value };
-      return { ...t, total: t.total + i.value };
+      return {
+        ...t,
+        totalOnlyTrack: i.trackOnly
+          ? t.totalOnlyTrack + i.value
+          : t.totalOnlyTrack,
+        total: t.total + (i.trackOnly ? 0 : i.value),
+        totalOnlyCreditCard: i.withCreditCard
+          ? t.totalOnlyCreditCard + i.value
+          : t.totalOnlyCreditCard,
+      };
     },
-    { totalOnlyTrack: 0, total: 0 }
+    { totalOnlyTrack: 0, totalOnlyCreditCard: 0, total: 0 }
   );
 
   const monthDiff = getMonthDifference(endDate, startDate);
@@ -212,6 +228,7 @@ function getActionsInfo(
     total,
     totalOnlyTrack,
     totalWithTrack,
+    totalOnlyCreditCard,
     valuePerMonth,
     valuePerMonthWithTrack,
     expectedPerMonth,
@@ -308,6 +325,7 @@ function getActionsIncExpInfo(
     totalOnlyTrack: expTrackOnlyTotal,
     totalWithTrack: expActionsTotalWithTrack,
     valuePerMonth: expActionsPerMonth,
+    totalOnlyCreditCard: expTotalOnlyCreditCard,
     valuePerMonthWithTrack: expActionsPerMonthWithTrack,
   } = getActionsInfo({
     actions: allActions,
@@ -344,6 +362,7 @@ function getActionsIncExpInfo(
     expActionsTotalWithTrack,
     expTrackOnlyTotal,
     incTrackOnlyTotal,
+    expTotalOnlyCreditCard,
     diffTotal: incActionsTotal - expActionsTotal,
     incActionsPerMonth,
     expActionsPerMonth,
@@ -395,6 +414,7 @@ export default function PopupIncomesExpenses(props: Props) {
     diffPerMonth: filteredDiffPerMonth,
     expTrackOnlyTotal: filteredExpActionsPerMonthOnlyTrack,
     incTrackOnlyTotal: filteredIncActionsTotalOnlyTrack,
+    expTotalOnlyCreditCard,
   } = getActionsIncExpInfo(props.db.actions, {
     categories: props.db.categories,
     startDate: filterStartDate,
@@ -456,6 +476,7 @@ export default function PopupIncomesExpenses(props: Props) {
               IT:{' '}
               {formatNumberValueToCurrency(filteredIncActionsTotalOnlyTrack)}
             </p>
+            <p>TC: {formatNumberValueToCurrency(expTotalOnlyCreditCard)}</p>
           </div>
 
           <div className="relative before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] pb-2" />
@@ -564,12 +585,15 @@ export default function PopupIncomesExpenses(props: Props) {
 
       {filterBy !== 'date'
         ? visibleGroups.map((item) => {
+            console.log('bb', item);
             const categoryIds =
               filterBy === 'tags'
                 ? item.categoryIds
                 : filterBy === 'categories'
                 ? [item.id]
-                : undefined;
+                : getWalletCategories(item.id, props.db.categories).map(
+                    (it) => it.id
+                  );
             const walletIds =
               filterBy === 'wallets'
                 ? [item.id]
@@ -613,7 +637,8 @@ export default function PopupIncomesExpenses(props: Props) {
                 <div className="pl-2 mb-5 hidden peer-checked:block">
                   <div className="text-left relative mb-2">
                     <span className="block text-xs c-description">
-                      {filterBy === 'tags' && categoryIds ? (
+                      {(filterBy === 'tags' || filterBy === 'wallets') &&
+                      categoryIds ? (
                         <span className="block">
                           Categorías ({categoryIds.length}):{' '}
                           {categoryIds

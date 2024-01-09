@@ -29,20 +29,12 @@ export default function PopupIncomeExpenseForm(props: Props) {
   return (
     <form onSubmit={handleSubmit(props.onSubmit)}>
       <Popup
+        popupClassName="items-end"
         autoHeight
         title={props.actionType === 'expense' ? 'Gasto' : 'Ingreso'}
         subtitle={props.value || '$0'}
         bottomArea={
           <>
-            <div>
-              <input
-                className="w-full bg-gray-500 text-white border-2 border-gray-200 placeholder:text-gray-400 text-base p-4 rounded-lg"
-                type="text"
-                placeholder="Descripción"
-                {...register('description')}
-              />
-            </div>
-
             <div className="flex gap-2 justify-center mt-2">
               <button
                 type="button"
@@ -70,6 +62,15 @@ export default function PopupIncomeExpenseForm(props: Props) {
           {...register('type', { value: props.actionType })}
         />
 
+        <div className="mb-2">
+          <input
+            className="w-full bg-gray-500 text-white border-2 border-gray-200 placeholder:text-gray-400 text-base p-4 rounded-lg"
+            type="text"
+            placeholder="Descripción"
+            {...register('description')}
+          />
+        </div>
+
         <div className="flex flex-wrap justify-center">
           {categories.map(({ id, name }) => (
             <label key={id} className="relative cursor-pointer">
@@ -89,11 +90,21 @@ export default function PopupIncomeExpenseForm(props: Props) {
 
         <div className="p-2">
           <label>
-            <span className="align-middle">Solo seguimiento (🦶): </span>
+            <span className="align-middle">Seguimiento (🦶): </span>
             <input
               type="checkbox"
               className="align-middle h-4 w-4"
               {...register('trackOnly')}
+            />
+          </label>
+        </div>
+        <div className="p-2">
+          <label>
+            <span className="align-middle">TC (💳): </span>
+            <input
+              type="checkbox"
+              className="align-middle h-4 w-4"
+              {...register('withCreditCard')}
             />
           </label>
         </div>

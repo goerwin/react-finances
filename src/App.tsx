@@ -334,6 +334,7 @@ export default function App() {
                 viewType="small"
                 id={it.id}
                 trackOnly={it.trackOnly}
+                withCreditCard={it.withCreditCard}
                 title={formatNumberValueToCurrency(it.value)}
                 description={getCategoryName(lsDb.db.categories, it.categoryId)}
                 texts={[
@@ -634,6 +635,7 @@ export default function App() {
                 label: 'Categorías',
                 options: lsDb.db.categories
                   .filter((it) => it.type === popup.actionType)
+                  .sort(sortByFnCreator('sortPriority', false))
                   .map((it) => ({ value: it.id, label: it.name })),
               },
               {
