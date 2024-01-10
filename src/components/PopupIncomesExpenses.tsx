@@ -479,8 +479,8 @@ export default function PopupIncomesExpenses(props: Props) {
             <p>
               TC: {formatNumberValueToCurrency(expTotalOnlyCreditCard)} - Saldo:{' '}
               {formatNumberValueToCurrency(
-                historicExpenseTotal -
-                  (props.db.initialBalance ?? historicExpenseTotal)
+                (props.db.initialBalance ?? historicExpenseTotal) -
+                  historicExpenseTotal
               )}
             </p>
           </div>
