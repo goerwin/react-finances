@@ -1,6 +1,6 @@
 import { WithRequired } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Action, Category, DB, Tag, Wallet } from '../helpers/DBHelpers';
+import { Action, Category, DB, Tag, Wallet } from '../helpers/schemas';
 import {
   getCategoryById,
   getCategoryName,
@@ -196,16 +196,16 @@ function getActionsInfo(
     totalOnlyTrack: number;
     totalOnlyCreditCard: number;
   }>(
-    (t, i) => {
+    (action, i) => {
       return {
-        ...t,
+        ...action,
         totalOnlyTrack: i.trackOnly
-          ? t.totalOnlyTrack + i.value
-          : t.totalOnlyTrack,
-        total: t.total + (i.trackOnly ? 0 : i.value),
+          ? action.totalOnlyTrack + i.value
+          : action.totalOnlyTrack,
+        total: action.total + (i.trackOnly ? 0 : i.value),
         totalOnlyCreditCard: i.withCreditCard
-          ? t.totalOnlyCreditCard + i.value
-          : t.totalOnlyCreditCard,
+          ? action.totalOnlyCreditCard + i.value
+          : action.totalOnlyCreditCard,
       };
     },
     { totalOnlyTrack: 0, totalOnlyCreditCard: 0, total: 0 }
@@ -289,24 +289,19 @@ function getActionsGroupInfoNode(
   );
 }
 
-function getActionsInitialDate(actions: Action[]) {
-  const action = actions.reduce<Action | null>(
-    (prev, curr) =>
-      !prev ? curr : new Date(curr.date) < new Date(prev.date) ? curr : prev,
-    null
+function getActionsDates(actions: Action[]) {
+  return actions.reduce<{ initialDate: Date; finalDate: Date }>(
+    (prev, curr) => {
+      const actionDate = new Date(curr.date);
+
+      return {
+        initialDate:
+          actionDate < prev.initialDate ? actionDate : prev.initialDate,
+        finalDate: actionDate > prev.finalDate ? actionDate : prev.finalDate,
+      };
+    },
+    { initialDate: new Date(), finalDate: new Date(0) }
   );
-
-  return new Date(action?.date || 0);
-}
-
-function getActionsFinalDate(actions: Action[]) {
-  const action = actions.reduce<Action | null>(
-    (prev, curr) =>
-      !prev ? curr : new Date(curr.date) > new Date(prev.date) ? curr : prev,
-    null
-  );
-
-  return new Date(action?.date || 0);
 }
 
 function getActionsIncExpInfo(
@@ -382,10 +377,7 @@ export default function PopupIncomesExpenses(props: Props) {
     filterEndDate: getLastDayOfMonthDate(today),
   });
 
-  const [initialDate, finalDate] = [
-    getActionsInitialDate(props.db.actions),
-    getActionsFinalDate(props.db.actions),
-  ];
+  const { initialDate, finalDate } = getActionsDates(props.db.actions);
 
   const syncFilterByExpInc = (filter: typeof filterByExpInc) => {
     setFilterByExpInc(filter);
@@ -401,6 +393,14 @@ export default function PopupIncomesExpenses(props: Props) {
     setEditingItemId(undefined);
     props.onEditItemSubmit(data);
   };
+
+  const { total: historicExpenseTotal } = getActionsInfo({
+    actions: props.db.actions,
+    categories: props.db.categories,
+    type: 'expense',
+    startDate: initialDate,
+    endDate: finalDate,
+  });
 
   const {
     incomeActions: filteredIncomeActions,
@@ -476,7 +476,13 @@ export default function PopupIncomesExpenses(props: Props) {
               IT:{' '}
               {formatNumberValueToCurrency(filteredIncActionsTotalOnlyTrack)}
             </p>
-            <p>TC: {formatNumberValueToCurrency(expTotalOnlyCreditCard)}</p>
+            <p>
+              TC: {formatNumberValueToCurrency(expTotalOnlyCreditCard)} - Saldo:{' '}
+              {formatNumberValueToCurrency(
+                historicExpenseTotal -
+                  (props.db.initialBalance ?? historicExpenseTotal)
+              )}
+            </p>
           </div>
 
           <div className="relative before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] pb-2" />

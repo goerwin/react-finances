@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { getDB, TokenInfo } from '../api/actions';
-import { initialDB } from '../helpers/DBHelpers';
+import { initialDB } from '../helpers/schemas';
 import { handleErrorWithNotifications } from '../helpers/general';
 import {
   deleteGoogleDriveFile,
@@ -17,8 +17,8 @@ import Popup from './Popup';
 export interface Props {
   tokenInfo: TokenInfo;
   dbPath: string;
-  onDBSync?: (data?: LSDB) => void;
   onClose?: () => void;
+  onDBSync: (data?: LSDB) => void;
 }
 
 const LoadingForBtn = (

@@ -44,6 +44,7 @@ export const actionSchema = z.object({
 });
 
 export const dbSchema = z.object({
+  initialBalance: z.number().optional(),
   updatedAt: z.string().datetime(),
   nextPage: z.string().optional(),
   tags: z.array(tagSchema),

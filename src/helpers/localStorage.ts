@@ -1,7 +1,7 @@
 import { LOCAL_STORAGE_NAMESPACE } from '../config';
 import { arrayIncludes } from './general';
 import { TokenInfoSchema, TokenInfo } from '../api/actions';
-import { dbSchema, DB } from './DBHelpers';
+import { dbSchema, DB } from './schemas';
 import { z } from 'zod';
 
 const Keys = {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Action, Category, ItemType, Tag, Wallet } from '../helpers/DBHelpers';
+import { Action, Category, ItemType, Tag, Wallet } from '../helpers/schemas';
 import { sortByFnCreator } from '../helpers/general';
 import ItemForm, { FormItem } from './ItemForm';
 import ItemView from './ItemView';

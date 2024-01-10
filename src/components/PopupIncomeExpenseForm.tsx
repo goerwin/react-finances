@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { Action, ItemType, DB } from '../helpers/DBHelpers';
+import { Action, ItemType, DB } from '../helpers/schemas';
 import { sortByFnCreator } from '../helpers/general';
 import { removeCurrencyFormattingToValue } from './Calculator';
 import Popup from './Popup';

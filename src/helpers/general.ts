@@ -1,5 +1,5 @@
 import { toast } from 'react-hot-toast';
-import { Category, Wallet } from './DBHelpers';
+import { Category, Wallet } from './schemas';
 
 type SortablePropertyType = string | number;
 

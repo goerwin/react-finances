@@ -33,7 +33,7 @@ import {
   ItemType,
   tagSchema,
   walletSchema,
-} from './helpers/DBHelpers';
+} from './helpers/schemas';
 import {
   getCategoryById,
   getCategoryName,
@@ -53,6 +53,7 @@ import {
 } from './helpers/localStorage';
 import { getFormattedLocalDatetime } from './helpers/time';
 import ItemView from './components/ItemView';
+import PopupBalance from './components/PopupBalance';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
@@ -69,7 +70,8 @@ export default function App() {
       | 'showCategories'
       | 'showTags'
       | 'showWallets'
-      | 'manageDB';
+      | 'manageDB'
+      | 'manageBalance';
     actionType: ItemType;
   }>();
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
@@ -373,6 +375,13 @@ export default function App() {
                 }
               >
                 DB
+              </button>
+              <button
+                onClick={() =>
+                  setPopup({ action: 'manageBalance', actionType: 'expense' })
+                }
+              >
+                Saldo
               </button>
             </>
           ) : null}
@@ -734,6 +743,15 @@ export default function App() {
             tokenInfo={tokenInfo}
             onDBSync={syncLsDB}
             onClose={() => setPopup(undefined)}
+          />
+        ) : null}
+
+        {lsDb && tokenInfo && popup?.action === 'manageBalance' ? (
+          <PopupBalance
+            lsDb={lsDb}
+            tokenInfo={tokenInfo}
+            onClose={() => setPopup(undefined)}
+            onDBSync={syncLsDB}
           />
         ) : null}
 

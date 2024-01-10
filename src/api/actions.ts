@@ -1,5 +1,5 @@
 import { z, ZodSchema } from 'zod';
-import { Action, DB, dbSchema } from '../helpers/DBHelpers';
+import { Action, DB, dbSchema } from '../helpers/schemas';
 
 // https://github.com/uuidjs/uuid/pull/654
 import { v4 as uuidv4 } from 'uuid';
@@ -116,5 +116,18 @@ export async function deleteItem(
       // but this is safe
       [type]: db[type].filter((it) => it.id !== id),
     },
+  });
+}
+
+export async function updateInitialBalance(
+  tokenInfo: TokenInfo,
+  attrs: DBApiRequiredAttrs & {
+    initialBalance?: number;
+  }
+) {
+  const db = await getDB(tokenInfo, attrs);
+  return updateDB(tokenInfo, {
+    ...attrs,
+    db: { ...db, initialBalance: attrs.initialBalance },
   });
 }
