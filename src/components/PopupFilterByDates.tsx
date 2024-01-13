@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { getDateFormattedForInput } from '../helpers/time';
+import { getLocalDateFormattedForInput } from '../helpers/time';
 import Popup from './Popup';
 import Button from './Button';
 
@@ -16,8 +16,8 @@ export type Props = {
 export default function PopupFilterByDates(props: Props) {
   const { register, handleSubmit, formState } = useForm({
     defaultValues: {
-      startDate: getDateFormattedForInput(props.startDate),
-      endDate: getDateFormattedForInput(props.endDate),
+      startDate: getLocalDateFormattedForInput(props.startDate),
+      endDate: getLocalDateFormattedForInput(props.endDate),
     },
   });
 
@@ -69,7 +69,9 @@ export default function PopupFilterByDates(props: Props) {
 
         <div className="flex gap-1 justify-center">
           <Button onClick={props.onCancelClick}>Cancelar</Button>
-          <Button variant="success">Aceptar</Button>
+          <Button variant="success" type="submit">
+            Aceptar
+          </Button>
         </div>
       </form>
     </Popup>

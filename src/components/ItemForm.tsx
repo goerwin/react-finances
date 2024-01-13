@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { getDateFormattedForInput } from '../helpers/time';
 import Button from './Button';
 import { FaCheck, FaXmark } from 'react-icons/fa6';
 import cn from '../utils/cn';
+import { getDatetimeLocalFormattedForInputDate } from '../helpers/time';
 
 type Common = {
   name: string;
@@ -121,15 +121,14 @@ export default function ItemForm(props: Props) {
               <fieldset key={name}>
                 {label ? <label>{label}: </label> : null}
                 <input
-                  type="date"
+                  type="datetime-local"
                   {...register(name, {
-                    value: it.value ? getDateFormattedForInput(it.value) : '',
+                    value: it.value
+                      ? getDatetimeLocalFormattedForInputDate(it.value)
+                      : '',
                     required: it.required,
-
-                    // val is yyyy-MM-dd
-                    // append T00:00 to convert it to local date
                     setValueAs: (val) =>
-                      val ? new Date(val + 'T00:00').toISOString() : undefined,
+                      val ? new Date(val).toISOString() : undefined,
                   })}
                 />
               </fieldset>
