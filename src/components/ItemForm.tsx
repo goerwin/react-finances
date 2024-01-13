@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { getDateFormattedForInput } from '../helpers/time';
+import Button from './Button';
+import { FaCheck, FaXmark } from 'react-icons/fa6';
 
 type Common = {
   name: string;
@@ -107,9 +109,7 @@ export default function ItemForm(props: Props) {
                     </option>
                   ))}
                 </select>
-                <button type="button" onClick={() => setValue(name, [])}>
-                  x
-                </button>
+                <Button onClick={() => setValue(name, [])}>x</Button>
               </fieldset>
             );
 
@@ -136,19 +136,17 @@ export default function ItemForm(props: Props) {
       </div>
 
       <div className="flex gap-2">
-        <button
-          className="btn-success p-0 text-2xl h-10 aspect-square"
+        <Button size="icon" variant="success" type="submit">
+          <FaCheck />
+        </Button>
+        <Button
+          size="icon"
+          variant="danger"
           type="submit"
-        >
-          ✓
-        </button>
-        <button
-          type="button"
-          className="btn-danger p-0 text-2xl h-10 aspect-square"
           onClick={props.onCancel}
         >
-          x
-        </button>
+          <FaXmark />
+        </Button>
       </div>
     </form>
   );

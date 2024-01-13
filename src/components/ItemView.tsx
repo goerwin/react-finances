@@ -1,4 +1,6 @@
+import Button from './Button';
 import If from './If';
+import { FaPencil, FaTrash } from 'react-icons/fa6';
 
 interface Props {
   id: string;
@@ -36,21 +38,24 @@ export default function ItemView(props: Props) {
 
       <If condition={props.viewType !== 'small'}>
         <div className="flex gap-2 max-h-10">
-          <button
-            className="btn-success p-0 text-2xl h-10 aspect-square"
+          <Button
+            size="icon"
+            variant="success"
             onClick={() => props.onEditClick?.(props.id)}
           >
-            ✎
-          </button>
-          <button
-            className="btn-danger p-0 text-2xl h-10 aspect-square"
+            <FaPencil />
+          </Button>
+
+          <Button
+            size="icon"
+            variant="danger"
             onClick={() => {
               if (window.confirm(`Eliminar este item (${props.title})?`))
                 props.onRemoveClick?.(props.id);
             }}
           >
-            🗑
-          </button>
+            <FaTrash />
+          </Button>
         </div>
       </If>
     </div>

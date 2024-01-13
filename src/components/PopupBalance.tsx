@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { handleErrorWithNotifications } from '../helpers/general';
 import toast from 'react-hot-toast';
 import { LSDB } from '../helpers/localStorage';
+import Button from './Button';
 
 export interface Props {
   lsDb: LSDB;
@@ -44,17 +45,17 @@ export default function PopupBalance(props: Props) {
         autoHeight
         bottomArea={
           <div className="flex gap-1 flex-wrap justify-center">
-            <button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <LoadingElement style={{ display: 'inline', width: 20 }} />
               ) : (
                 'Actualizar'
               )}
-            </button>
+            </Button>
 
-            <button onClick={props.onClose} type="button" disabled={isLoading}>
+            <Button onClick={props.onClose} disabled={isLoading}>
               Cerrar
-            </button>
+            </Button>
           </div>
         }
       >

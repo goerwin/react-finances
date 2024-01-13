@@ -4,6 +4,7 @@ import { sortByFnCreator } from '../helpers/general';
 import ItemForm, { FormItem } from './ItemForm';
 import ItemView from './ItemView';
 import Popup from './Popup';
+import Button from './Button';
 
 type TagOrWallet = SafeIntersection<Tag, Wallet>;
 type ActionOrCategory = SafeIntersection<Action, Category>;
@@ -56,15 +57,12 @@ export default function PopupCRUD<T extends ItemCommon>({
       }
       subtitle={`(${parsedItems.length})`}
       bottomArea={
-        <>
-          <button onClick={props.onClose}>Cerrar</button>
-          <button
-            className="btn-success ml-4"
-            onClick={() => setFormItemId('new')}
-          >
+        <div className='flex gap-4 align-middle justify-center'>
+          <Button onClick={props.onClose}>Cerrar</Button>
+          <Button variant="success" onClick={() => setFormItemId('new')}>
             Agregar
-          </button>
-        </>
+          </Button>
+        </div>
       }
     >
       {formItemId === 'new' ? (

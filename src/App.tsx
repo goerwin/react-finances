@@ -54,6 +54,7 @@ import {
 import { getFormattedLocalDatetime } from './helpers/time';
 import ItemView from './components/ItemView';
 import PopupBalance from './components/PopupBalance';
+import Button from './components/Button';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
@@ -351,14 +352,14 @@ export default function App() {
 
         <div className="flex flex-wrap gap-2 px-1 justify-center">
           {!tokenInfo && client ? (
-            <button onClick={() => client.requestCode()}>
+            <Button onClick={() => client.requestCode()}>
               Iniciar sesión con Google
-            </button>
+            </Button>
           ) : null}
 
           {tokenInfo ? (
             <>
-              <button
+              <Button
                 onClick={async () => {
                   if (!window.confirm('Cerrar sesión?')) return;
                   syncTokenInfo();
@@ -367,26 +368,26 @@ export default function App() {
                 }}
               >
                 Cerrar sesión
-              </button>
+              </Button>
 
-              <button
+              <Button
                 onClick={() =>
                   setPopup({ action: 'manageDB', actionType: 'income' })
                 }
               >
                 DB
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() =>
                   setPopup({ action: 'manageBalance', actionType: 'expense' })
                 }
               >
                 Saldo
-              </button>
+              </Button>
             </>
           ) : null}
 
-          <button onClick={() => redirectToCleanHomePage()}>Recargar</button>
+          <Button onClick={redirectToCleanHomePage}>Recargar</Button>
         </div>
 
         <div className="w-1/2 mx-auto mt-4 mb-2 border-b-4 border-b-[#333]" />
@@ -396,18 +397,18 @@ export default function App() {
           onBackspaceLongPress={() => setValue(undefined)}
         />
         <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl ch:basis-1/2">
-          <button
-            className="bg-green-700"
+          <Button
+            variant="success"
             onClick={handleActionClick.bind(null, 'income')}
           >
             Ingreso
-          </button>
-          <button
-            className="bg-red-800"
+          </Button>
+          <Button
+            variant="danger"
             onClick={handleActionClick.bind(null, 'expense')}
           >
             Gasto
-          </button>
+          </Button>
         </div>
 
         <div className="h-14 bg-black/20 grid grid-cols-1 gap-px shrink-0">
