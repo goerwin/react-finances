@@ -572,7 +572,7 @@ export default function PopupIncomesExpenses(props: Props) {
           </div>
 
           <div className="pt-2">
-            <Button onClick={props.onClose} className='mx-auto'>
+            <Button onClick={props.onClose} className="mx-auto">
               Cerrar
             </Button>
           </div>
