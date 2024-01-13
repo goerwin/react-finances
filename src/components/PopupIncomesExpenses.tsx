@@ -594,7 +594,6 @@ export default function PopupIncomesExpenses(props: Props) {
 
       {filterBy !== 'date'
         ? visibleGroups.map((item) => {
-            console.log('bb', item);
             const categoryIds =
               filterBy === 'tags'
                 ? item.categoryIds
