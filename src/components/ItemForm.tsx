@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { getDateFormattedForInput } from '../helpers/time';
 import Button from './Button';
 import { FaCheck, FaXmark } from 'react-icons/fa6';
+import cn from '../utils/cn';
 
 type Common = {
   name: string;
@@ -46,16 +47,16 @@ export default function ItemForm(props: Props) {
 
   return (
     <form
-      className={`flex gap-2 ${props.className}`}
+      className={cn('flex gap-2 mb-2', props.className)}
       onSubmit={handleSubmit(props.onSubmit)}
     >
-      <div className="grow">
+      <div className="grow flex flex-col items-start gap-1">
         {props.formItems.map(({ name, label, ...it }) => {
           if (it.type === 'input' || it.type === 'checkbox')
             return (
               <fieldset key={name}>
                 <label>
-                  {label || ''}
+                  {label ? `${label}: ` : ''}
                   <input
                     hidden={it.hidden}
                     type={it.type === 'input' ? ' text' : 'checkbox'}
@@ -72,7 +73,7 @@ export default function ItemForm(props: Props) {
           if (it.type === 'inputNumber')
             return (
               <fieldset key={name}>
-                {label ? <label>{label}</label> : null}
+                {label ? <label>{label}: </label> : null}
                 <input
                   hidden={it.hidden}
                   type="number"
@@ -89,8 +90,8 @@ export default function ItemForm(props: Props) {
 
           if (it.type === 'select' || it.type === 'selectMultiple')
             return (
-              <fieldset key={name}>
-                {label ? <label>{label}</label> : null}
+              <fieldset key={name} className="flex items-center gap-2">
+                {label ? <label>{label}: </label> : null}
                 <select
                   hidden={it.hidden}
                   multiple={it.type === 'selectMultiple'}
@@ -109,14 +110,16 @@ export default function ItemForm(props: Props) {
                     </option>
                   ))}
                 </select>
-                <Button onClick={() => setValue(name, [])}>x</Button>
+                <Button size="iconSmall" onClick={() => setValue(name, [])}>
+                  <FaXmark />
+                </Button>
               </fieldset>
             );
 
           if (it.type === 'inputDate') {
             return (
               <fieldset key={name}>
-                {label ? <label>{label}</label> : null}
+                {label ? <label>{label}: </label> : null}
                 <input
                   type="date"
                   {...register(name, {

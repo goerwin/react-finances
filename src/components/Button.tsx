@@ -15,8 +15,9 @@ const buttonVariants = cva(
         danger: 'bg-red-800',
       },
       size: {
-        icon: 'text-lg h-10 aspect-square',
         text: 'py-2 px-4',
+        icon: 'text-lg h-10 aspect-square',
+        iconSmall: 'text-sm h-6 aspect-square',
       },
     },
     defaultVariants: {
