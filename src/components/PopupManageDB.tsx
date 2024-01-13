@@ -11,7 +11,6 @@ import {
   uploadGoogleDriveFile,
 } from '../helpers/GoogleApi';
 import { LSDB } from '../helpers/localStorage';
-import LoadingElement from './LoadingElement';
 import Popup from './Popup';
 import Button from './Button';
 
@@ -21,10 +20,6 @@ export interface Props {
   onClose?: () => void;
   onDBSync: (data?: LSDB) => void;
 }
-
-const LoadingForBtn = (
-  <LoadingElement style={{ display: 'inline', width: 20 }} />
-);
 
 async function getDBFileId(
   tokenInfo: TokenInfo,
@@ -124,25 +119,25 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
           <div className="flex gap-1 flex-wrap justify-center">
             <Button
               disabled={isLoading}
+              showLoading={isVerifyDBLoading}
               onClick={handleSubmit((data) => verifyDBMutate(data))}
             >
-              {isVerifyDBLoading ? LoadingForBtn : null}
               Actualizar
             </Button>
 
             <Button
               disabled={isLoading}
+              showLoading={isCreateDBLoading}
               onClick={handleSubmit((data) => createDBMutate(data))}
             >
-              {isCreateDBLoading ? LoadingForBtn : null}
               Crear
             </Button>
 
             <Button
               disabled={isLoading}
+              showLoading={isDeleteDBLoading}
               onClick={handleSubmit((data) => deleteDBMutate(data))}
             >
-              {isDeleteDBLoading ? LoadingForBtn : null}
               Eliminar
             </Button>
 

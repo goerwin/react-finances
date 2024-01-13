@@ -47,7 +47,7 @@ export default function ItemForm(props: Props) {
 
   return (
     <form
-      className={cn('flex gap-2 mb-2', props.className)}
+      className={cn('flex gap-2 pb-2 border-b border-b-zinc-800 mb-6', props.className)}
       onSubmit={handleSubmit(props.onSubmit)}
     >
       <div className="grow flex flex-col items-start gap-1">

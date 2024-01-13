@@ -399,12 +399,14 @@ export default function App() {
         <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl ch:basis-1/2">
           <Button
             variant="success"
+            className="font-bold"
             onClick={handleActionClick.bind(null, 'income')}
           >
             Ingreso
           </Button>
           <Button
             variant="danger"
+            className="font-bold"
             onClick={handleActionClick.bind(null, 'expense')}
           >
             Gasto

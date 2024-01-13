@@ -1,5 +1,4 @@
 import { useForm } from 'react-hook-form';
-import LoadingElement from './LoadingElement';
 import Popup from './Popup';
 import { TokenInfo, updateInitialBalance } from '../api/actions';
 import { useMutation } from '@tanstack/react-query';
@@ -45,17 +44,11 @@ export default function PopupBalance(props: Props) {
         autoHeight
         bottomArea={
           <div className="flex gap-1 flex-wrap justify-center">
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <LoadingElement style={{ display: 'inline', width: 20 }} />
-              ) : (
-                'Actualizar'
-              )}
+            <Button type="submit" disabled={isLoading} showLoading={isLoading}>
+              Actualizar
             </Button>
 
-            <Button onClick={props.onClose} disabled={isLoading}>
-              Cerrar
-            </Button>
+            <Button onClick={props.onClose}>Cerrar</Button>
           </div>
         }
       >

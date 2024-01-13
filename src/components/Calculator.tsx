@@ -1,7 +1,8 @@
-import { MutableRefObject, useRef } from 'react';
+import { MutableRefObject, ReactNode, useRef } from 'react';
+import { FaDeleteLeft } from 'react-icons/fa6';
 import { useLongPress } from 'use-long-press';
 
-const items: { name: string | number; value: string | number }[] = [
+const items: { name: ReactNode; value: string | number }[] = [
   { name: 1, value: 1 },
   { name: 2, value: 2 },
   { name: 3, value: 3 },
@@ -13,7 +14,7 @@ const items: { name: string | number; value: string | number }[] = [
   { name: 9, value: 9 },
   { name: '.', value: '.' },
   { name: 0, value: 0 },
-  { name: '&#9003;', value: 'backspace' },
+  { name: <FaDeleteLeft className="mx-auto" />, value: 'backspace' },
 ];
 
 export function applyCalcString(current: string, input: string) {
@@ -48,7 +49,7 @@ export function removeCurrencyFormattingToValue(value: string) {
   return value.replace(/,|\$/g, '');
 }
 
-type Item = typeof items[0];
+type Item = (typeof items)[0];
 
 export interface Props {
   value?: string;
@@ -91,8 +92,9 @@ export default function Calculator(props: Props) {
             key={el.value}
             onClick={() => handleButtonClick(el)}
             {...(el.value === 'backspace' ? backspaceBind() : {})}
-            dangerouslySetInnerHTML={{ __html: String(el.name) }}
-          />
+          >
+            {el.name}
+          </button>
         ))}
       </div>
     </div>
