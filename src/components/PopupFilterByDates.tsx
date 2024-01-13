@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { getDateFormattedForInput } from '../helpers/time';
 import Popup from './Popup';
+import Button from './Button';
 
 export type Props = {
   startDate: Date;
@@ -58,22 +59,17 @@ export default function PopupFilterByDates(props: Props) {
         </fieldset>
 
         <div className="flex gap-1 justify-center mb-2">
-          <button type="button" onClick={props.onCurrentMonthClick}>
-            Mes actual
-          </button>
-          <button
-            type="button"
+          <Button onClick={props.onCurrentMonthClick}>Mes actual</Button>
+          <Button
             onClick={() => props.onSubmit(props.initialDate, props.finalDate)}
           >
             Histórico
-          </button>
+          </Button>
         </div>
 
         <div className="flex gap-1 justify-center">
-          <button type="button" onClick={props.onCancelClick}>
-            Cancelar
-          </button>
-          <button className="btn-success">Aceptar</button>
+          <Button onClick={props.onCancelClick}>Cancelar</Button>
+          <Button variant="success">Aceptar</Button>
         </div>
       </form>
     </Popup>

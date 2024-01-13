@@ -3,6 +3,7 @@ import { Action, ItemType, DB } from '../helpers/schemas';
 import { sortByFnCreator } from '../helpers/general';
 import { removeCurrencyFormattingToValue } from './Calculator';
 import Popup from './Popup';
+import Button from './Button';
 
 export interface Props {
   db: DB;
@@ -36,16 +37,10 @@ export default function PopupIncomeExpenseForm(props: Props) {
         bottomArea={
           <>
             <div className="flex gap-2 justify-center mt-2">
-              <button
-                type="button"
-                onClick={props.onClose}
-                className="btn-danger"
-              >
-                Cancelar
-              </button>
-              <button type="submit" className="btn-success">
+              <Button onClick={props.onClose}>Cancelar</Button>
+              <Button type="submit" variant="success">
                 Aceptar
-              </button>
+              </Button>
             </div>
           </>
         }

@@ -28,6 +28,9 @@ import ItemForm from './ItemForm';
 import ItemView from './ItemView';
 import Popup from './Popup';
 import PopupFilterByDates from './PopupFilterByDates';
+import Button from './Button';
+import { FaBackward, FaForward } from 'react-icons/fa6';
+import cn from '../utils/cn';
 
 interface Props {
   db: DB;
@@ -488,7 +491,7 @@ export default function PopupIncomesExpenses(props: Props) {
           <div className="relative before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] pb-2" />
 
           <div className="flex items-center gap-2 justify-between capitalize">
-            <button
+            <Button
               onClick={() =>
                 setFilterDates({
                   filterStartDate:
@@ -499,18 +502,17 @@ export default function PopupIncomesExpenses(props: Props) {
                 })
               }
             >
-              ←
-            </button>
-            <button
-              type="button"
-              className="!px-2 text-xs leading-none"
+              <FaBackward />
+            </Button>
+            <Button
+              className="text-md leading-none"
               onClick={() => setShowFilterByDatesPopup(true)}
             >
               {getFormattedLocalDate(filterStartDate)}
               <br />
               {getFormattedLocalDate(filterEndDate)}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() =>
                 setFilterDates({
                   filterStartDate: getNextMonthFirstDayDate(filterStartDate),
@@ -520,8 +522,8 @@ export default function PopupIncomesExpenses(props: Props) {
                 })
               }
             >
-              →
-            </button>
+              <FaForward />
+            </Button>
           </div>
 
           <div className="grid grid-cols-4 mt-1 gap-px">
@@ -534,9 +536,10 @@ export default function PopupIncomesExpenses(props: Props) {
               ] as const
             ).map((it, idx) => (
               <button
-                className={`!text-xs !p-2 !py-4 !rounded-none !bg-black/40 ${
-                  it.filterBy === filterBy ? '!bg-green-900' : ''
-                }`}
+                className={cn(
+                  'text-xs p-2 py-4 rounded-none bg-black/40',
+                  it.filterBy === filterBy && 'bg-green-900'
+                )}
                 type="button"
                 key={idx}
                 onClick={() => syncFilterBy(it.filterBy)}
@@ -569,9 +572,9 @@ export default function PopupIncomesExpenses(props: Props) {
           </div>
 
           <div className="pt-2">
-            <button className="mr-2" onClick={props.onClose}>
+            <Button onClick={props.onClose} className='mx-auto'>
               Cerrar
-            </button>
+            </Button>
           </div>
         </>
       }

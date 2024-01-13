@@ -13,6 +13,7 @@ import {
 import { LSDB } from '../helpers/localStorage';
 import LoadingElement from './LoadingElement';
 import Popup from './Popup';
+import Button from './Button';
 
 export interface Props {
   tokenInfo: TokenInfo;
@@ -120,37 +121,32 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
         title="Gestionar DB"
         autoHeight
         bottomArea={
-          <div className='flex gap-1 flex-wrap justify-center'>
-            <button
-              type="button"
+          <div className="flex gap-1 flex-wrap justify-center">
+            <Button
               disabled={isLoading}
               onClick={handleSubmit((data) => verifyDBMutate(data))}
             >
               {isVerifyDBLoading ? LoadingForBtn : null}
               Actualizar
-            </button>
+            </Button>
 
-            <button
-              type="button"
+            <Button
               disabled={isLoading}
               onClick={handleSubmit((data) => createDBMutate(data))}
             >
               {isCreateDBLoading ? LoadingForBtn : null}
               Crear
-            </button>
+            </Button>
 
-            <button
-              type="button"
+            <Button
               disabled={isLoading}
               onClick={handleSubmit((data) => deleteDBMutate(data))}
             >
               {isDeleteDBLoading ? LoadingForBtn : null}
               Eliminar
-            </button>
+            </Button>
 
-            <button onClick={props.onClose} type="button">
-              Cerrar
-            </button>
+            <Button onClick={props.onClose}>Cerrar</Button>
           </div>
         }
       >
