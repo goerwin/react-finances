@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { twMerge } from 'tailwind-merge';
 
 export interface Props {
@@ -7,6 +7,7 @@ export interface Props {
   subtitle?: string;
   children: ReactNode;
   popupClassName?: string;
+  containerClassName?: string;
   autoHeight?: boolean;
 }
 
@@ -14,14 +15,16 @@ export default function Popup(props: Props) {
   return (
     <div
       className={twMerge(
-        'flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-3 z-10',
+        'flex fixed inset-0 bg-black justify-center items-center bg-opacity-80 p-3 z-10 overflow-auto',
         props.popupClassName
       )}
     >
       <div
-        className={`flex flex-col max-h-full w-full bg-neutral-900 py-4 px-3 rounded-lg text-center ${
-          props.autoHeight ? '' : 'h-full'
-        }`}
+        className={twMerge(
+          'flex flex-col max-h-full w-full bg-neutral-900 py-4 px-3 rounded-lg text-center',
+          props.autoHeight ? '' : 'h-full',
+          props.containerClassName
+        )}
       >
         <h2 className="text-2xl mt-0 mb-2 font-bold leading-none">
           {props.title}

@@ -30,7 +30,7 @@ export default function PopupIncomeExpenseForm(props: Props) {
   return (
     <form onSubmit={handleSubmit(props.onSubmit)}>
       <Popup
-        popupClassName="items-end"
+        containerClassName='mt-auto mb-4'
         autoHeight
         title={props.actionType === 'expense' ? 'Gasto' : 'Ingreso'}
         subtitle={props.value || '$0'}
