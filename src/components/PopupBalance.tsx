@@ -15,7 +15,10 @@ export interface Props {
 }
 
 export default function PopupBalance(props: Props) {
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit } = useForm<{
+    initialBalance: number;
+    adjustment: number;
+  }>({
     defaultValues: { initialBalance: props.lsDb.db.initialBalance },
   });
 
@@ -36,7 +39,7 @@ export default function PopupBalance(props: Props) {
   return (
     <form
       onSubmit={handleSubmit((data) =>
-        mutate({ initialBalance: data.initialBalance })
+        mutate({ initialBalance: (data.adjustment ?? 0) + data.initialBalance })
       )}
     >
       <Popup
@@ -55,7 +58,7 @@ export default function PopupBalance(props: Props) {
         <div>
           <input
             type="number"
-            className="w-full"
+            className="w-full mb-2"
             placeholder="Saldo inicial"
             {...register('initialBalance', {
               required: true,
@@ -63,6 +66,13 @@ export default function PopupBalance(props: Props) {
             })}
           />
           <br />
+
+          <input
+            type="number"
+            className="w-full"
+            placeholder="Ajuste"
+            {...register('adjustment', { valueAsNumber: true })}
+          />
         </div>
       </Popup>
     </form>
