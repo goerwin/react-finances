@@ -405,6 +405,14 @@ export default function PopupIncomesExpenses(props: Props) {
     endDate: finalDate,
   });
 
+  const { total: historicIncTotal } = getActionsInfo({
+    actions: props.db.actions,
+    categories: props.db.categories,
+    type: 'income',
+    startDate: initialDate,
+    endDate: finalDate,
+  });
+
   const {
     incomeActions: filteredIncomeActions,
     expenseActions: filteredExpenseActions,
@@ -482,8 +490,7 @@ export default function PopupIncomesExpenses(props: Props) {
             <p>
               TC: {formatNumberValueToCurrency(expTotalOnlyCreditCard)} - Saldo:{' '}
               {formatNumberValueToCurrency(
-                (props.db.initialBalance ?? historicExpenseTotal) -
-                  historicExpenseTotal
+                historicIncTotal - historicExpenseTotal
               )}
             </p>
           </div>

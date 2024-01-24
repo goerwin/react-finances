@@ -118,16 +118,3 @@ export async function deleteItem(
     },
   });
 }
-
-export async function updateInitialBalance(
-  tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & {
-    initialBalance?: number;
-  }
-) {
-  const db = await getDB(tokenInfo, attrs);
-  return updateDB(tokenInfo, {
-    ...attrs,
-    db: { ...db, initialBalance: attrs.initialBalance },
-  });
-}
