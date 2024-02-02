@@ -536,6 +536,11 @@ export default function App() {
                 label: 'Prioridad de orden',
               },
               {
+                type: 'inputNumber',
+                name: 'expectedPerMonth',
+                label: 'Esperado mensual',
+              },
+              {
                 type: 'select',
                 name: 'walletId',
                 required: true,
