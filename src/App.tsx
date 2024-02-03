@@ -374,25 +374,25 @@ export default function App() {
           ))}
         </div>
 
-        <div className="h-14 bg-black/20 grid grid-cols-4 gap-px shrink-0">
+        <div className="h-14 bg-black/20 grid grid-cols-4 gap-px shrink-0 whitespace-pre-line">
           {[
             {
-              label: 'Categoría ingresos',
+              label: 'Categoría \ningresos',
               onClick: () =>
                 setPopup({ action: 'showCategories', actionType: 'income' }),
             },
             {
-              label: 'Categoría gastos',
+              label: 'Categoría \ngastos',
               onClick: () =>
                 setPopup({ action: 'showCategories', actionType: 'expense' }),
             },
             {
-              label: 'Etiqueta ingresos',
+              label: 'Etiqueta \ningresos',
               onClick: () =>
                 setPopup({ action: 'showTags', actionType: 'income' }),
             },
             {
-              label: 'Etiqueta gastos',
+              label: 'Etiqueta \ngastos',
               onClick: () =>
                 setPopup({ action: 'showTags', actionType: 'expense' }),
             },
