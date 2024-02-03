@@ -1,19 +1,27 @@
 import { useState } from 'react';
-import { Action, Category, ItemType, Tag, Wallet } from '../helpers/schemas';
+import {
+  Action,
+  Category,
+  ItemType,
+  DBListItem,
+  Tag,
+} from '../helpers/schemas';
 import { sortByFnCreator } from '../helpers/general';
 import ItemForm, { FormItem } from './ItemForm';
 import ItemView from './ItemView';
 import Popup from './Popup';
 import Button from './Button';
 
-type TagOrWallet = SafeIntersection<Tag, Wallet>;
 type ActionOrCategory = SafeIntersection<Action, Category>;
-type Bb = SafeIntersection<ActionOrCategory, { [x: string]: any }>;
-type ItemCommon = SafeIntersection<TagOrWallet, Bb>;
+type ActionCategoryOrRecord = SafeIntersection<ActionOrCategory, Tag>;
+type ItemCommon = SafeIntersection<
+  ActionCategoryOrRecord,
+  { [x: string]: any }
+>;
 
 interface Props<T extends ItemCommon> {
   items: T[];
-  dbNamespace: 'actions' | 'categories' | 'tags' | 'wallets';
+  dbNamespace: DBListItem;
   formItemElements: FormItem[];
   title: string;
   actions: Action[];
@@ -57,7 +65,7 @@ export default function PopupCRUD<T extends ItemCommon>({
       }
       subtitle={`(${parsedItems.length})`}
       bottomArea={
-        <div className='flex gap-4 align-middle justify-center'>
+        <div className="flex gap-4 align-middle justify-center">
           <Button onClick={props.onClose}>Cerrar</Button>
           <Button variant="success" onClick={() => setFormItemId('new')}>
             Agregar

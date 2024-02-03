@@ -32,12 +32,10 @@ import {
   DB,
   ItemType,
   tagSchema,
-  walletSchema,
 } from './helpers/schemas';
 import {
   getCategoryById,
   getCategoryName,
-  getWalletName,
   handleErrorWithNotifications,
   loadScript,
   sortByFnCreator,
@@ -64,13 +62,7 @@ const queryClient = new QueryClient();
 export default function App() {
   const [value, setValue] = useState<string>();
   const [popup, setPopup] = useState<{
-    action:
-      | 'add'
-      | 'show'
-      | 'showCategories'
-      | 'showTags'
-      | 'showWallets'
-      | 'manageDB';
+    action: 'add' | 'show' | 'showCategories' | 'showTags' | 'manageDB';
     actionType: ItemType;
   }>();
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
@@ -223,47 +215,6 @@ export default function App() {
       alertMsg: 'Etiqueta eliminada',
       fn: ({ tokenInfo, gdFileId }) =>
         deleteItem(tokenInfo, { gdFileId, id, type: 'tags' }),
-    });
-
-  const handleAddWalletSubmit = (data: unknown) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Bolsillo agregado',
-      fn: ({ tokenInfo, gdFileId }) =>
-        addItem(tokenInfo, {
-          gdFileId,
-          data,
-          type: 'wallets',
-          schema: walletSchema,
-        }),
-    });
-
-  const handleEditWalletSubmit = (data: unknown) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Bolsillo editado',
-      fn: ({ tokenInfo, gdFileId }) =>
-        editItem(tokenInfo, {
-          gdFileId,
-          data,
-          type: 'wallets',
-          schema: walletSchema,
-        }),
-    });
-
-  const handleWalletDelete = (id: string) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Bolsillo eliminado',
-      fn: ({ tokenInfo, gdFileId }) =>
-        deleteItem(tokenInfo, {
-          gdFileId,
-          id,
-          type: 'wallets',
-        }),
     });
 
   const handleActionClick = (actionType: ItemType) => {
@@ -423,7 +374,7 @@ export default function App() {
           ))}
         </div>
 
-        <div className="h-14 bg-black/20 grid grid-cols-6 gap-px shrink-0">
+        <div className="h-14 bg-black/20 grid grid-cols-4 gap-px shrink-0">
           {[
             {
               label: 'Categoría ingresos',
@@ -434,16 +385,6 @@ export default function App() {
               label: 'Categoría gastos',
               onClick: () =>
                 setPopup({ action: 'showCategories', actionType: 'expense' }),
-            },
-            {
-              label: 'Bolsillo ingresos',
-              onClick: () =>
-                setPopup({ action: 'showWallets', actionType: 'income' }),
-            },
-            {
-              label: 'Bolsillo gastos',
-              onClick: () =>
-                setPopup({ action: 'showWallets', actionType: 'expense' }),
             },
             {
               label: 'Etiqueta ingresos',
@@ -505,7 +446,6 @@ export default function App() {
               )}`,
               texts: [
                 `Prioridad de orden: ${item.sortPriority}`,
-                `Bolsillo: ${getWalletName(lsDb.db.wallets, item.walletId)}`,
                 item.description,
               ],
             })}
@@ -541,15 +481,6 @@ export default function App() {
                 label: 'Esperado mensual',
               },
               {
-                type: 'select',
-                name: 'walletId',
-                required: true,
-                label: 'Bolsillo',
-                options: lsDb.db.wallets
-                  .filter((it) => it.type === popup.actionType)
-                  .map((it) => ({ value: it.id, label: it.name })),
-              },
-              {
                 type: 'input',
                 name: 'description',
                 label: 'Descripción',
@@ -573,13 +504,7 @@ export default function App() {
               title: item.name,
               description: `Items: ${actions.reduce(
                 (t, ac) =>
-                  item.categoryIds.includes(ac.categoryId) ||
-                  item.walletIds.includes(
-                    getCategoryById(lsDb.db.categories, ac.categoryId)
-                      ?.walletId ?? ''
-                  )
-                    ? t + 1
-                    : t,
+                  item.categoryIds.includes(ac.categoryId) ? t + 1 : t,
                 0
               )}`,
               texts: [
@@ -587,14 +512,6 @@ export default function App() {
                 `Esperado mensual: ${formatNumberValueToCurrency(
                   item.expectedPerMonth
                 )}`,
-                `Bolsillos (${item.walletIds.length}):
-                  ${
-                    item.walletIds
-                      .map(
-                        (id) => lsDb.db.wallets.find((it) => it.id === id)?.name
-                      )
-                      .join(', ') || '-'
-                  }`,
                 `Categorías (${item.categoryIds.length}):
                   ${
                     item.categoryIds
@@ -645,91 +562,6 @@ export default function App() {
                   .filter((it) => it.type === popup.actionType)
                   .sort(sortByFnCreator('sortPriority', false))
                   .map((it) => ({ value: it.id, label: it.name })),
-              },
-              {
-                type: 'selectMultiple',
-                name: 'walletIds',
-                label: 'Bolsillos',
-                options: lsDb.db.wallets
-                  .filter((it) => it.type === popup.actionType)
-                  .map((it) => ({ value: it.id, label: it.name })),
-              },
-              {
-                type: 'input',
-                name: 'description',
-                label: 'Descripción',
-              },
-            ]}
-          />
-        ) : null}
-
-        {lsDb && popup?.action === 'showWallets' ? (
-          <PopupCRUD
-            dbNamespace="wallets"
-            title="Bolsillos"
-            items={lsDb.db.wallets}
-            actionType={popup.actionType}
-            actions={lsDb.db.actions}
-            onItemDelete={handleWalletDelete}
-            onEditItemSubmit={handleEditWalletSubmit}
-            onNewItemSubmit={handleAddWalletSubmit}
-            onClose={() => setPopup(undefined)}
-            getItemInfo={({ item, actions }) => ({
-              title: item.name,
-              description: `Items: ${actions.reduce(
-                (t, it) =>
-                  getCategoryById(lsDb.db.categories, it.categoryId)
-                    ?.walletId === item.id
-                    ? t + 1
-                    : t,
-                0
-              )}`,
-              texts: [
-                `Prioridad de orden: ${item.sortPriority}`,
-                `Categorías (${lsDb.db.categories.reduce(
-                  (t, it) => (it.walletId === item.id ? t + 1 : t),
-                  0
-                )}):
-                  ${lsDb.db.categories
-                    .filter((it) => it.walletId === item.id)
-                    .map((it) => it.name)
-                    .join(', ')}`,
-                `Esperado mensual: ${formatNumberValueToCurrency(
-                  item.expectedPerMonth
-                )}`,
-                item.description,
-              ],
-            })}
-            formItemElements={[
-              {
-                type: 'input',
-                required: true,
-                hidden: true,
-                name: 'id',
-              },
-              {
-                type: 'input',
-                required: true,
-                hidden: true,
-                name: 'type',
-                value: popup.actionType,
-              },
-              {
-                type: 'input',
-                name: 'name',
-                required: true,
-                label: 'Nombre',
-              },
-              {
-                type: 'inputNumber',
-                name: 'sortPriority',
-                required: true,
-                label: 'Prioridad de orden',
-              },
-              {
-                type: 'inputNumber',
-                name: 'expectedPerMonth',
-                label: 'Esperado mensual',
               },
               {
                 type: 'input',

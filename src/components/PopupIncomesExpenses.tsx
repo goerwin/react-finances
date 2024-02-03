@@ -1,13 +1,7 @@
 import { WithRequired } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Action, Category, DB, Tag, Wallet } from '../helpers/schemas';
-import {
-  getCategoryById,
-  getCategoryName,
-  getWalletCategories,
-  getWalletName,
-  sortByFnCreator,
-} from '../helpers/general';
+import { Action, Category, DB, Tag } from '../helpers/schemas';
+import { getCategoryName, sortByFnCreator } from '../helpers/general';
 import {
   getFilterBy as lsGetFilteredBy,
   getFilterByExpInc,
@@ -147,11 +141,10 @@ function getActionsBy<K extends keyof Pick<Action, 'date' | 'value'>>(attrs: {
   endDate?: Date | string;
   type?: 'income' | 'expense';
   categoryIds?: string[];
-  walletIds?: string[];
   sortBy?: [K, boolean?];
 }) {
   const { actions, startDate, endDate, categories } = attrs;
-  const { type, categoryIds, walletIds, sortBy } = attrs;
+  const { type, categoryIds, sortBy } = attrs;
 
   const filteredActions = actions.filter((action) => {
     const actionDate = new Date(action.date);
@@ -162,22 +155,11 @@ function getActionsBy<K extends keyof Pick<Action, 'date' | 'value'>>(attrs: {
         ? actionDate >= new Date(startDate) && actionDate <= new Date(endDate)
         : true;
 
-    const isOfCategoryId =
-      categoryIds && categoryIds.length > 0
-        ? categoryIds.includes(action.categoryId)
-        : true;
+    const isInCategoryIds = !categoryIds
+      ? true
+      : categoryIds.includes(action.categoryId);
 
-    const actionWalletId = getCategoryById(
-      categories,
-      action.categoryId
-    )?.walletId;
-
-    const isOfWalletId =
-      actionWalletId && walletIds && walletIds.length > 0
-        ? walletIds.includes(actionWalletId)
-        : true;
-
-    return isOfType && isInDateRange && isOfCategoryId && isOfWalletId;
+    return isOfType && isInDateRange && isInCategoryIds;
   });
 
   return sortBy
@@ -437,20 +419,13 @@ export default function PopupIncomesExpenses(props: Props) {
       ? filteredExpenseActions
       : filteredIncomeActions;
 
-  const visibleGroups: SafeIntersection<
-    SafeIntersection<Wallet, Category>,
-    Tag
-  >[] =
+  const visibleGroups: SafeIntersection<Category, Tag>[] =
     filterBy === 'categories'
       ? props.db.categories
           .filter((it) => it.type === filterByExpInc)
           .sort(sortByFnCreator('sortPriority', false))
       : filterBy === 'tags'
       ? props.db.tags
-          .filter((it) => it.type === filterByExpInc)
-          .sort(sortByFnCreator('sortPriority', false))
-      : filterBy === 'wallets'
-      ? props.db.wallets
           .filter((it) => it.type === filterByExpInc)
           .sort(sortByFnCreator('sortPriority', false))
       : [];
@@ -533,12 +508,11 @@ export default function PopupIncomesExpenses(props: Props) {
             </Button>
           </div>
 
-          <div className="grid grid-cols-4 mt-1 gap-px">
+          <div className="grid grid-cols-3 mt-1 gap-px">
             {(
               [
                 { label: 'Fechas', filterBy: 'date' },
                 { label: 'Categorías', filterBy: 'categories' },
-                { label: 'Bolsillos', filterBy: 'wallets' },
                 { label: 'Etiquetas', filterBy: 'tags' },
               ] as const
             ).map((it, idx) => (
@@ -602,19 +576,7 @@ export default function PopupIncomesExpenses(props: Props) {
       {filterBy !== 'date'
         ? visibleGroups.map((item) => {
             const categoryIds =
-              filterBy === 'tags'
-                ? item.categoryIds
-                : filterBy === 'categories'
-                ? [item.id]
-                : getWalletCategories(item.id, props.db.categories).map(
-                    (it) => it.id
-                  );
-            const walletIds =
-              filterBy === 'wallets'
-                ? [item.id]
-                : filterBy === 'tags'
-                ? item.walletIds
-                : undefined;
+              filterBy === 'tags' ? item.categoryIds : [item.id];
 
             const dateFilteredActionsInfo = getActionsInfo({
               actions: filteredVisibleActions,
@@ -622,7 +584,6 @@ export default function PopupIncomesExpenses(props: Props) {
               startDate: filterStartDate,
               endDate: filterEndDate,
               categoryIds,
-              walletIds,
               expectedPerMonth: item.expectedPerMonth,
               sortBy: ['date', false],
             });
@@ -645,15 +606,15 @@ export default function PopupIncomesExpenses(props: Props) {
                         ...dateFilteredActionsInfo,
                         resumed: true,
                       })}
-                    </span>
-                  </p>
-                </div>
 
-                <div className="pl-2 mb-5 hidden peer-checked:block">
-                  <div className="text-left relative mb-2">
-                    <span className="block text-xs c-description">
-                      {(filterBy === 'tags' || filterBy === 'wallets') &&
-                      categoryIds ? (
+                      {filterBy === 'tags' && item.expectedPerMonth ? (
+                        <span className="block c-description">
+                          Estimado Mensual:{' '}
+                          {formatNumberValueToCurrency(item.expectedPerMonth)}
+                        </span>
+                      ) : null}
+
+                      {filterBy === 'tags' && categoryIds ? (
                         <span className="block">
                           Categorías ({categoryIds.length}):{' '}
                           {categoryIds
@@ -663,17 +624,13 @@ export default function PopupIncomesExpenses(props: Props) {
                             .join(', ')}
                         </span>
                       ) : null}
-                      {filterBy === 'tags' && walletIds ? (
-                        <span className="block">
-                          Bolsillos ({walletIds.length}):{' '}
-                          {walletIds
-                            .map((id) =>
-                              getWalletName(props.db.wallets, id).split(', ')
-                            )
-                            .join(', ')}
-                        </span>
-                      ) : null}
+                    </span>
+                  </p>
+                </div>
 
+                <div className="pl-2 mb-5 hidden peer-checked:block">
+                  <div className="text-left relative mb-2">
+                    <span className="block text-xs c-description">
                       {getActionsGroupInfoNode({
                         ...dateFilteredActionsInfo,
                       })}

@@ -1,5 +1,5 @@
 import { z, ZodSchema } from 'zod';
-import { Action, DB, dbSchema } from '../helpers/schemas';
+import { Action, DB, dbSchema, DBListItem } from '../helpers/schemas';
 
 // https://github.com/uuidjs/uuid/pull/654
 import { v4 as uuidv4 } from 'uuid';
@@ -50,9 +50,8 @@ export async function addItem<T>(
   tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & {
     schema: ZodSchema<T>;
-    // todo: put this in dbapirequiredattrs
-    type: 'categories' | 'tags' | 'wallets' | 'actions';
     data: unknown;
+    type: DBListItem;
   }
 ) {
   const db = await getDB(tokenInfo, attrs);
@@ -75,7 +74,7 @@ export async function editItem<T extends { id: string }>(
   tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & {
     schema: ZodSchema<T>;
-    type: 'categories' | 'tags' | 'wallets' | 'actions';
+    type: DBListItem;
     data: unknown;
   }
 ) {
@@ -83,6 +82,8 @@ export async function editItem<T extends { id: string }>(
   const date = new Date().toISOString();
   const { type, data, schema } = attrs;
   const parsedData = schema.parse(data);
+
+  if (!type) throw new Error('Type is required');
 
   return updateDB(tokenInfo, {
     ...attrs,
@@ -98,10 +99,7 @@ export async function editItem<T extends { id: string }>(
 
 export async function deleteItem(
   tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & {
-    type: 'categories' | 'tags' | 'wallets' | 'actions';
-    id: string;
-  }
+  attrs: DBApiRequiredAttrs & { id: string; type: DBListItem }
 ) {
   const db = await getDB(tokenInfo, attrs);
   const date = new Date().toISOString();

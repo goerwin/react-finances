@@ -1,5 +1,5 @@
 import { toast } from 'react-hot-toast';
-import { Category, Wallet } from './schemas';
+import { Category } from './schemas';
 
 type SortablePropertyType = string | number;
 
@@ -94,12 +94,4 @@ export function getCategoryById(categories: Category[], categoryId: string) {
 
 export function getCategoryName(categories: Category[], categoryId: string) {
   return categories.find((el) => el.id === categoryId)?.name || '-';
-}
-
-export function getWalletName(wallets: Wallet[], walletId: string) {
-  return wallets.find((it) => it.id === walletId)?.name ?? '-';
-}
-
-export function getWalletCategories(walletId: string, categories: Category[]) {
-  return categories.filter((it) => it.walletId === walletId);
 }

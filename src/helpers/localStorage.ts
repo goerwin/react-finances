@@ -32,7 +32,7 @@ export function setTokenInfo(tokenInfo?: TokenInfo) {
     : localStorage.removeItem(Keys.tokenInfo);
 }
 
-const filterByOpts = ['date', 'categories', 'tags', 'wallets'] as const;
+const filterByOpts = ['date', 'categories', 'tags'] as const;
 type FilterByOptions = (typeof filterByOpts)[number];
 
 export function setFilterBy(filteredBy: FilterByOptions) {
