@@ -50,7 +50,7 @@ export default function ItemForm(props: Props) {
       className={cn('flex gap-2 pb-2 border-b border-b-zinc-800 mb-6', props.className)}
       onSubmit={handleSubmit(props.onSubmit)}
     >
-      <div className="grow flex flex-col items-start gap-1">
+      <div className="grow flex flex-col items-start text-left gap-1">
         {props.formItems.map(({ name, label, ...it }) => {
           if (it.type === 'input' || it.type === 'checkbox')
             return (

@@ -686,10 +686,14 @@ export default function App() {
               )}`,
               texts: [
                 `Prioridad de orden: ${item.sortPriority}`,
-                `Categorías: ${lsDb.db.categories.reduce(
+                `Categorías (${lsDb.db.categories.reduce(
                   (t, it) => (it.walletId === item.id ? t + 1 : t),
                   0
-                )}`,
+                )}):
+                  ${lsDb.db.categories
+                    .filter((it) => it.walletId === item.id)
+                    .map((it) => it.name)
+                    .join(', ')}`,
                 `Esperado mensual: ${formatNumberValueToCurrency(
                   item.expectedPerMonth
                 )}`,

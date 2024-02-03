@@ -2,6 +2,9 @@
 
 ## TODOs
 
+- [x] show categories in wallets view
+- [x] fix styling of the forms of wallets/cats/tags
+- [ ] merge otros, ocio, personal
 - [x] wallets
 - [x] can you just add a type to incomeTags/expenseTags instead of 2 arrays?
   - same for categories arrays
