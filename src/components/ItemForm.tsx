@@ -95,7 +95,6 @@ export default function ItemForm(props: Props) {
                 <select
                   hidden={it.hidden}
                   multiple={it.type === 'selectMultiple'}
-                  placeholder={label}
                   {...register(name, {
                     value: it.value ?? [],
                     required: it.required,
