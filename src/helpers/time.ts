@@ -80,6 +80,7 @@ export function getPreviousMonthFirstDayDate(date: Date) {
   const newDate = new Date();
   const newLocalMonth = localMonth === 0 ? 11 : localMonth - 1;
   const newLocalYear = localMonth === 0 ? localYear - 1 : localYear;
+  newDate.setDate(1);
   newDate.setMonth(newLocalMonth);
   newDate.setFullYear(newLocalYear);
 
