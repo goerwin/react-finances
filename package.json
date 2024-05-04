@@ -5,10 +5,10 @@
   "version": "2.2.16",
   "type": "module",
   "scripts": {
-    "build": "tsc && npm run lint && vite build",
+    "build": "npm run lint && vite build",
     "deploy": "gh-pages -d dist",
     "dev": "vite --host",
-    "lint": "eslint src",
+    "lint": "tsc && eslint src",
     "test": "vitest --run",
     "test-watch": "vitest",
     "preview": "npm run build && vite preview"
