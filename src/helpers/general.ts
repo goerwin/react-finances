@@ -4,6 +4,7 @@ import { Category } from './schemas';
 type SortablePropertyType = string | number;
 
 type KeysWithValsOfType<T, V> = keyof {
+  // eslint-disable-next-line
   [P in keyof T as T[P] extends V ? P : never]: any;
 };
 
@@ -36,12 +37,13 @@ export function arrayIncludes<T extends U, U>(
   arr: ReadonlyArray<T>,
   el: U
 ): el is T {
+  // eslint-disable-next-line
   return arr.includes(el as T);
 }
 
 const loadScriptPromises: Record<
   string,
-  Optional<{ promise: Promise<any>; domEl: HTMLElement }>
+  Optional<{ promise: Promise<unknown>; domEl: HTMLElement }>
 > = {};
 /** Loads any script via Promises */
 export async function loadScript(scriptId: string, scriptUrl: string) {

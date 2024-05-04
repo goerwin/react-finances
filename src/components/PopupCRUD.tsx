@@ -16,6 +16,7 @@ type ActionOrCategory = SafeIntersection<Action, Category>;
 type ActionCategoryOrRecord = SafeIntersection<ActionOrCategory, Tag>;
 type ItemCommon = SafeIntersection<
   ActionCategoryOrRecord,
+  // eslint-disable-next-line
   { [x: string]: any }
 >;
 
@@ -51,6 +52,7 @@ export default function PopupCRUD<T extends ItemCommon>({
     // @ts-expect-error todo:
     .sort(sortByFnCreator('sortPriority', false));
 
+  // eslint-disable-next-line
   const handleItemFormSubmit = (data: any) => {
     setFormItemId(undefined);
 
@@ -79,6 +81,7 @@ export default function PopupCRUD<T extends ItemCommon>({
             formItems={props.formItemElements.map((ie) => ({
               ...ie,
               // populate field id as 'new' new item
+              // eslint-disable-next-line
               value: ie.name === 'id' ? 'new' : (ie.value as any),
             }))}
             onSubmit={handleItemFormSubmit}

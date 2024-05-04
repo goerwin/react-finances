@@ -7,13 +7,16 @@ const GAPI_API_URL = 'https://www.googleapis.com';
 const GOOGLE_DRIVE_UPLOAD_API_URL =
   'https://www.googleapis.com/upload/drive/v3';
 
+// eslint-disable-next-line
 type RemoveFirstFromArray<T extends unknown[]> = T extends [infer _, ...infer R]
   ? R
   : never;
 
 type GetSecondItemOfArray<T extends unknown[]> = T extends [
+  // eslint-disable-next-line
   infer _,
   infer R,
+  // eslint-disable-next-line
   ...infer _R
 ]
   ? R
@@ -50,6 +53,7 @@ export async function requestGapiAccessToken(attrs: {
   skipConsentOnNoToken?: true;
 }) {
   return new Promise<google.accounts.oauth2.TokenResponse>((res, rej) => {
+    // eslint-disable-next-line
     const tokenClient = attrs.googleClient.accounts.oauth2.initTokenClient({
       client_id: attrs.clientId,
       scope: attrs.scope,
@@ -58,6 +62,7 @@ export async function requestGapiAccessToken(attrs: {
         if (resp.error !== undefined) return rej(resp);
         res(resp);
       },
+      // eslint-disable-next-line
       error_callback: (resp: any) => {
         rej(resp);
       },
@@ -96,6 +101,7 @@ function renewAccessTokenRetrier<T, R extends unknown[]>(
     for (let i = 0; i < tries; i++) {
       try {
         // TODO: Remove this any. Hard to do
+        // eslint-disable-next-line
         const data = await fn.call(null, newAccessToken, ...(restArgs as any));
         return {
           data,
@@ -168,6 +174,7 @@ export const getGoogleDriveElementInfo =
     async function getGoogleDriveElementInfo(
       accessToken: string,
       attrs: { path: string }
+      // eslint-disable-next-line
     ): Promise<{ [x: string]: any } | null> {
       const { path } = attrs;
 
