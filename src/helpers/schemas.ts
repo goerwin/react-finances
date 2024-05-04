@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 const itemTypeSchema = z.enum(['expense', 'income']);
 
+const dbListItemSchema = z.enum(['categories', 'tags', 'actions']);
+
 export type DBListItem = 'categories' | 'tags' | 'actions';
 
 export const categorySchema = z.object({
@@ -42,11 +44,24 @@ export const dbSchema = z.object({
   actions: z.array(actionSchema),
 });
 
+export const queueItemSchema = z.object({
+  type: dbListItemSchema,
+  status: z.enum(['ready', 'processing', 'error']),
+  apiAction: z.enum(['add']),
+  title: z.string(),
+  description: z.string(),
+  data: actionSchema.or(categorySchema).or(tagSchema),
+});
+
+export const queueSchema = z.array(queueItemSchema);
+
 export type DB = z.infer<typeof dbSchema>;
 export type ItemType = z.infer<typeof itemTypeSchema>;
 export type Action = z.infer<typeof actionSchema>;
 export type Category = z.infer<typeof categorySchema>;
 export type Tag = z.infer<typeof tagSchema>;
+export type QueueItem = z.infer<typeof queueItemSchema>;
+export type Queue = z.infer<typeof queueSchema>;
 
 export const initialDB: DB = {
   updatedAt: new Date().toISOString(),

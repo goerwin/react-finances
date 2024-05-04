@@ -46,9 +46,9 @@ export default function PopupCRUD<T extends ItemCommon>({
   const [formItemId, setFormItemId] = useState<string>();
   const parsedItems = items
     .filter((it) => it.type === props.actionType)
-    // @ts-ignore todo:
+    // @ts-expect-error todo:
     .sort(sortByFnCreator('name'))
-    // @ts-ignore todo:
+    // @ts-expect-error todo:
     .sort(sortByFnCreator('sortPriority', false));
 
   const handleItemFormSubmit = (data: any) => {

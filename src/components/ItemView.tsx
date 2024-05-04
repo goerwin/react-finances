@@ -1,10 +1,11 @@
+import { ReactNode } from 'react';
 import Button from './Button';
 import If from './If';
 import { FaPencil, FaTrash } from 'react-icons/fa6';
 
 interface Props {
   id: string;
-  title: string;
+  title: ReactNode;
   description?: string | number;
   trackOnly?: boolean;
   withCreditCard?: boolean;

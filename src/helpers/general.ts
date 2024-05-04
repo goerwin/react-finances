@@ -39,7 +39,7 @@ export function arrayIncludes<T extends U, U>(
   return arr.includes(el as T);
 }
 
-let loadScriptPromises: Record<
+const loadScriptPromises: Record<
   string,
   Optional<{ promise: Promise<any>; domEl: HTMLElement }>
 > = {};
@@ -94,4 +94,12 @@ export function getCategoryById(categories: Category[], categoryId: string) {
 
 export function getCategoryName(categories: Category[], categoryId: string) {
   return categories.find((el) => el.id === categoryId)?.name || '-';
+}
+
+export function wait(secs: number) {
+  return new Promise((res) => {
+    setTimeout(() => {
+      res(true);
+    }, secs * 1000);
+  });
 }

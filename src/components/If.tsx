@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 export interface Props {
   condition: boolean;
@@ -6,5 +6,5 @@ export interface Props {
 }
 
 export default function If(props: Props) {
-  return Boolean(props.condition) ? props.children : null;
+  return props.condition ? props.children : null;
 }

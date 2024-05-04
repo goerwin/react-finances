@@ -34,7 +34,6 @@ import {
   tagSchema,
 } from './helpers/schemas';
 import {
-  getCategoryById,
   getCategoryName,
   handleErrorWithNotifications,
   loadScript,
@@ -52,6 +51,8 @@ import {
 import { getFormattedLocalDatetime } from './helpers/time';
 import ItemView from './components/ItemView';
 import Button from './components/Button';
+import { useOnlineStatus } from './components/useOnlineStatus';
+import { useQueue } from './components/useQueue';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
@@ -67,6 +68,7 @@ export default function App() {
   }>();
   const [tokenInfo, setTokenInfo] = useState(LSGetTokenInfo());
   const [lsDb, setLsDb] = useState(LSGetLsDB());
+  const isOnline = useOnlineStatus();
 
   const syncTokenInfo = (newTokenInfo?: TokenInfo) => {
     setTokenInfo(newTokenInfo);
@@ -79,6 +81,16 @@ export default function App() {
     LSSetLsDB(lsDb);
     LSSetDatabasePath(lsDb?.path);
   };
+
+  const queue = useQueue({
+    gdFileId: lsDb?.fileId,
+    tokenInfo: tokenInfo,
+    db: lsDb?.db,
+    onQueueItem: (db) => {
+      if (lsDb) syncLsDB({ ...lsDb, db });
+      toast.success('Elemento en cola procesado!', { duration: 2000 });
+    },
+  });
 
   const { isLoading: mutateLoading, mutate } = useMutation({
     onError: handleErrorWithNotifications,
@@ -105,24 +117,9 @@ export default function App() {
   });
 
   const handleAddActionFormSubmit = async (data: unknown) => {
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Entrada agregada',
-      fn: async ({ tokenInfo, gdFileId }) => {
-        const db = await addItem(tokenInfo, {
-          gdFileId,
-          data,
-          type: 'actions',
-          schema: actionSchema,
-        });
-
-        setValue(undefined);
-        setPopup(undefined);
-
-        return db;
-      },
-    });
+    setValue(undefined);
+    setPopup(undefined);
+    queue.addToQueue(data, 'actions', 'add');
   };
 
   const handleEditActionSubmit = (data: unknown) =>
@@ -260,9 +257,11 @@ export default function App() {
         });
 
         setClient(client);
-      } catch (err: any) {
-        console.log(err?.stack);
-        toast.error(err?.message || 'Error.');
+      } catch (err: unknown) {
+        let errorMsg = 'Error';
+        if (err instanceof Error) errorMsg = err.message;
+
+        toast.error(errorMsg);
       }
     })();
   }, []);
@@ -274,9 +273,33 @@ export default function App() {
           Recientes
           <span className="text-sm text-center text-neutral-500 absolute top-2 right-2">
             v{APP_VERSION}
+            <span className="block">{isOnline ? '🟢' : '🔴'}</span>
           </span>
         </h2>
         <div className="overflow-auto px-4 py-4 flex-grow">
+          {queue.status === 'error' || queue.status === 'ready' ? (
+            <div className="flex gap-2 justify-center">
+              <Button onClick={queue.processQueue}>Reintentar cola</Button>
+              <Button onClick={queue.clean}>Limpiar cola</Button>
+            </div>
+          ) : null}
+
+          {queue.queue.map((it, idx) => (
+            <ItemView
+              key={idx}
+              viewType="small"
+              id={`${idx}`}
+              title={it.title}
+              description={it.description}
+              texts={[
+                it.status === 'processing'
+                  ? 'Procesando'
+                  : it.status === 'error'
+                  ? 'Error'
+                  : 'En espera',
+              ]}
+            />
+          ))}
           {lsDb?.db.actions
             .sort(sortByFnCreator('date', false))
             .slice(0, 10)

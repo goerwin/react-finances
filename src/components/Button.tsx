@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+import { ButtonHTMLAttributes } from 'react';
 import { VariantProps, cva } from 'class-variance-authority';
 import cn from '../utils/cn';
 import LoadingElement from './LoadingElement';

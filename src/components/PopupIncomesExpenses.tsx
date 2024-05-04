@@ -143,7 +143,7 @@ function getActionsBy<K extends keyof Pick<Action, 'date' | 'value'>>(attrs: {
   categoryIds?: string[];
   sortBy?: [K, boolean?];
 }) {
-  const { actions, startDate, endDate, categories } = attrs;
+  const { actions, startDate, endDate } = attrs;
   const { type, categoryIds, sortBy } = attrs;
 
   const filteredActions = actions.filter((action) => {
@@ -306,7 +306,6 @@ function getActionsIncExpInfo(
     totalWithTrack: expActionsTotalWithTrack,
     valuePerMonth: expActionsPerMonth,
     totalOnlyCreditCard: expTotalOnlyCreditCard,
-    valuePerMonthWithTrack: expActionsPerMonthWithTrack,
   } = getActionsInfo({
     actions: allActions,
     categories,
@@ -322,7 +321,6 @@ function getActionsIncExpInfo(
     totalOnlyTrack: incTrackOnlyTotal,
     totalWithTrack: incActionsTotalWithTrack,
     valuePerMonth: incActionsPerMonth,
-    valuePerMonthWithTrack: incActionsPerMonthWithTrack,
     monthDiff,
   } = getActionsInfo({
     actions: allActions,

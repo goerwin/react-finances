@@ -46,10 +46,10 @@ export async function updateDB(
   return newDB;
 }
 
-export async function addItem<T>(
+export async function addItem(
   tokenInfo: TokenInfo,
   attrs: DBApiRequiredAttrs & {
-    schema: ZodSchema<T>;
+    schema: ZodSchema;
     data: unknown;
     type: DBListItem;
   }
@@ -110,8 +110,6 @@ export async function deleteItem(
     db: {
       ...db,
       updatedAt: date,
-      // @ts-ignore todo: its throwing because of actions in type
-      // but this is safe
       [type]: db[type].filter((it) => it.id !== id),
     },
   });
