@@ -40,7 +40,8 @@ export function useQueue(props: {
   tokenInfo?: TokenInfo;
   gdFileId?: string;
   db?: DB;
-  onQueueItem: (data: DB) => void;
+  onQueueItemSuccess: (data: DB) => void;
+  onQueueItemError: (err: Error) => void;
 }) {
   const queueRef = useRef(getInitialQueue(getLsQueue()));
   const [queue, setQueue] = useState(queueRef.current);
@@ -104,6 +105,7 @@ export function useQueue(props: {
     if (err) {
       queueItem.status = 'error';
       queueInProgressRef.current = false;
+      props.onQueueItemError(err);
       return syncQueue();
     }
 
@@ -111,7 +113,7 @@ export function useQueue(props: {
     queueInProgressRef.current = false;
     queueRef.current = queueRef.current.slice(1);
     syncQueue();
-    props.onQueueItem(resp);
+    props.onQueueItemSuccess(resp);
     processQueue();
   }
 

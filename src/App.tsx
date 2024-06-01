@@ -86,9 +86,12 @@ export default function App() {
     gdFileId: lsDb?.fileId,
     tokenInfo: tokenInfo,
     db: lsDb?.db,
-    onQueueItem: (db) => {
+    onQueueItemSuccess(db) {
       if (lsDb) syncLsDB({ ...lsDb, db });
       toast.success('Elemento en cola procesado!', { duration: 2000 });
+    },
+    onQueueItemError(err) {
+      handleErrorWithNotifications(err);
     },
   });
 
@@ -257,11 +260,8 @@ export default function App() {
         });
 
         setClient(client);
-      } catch (err: unknown) {
-        let errorMsg = 'Error';
-        if (err instanceof Error) errorMsg = err.message;
-
-        toast.error(errorMsg);
+      } catch (err) {
+        handleErrorWithNotifications(err);
       }
     })();
   }, []);
@@ -280,7 +280,13 @@ export default function App() {
           {queue.status === 'error' || queue.status === 'ready' ? (
             <div className="flex gap-2 justify-center">
               <Button onClick={queue.processQueue}>Reintentar cola</Button>
-              <Button onClick={queue.clean}>Limpiar cola</Button>
+              <Button
+                onClick={() =>
+                  window.confirm('Seguro de limpiar cola?') && queue.clean()
+                }
+              >
+                Limpiar cola
+              </Button>
             </div>
           ) : null}
 
