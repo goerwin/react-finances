@@ -231,7 +231,7 @@ function getActionsGroupInfoNode(
   if (attrs.resumed)
     return (
       <>
-        {`(${attrs.actions.length})`}
+        <span className="font-bold text-sm">{`(${attrs.actions.length})`}</span>
         {' - T: '}
         {formatNumberValueToCurrency(attrs.total)}
         {' - TcS: '}
