@@ -30,7 +30,7 @@ export default function PopupIncomeExpenseForm(props: Props) {
   return (
     <form onSubmit={handleSubmit(props.onSubmit)}>
       <Popup
-        containerClassName='mt-auto mb-4'
+        containerClassName="mt-auto mb-4"
         autoHeight
         title={props.actionType === 'expense' ? 'Gasto' : 'Ingreso'}
         subtitle={props.value || '$0'}
@@ -67,20 +67,22 @@ export default function PopupIncomeExpenseForm(props: Props) {
         </div>
 
         <div className="flex flex-wrap justify-center">
-          {categories.map(({ id, name }) => (
-            <label key={id} className="relative cursor-pointer">
-              <input
-                className="opacity-0 w-1 h-1 absolute top-0 left-0 peer"
-                type="radio"
-                value={`${id}`}
-                {...register('categoryId', { required: true })}
-              />
+          {categories.map(({ id, name, archived }) =>
+            archived ? null : (
+              <label key={id} className="relative cursor-pointer">
+                <input
+                  className="opacity-0 w-1 h-1 absolute top-0 left-0 peer"
+                  type="radio"
+                  value={`${id}`}
+                  {...register('categoryId', { required: true })}
+                />
 
-              <span className="ml-2 mb-2 p-2 inline-block border-2 border-white rounded-lg peer-checked:border-green-500 peer-checked:text-green-500">
-                {name}
-              </span>
-            </label>
-          ))}
+                <span className="ml-2 mb-2 p-2 inline-block border-2 border-white rounded-lg peer-checked:border-green-500 peer-checked:text-green-500">
+                  {name}
+                </span>
+              </label>
+            )
+          )}
         </div>
 
         <div className="p-2">

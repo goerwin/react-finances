@@ -12,6 +12,7 @@ export const categorySchema = z.object({
   sortPriority: z.number(),
   type: itemTypeSchema,
   description: z.string().optional(),
+  archived: z.boolean().optional(),
   expectedPerMonth: z.number().optional(),
 });
 

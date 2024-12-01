@@ -514,6 +514,11 @@ export default function App() {
                 name: 'description',
                 label: 'Descripción',
               },
+              {
+                type: 'checkbox',
+                name: 'archived',
+                label: 'Archivar',
+              },
             ]}
           />
         ) : null}
