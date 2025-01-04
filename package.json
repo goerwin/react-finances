@@ -2,7 +2,7 @@
   "name": "react-finances",
   "description": "PWA Finances made with React/Vite/Tailwindcss",
   "private": true,
-  "version": "2.2.18",
+  "version": "2.2.19",
   "type": "module",
   "scripts": {
     "build": "npm run lint && vite build",
@@ -39,6 +39,8 @@
     "eslint": "^8.57.0",
     "gh-pages": "^6.0.0",
     "postcss": "^8.4.31",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9",
     "sass": "^1.68.0",
     "tailwindcss": "^3.3.3",
     "typescript": "^5.4.5",

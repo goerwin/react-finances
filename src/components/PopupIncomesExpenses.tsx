@@ -171,7 +171,7 @@ function getActionsInfo(
   attrs: WithRequired<
     Parameters<typeof getActionsBy>[0],
     'startDate' | 'endDate'
-  > & { expectedPerMonth?: number }
+  > & { expectedPerMonth?: number },
 ) {
   const { startDate, endDate, expectedPerMonth } = attrs;
 
@@ -193,7 +193,7 @@ function getActionsInfo(
           : action.totalOnlyCreditCard,
       };
     },
-    { totalOnlyTrack: 0, totalOnlyCreditCard: 0, total: 0 }
+    { totalOnlyTrack: 0, totalOnlyCreditCard: 0, total: 0 },
   );
 
   const monthDiff = getMonthDifference(endDate, startDate);
@@ -226,12 +226,12 @@ function getActionsInfo(
 function getActionsGroupInfoNode(
   attrs: ReturnType<typeof getActionsInfo> & {
     resumed?: boolean;
-  }
+  },
 ) {
   if (attrs.resumed)
     return (
       <>
-        <span className="font-bold text-sm">{`(${attrs.actions.length})`}</span>
+        <span className="text-sm font-bold">{`(${attrs.actions.length})`}</span>
         {' - T: '}
         {formatNumberValueToCurrency(attrs.total)}
         {' - TcS: '}
@@ -242,29 +242,29 @@ function getActionsGroupInfoNode(
   return (
     <>
       {attrs.expectedPerMonth ? (
-        <span className="block c-description">
+        <span className="c-description block">
           Estimado Mensual:{' '}
           {formatNumberValueToCurrency(attrs.expectedPerMonth)}
         </span>
       ) : null}
 
-      <span className="block c-description">
+      <span className="c-description block">
         Rango: {getFormattedLocalDate(attrs.startDate)}
         {' - '}
         {getFormattedLocalDate(attrs.endDate)} (Meses: {attrs.monthDiff})
       </span>
 
-      <span className="block c-description">
+      <span className="c-description block">
         T: {formatNumberValueToCurrency(attrs.total)}
         {' - M: '} {formatNumberValueToCurrency(attrs.valuePerMonth)}
         {' - D: '} {formatNumberValueToCurrency(attrs.deviationFromExpected)}
       </span>
 
-      <span className="block c-description">
+      <span className="c-description block">
         S: {formatNumberValueToCurrency(attrs.totalOnlyTrack)}
       </span>
 
-      <span className="block c-description">
+      <span className="c-description block">
         TcS: {formatNumberValueToCurrency(attrs.totalWithTrack)}
         {' - McS: '} {formatNumberValueToCurrency(attrs.valuePerMonthWithTrack)}
         {' - DcS: '}{' '}
@@ -285,7 +285,7 @@ function getActionsDates(actions: Action[]) {
         finalDate: actionDate > prev.finalDate ? actionDate : prev.finalDate,
       };
     },
-    { initialDate: new Date(), finalDate: new Date(0) }
+    { initialDate: new Date(), finalDate: new Date(0) },
   );
 }
 
@@ -295,7 +295,7 @@ function getActionsIncExpInfo(
     startDate: Date | string;
     endDate: Date | string;
     categories: Category[];
-  }
+  },
 ) {
   const { startDate, endDate, categories } = attrs;
 
@@ -423,17 +423,17 @@ export default function PopupIncomesExpenses(props: Props) {
           .filter((it) => it.type === filterByExpInc)
           .sort(sortByFnCreator('sortPriority', false))
       : filterBy === 'tags'
-      ? props.db.tags
-          .filter((it) => it.type === filterByExpInc)
-          .sort(sortByFnCreator('sortPriority', false))
-      : [];
+        ? props.db.tags
+            .filter((it) => it.type === filterByExpInc)
+            .sort(sortByFnCreator('sortPriority', false))
+        : [];
 
   return (
     <Popup
       title="Entradas"
       bottomArea={
         <>
-          <div className="mb-2 text-sm italic c-description overflow-auto">
+          <div className="c-description mb-2 overflow-auto text-sm italic">
             <p>
               Gastos: T: {formatNumberValueToCurrency(filteredExpActionsTotal)}
               {' - M: '}
@@ -463,21 +463,21 @@ export default function PopupIncomesExpenses(props: Props) {
             <p>
               TC: {formatNumberValueToCurrency(expTotalOnlyCreditCard)} - Saldo:{' '}
               {formatNumberValueToCurrency(
-                historicIncTotal - historicExpenseTotal
+                historicIncTotal - historicExpenseTotal,
               )}
             </p>
           </div>
 
-          <div className="relative before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] pb-2" />
+          <div className="relative pb-2 before:absolute before:bottom-full before:left-0 before:h-5 before:w-full before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] before:content-['']" />
 
-          <div className="flex items-center gap-2 justify-between capitalize">
+          <div className="flex items-center justify-between gap-2 capitalize">
             <Button
               onClick={() =>
                 setFilterDates({
                   filterStartDate:
                     getPreviousMonthFirstDayDate(filterStartDate),
                   filterEndDate: getLastDayOfMonthDate(
-                    getPreviousMonthFirstDayDate(filterStartDate)
+                    getPreviousMonthFirstDayDate(filterStartDate),
                   ),
                 })
               }
@@ -497,7 +497,7 @@ export default function PopupIncomesExpenses(props: Props) {
                 setFilterDates({
                   filterStartDate: getNextMonthFirstDayDate(filterStartDate),
                   filterEndDate: getLastDayOfMonthDate(
-                    getNextMonthFirstDayDate(filterStartDate)
+                    getNextMonthFirstDayDate(filterStartDate),
                   ),
                 })
               }
@@ -506,7 +506,7 @@ export default function PopupIncomesExpenses(props: Props) {
             </Button>
           </div>
 
-          <div className="grid grid-cols-3 mt-1 gap-px">
+          <div className="mt-1 grid grid-cols-3 gap-px">
             {(
               [
                 { label: 'Fechas', filterBy: 'date' },
@@ -516,8 +516,8 @@ export default function PopupIncomesExpenses(props: Props) {
             ).map((it, idx) => (
               <button
                 className={cn(
-                  'text-xs p-2 py-4 rounded-none bg-black/40',
-                  it.filterBy === filterBy && 'bg-green-900'
+                  'rounded-none bg-black/40 p-2 py-4 text-xs',
+                  it.filterBy === filterBy && 'bg-green-900',
                 )}
                 type="button"
                 key={idx}
@@ -537,7 +537,7 @@ export default function PopupIncomesExpenses(props: Props) {
             ).map((it, idx) => (
               <button
                 type="button"
-                className={`!text-xs !p-2 !py-4 !rounded-none ${
+                className={`!rounded-none !p-2 !py-4 !text-xs ${
                   it.filterBy === filterByExpInc
                     ? '!bg-green-900'
                     : '!bg-black/20'
@@ -567,7 +567,7 @@ export default function PopupIncomesExpenses(props: Props) {
               filterByExpInc,
               props,
               handleItemFormSubmit,
-            })
+            }),
           )
         : null}
 
@@ -593,11 +593,16 @@ export default function PopupIncomesExpenses(props: Props) {
               >
                 <input
                   type="checkbox"
-                  className="absolute w-full left-0 top-0 h-full peer opacity-0"
+                  className="peer absolute left-0 top-0 z-10 h-full w-full opacity-0"
                 />
 
                 <div className="text-left">
-                  <p className="border-b border-b-white/10 mb-2 pb-1">
+                  <p
+                    className={cn(
+                      'mb-2 border-b border-b-white/10 pb-1',
+                      item.archived && 'opacity-30',
+                    )}
+                  >
                     <span>{item.name} </span>
                     <span className="c-description">
                       {getActionsGroupInfoNode({
@@ -606,7 +611,7 @@ export default function PopupIncomesExpenses(props: Props) {
                       })}
 
                       {filterBy === 'tags' && item.expectedPerMonth ? (
-                        <span className="block c-description">
+                        <span className="c-description block">
                           Estimado Mensual:{' '}
                           {formatNumberValueToCurrency(item.expectedPerMonth)}
                         </span>
@@ -617,7 +622,7 @@ export default function PopupIncomesExpenses(props: Props) {
                           Categorías ({categoryIds.length}):{' '}
                           {categoryIds
                             .map((id) =>
-                              getCategoryName(props.db.categories, id)
+                              getCategoryName(props.db.categories, id),
                             )
                             .join(', ')}
                         </span>
@@ -626,9 +631,9 @@ export default function PopupIncomesExpenses(props: Props) {
                   </p>
                 </div>
 
-                <div className="pl-2 mb-5 hidden peer-checked:block">
-                  <div className="text-left relative mb-2">
-                    <span className="block text-xs c-description">
+                <div className="relative z-20 mb-5 hidden pl-2 peer-checked:block">
+                  <div className="mb-2 text-left">
+                    <span className="c-description block text-xs">
                       {getActionsGroupInfoNode({
                         ...dateFilteredActionsInfo,
                       })}
@@ -643,7 +648,7 @@ export default function PopupIncomesExpenses(props: Props) {
                       filterByExpInc,
                       props,
                       handleItemFormSubmit,
-                    })
+                    }),
                   )}
                 </div>
               </div>
