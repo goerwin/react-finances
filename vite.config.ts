@@ -16,6 +16,8 @@ export default defineConfig(() => {
       react(),
       VitePWA({
         manifest: {
+          name: 'Finances',
+          short_name: 'Finances',
           theme_color: '#242424',
           background_color: '#242424',
           icons: [
