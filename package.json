@@ -2,7 +2,7 @@
   "name": "react-finances",
   "description": "PWA Finances made with React/Vite/Tailwindcss",
   "private": true,
-  "version": "2.2.24",
+  "version": "2.2.26",
   "type": "module",
   "scripts": {
     "build": "npm run lint && vite build",
