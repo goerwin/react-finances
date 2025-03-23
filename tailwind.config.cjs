@@ -1,7 +1,7 @@
-const plugin = require('tailwindcss/plugin');
+import plugin from 'tailwindcss/plugin';
 
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: ['./src/**/*.{html,ts,tsx}'],
   theme: {
     extend: {
@@ -11,7 +11,7 @@ module.exports = {
     },
   },
   plugins: [
-    plugin(function ({ addVariant }) {
+    plugin(({ addVariant }) => {
       // children
       addVariant('ch', '& > *');
       addVariant('direct-first-child', '& > :first-child');

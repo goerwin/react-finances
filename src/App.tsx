@@ -6,20 +6,24 @@ import {
 import { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import {
+  type TokenInfo,
+  TokenInfoSchema,
   addItem,
   deleteItem,
   editItem,
-  TokenInfo,
-  TokenInfoSchema,
 } from './api/actions';
+import Button from './components/Button';
 import Calculator, {
   formatNumberValueToCurrency,
 } from './components/Calculator';
+import ItemView from './components/ItemView';
 import Loading from './components/Loading';
 import PopupCRUD from './components/PopupCRUD';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import PopupManageDB from './components/PopupManageDB';
+import { useOnlineStatus } from './components/useOnlineStatus';
+import { useQueue } from './components/useQueue';
 import {
   GOOGLE_CLIENT_ID,
   GOOGLE_REDIRECT_SERVER_URL,
@@ -27,32 +31,28 @@ import {
   GOOGLE_SERVICE_IDENTITY_CLIENT,
 } from './config';
 import {
-  actionSchema,
-  categorySchema,
-  DB,
-  ItemType,
-  tagSchema,
-} from './helpers/schemas';
-import {
   getCategoryName,
   handleErrorWithNotifications,
   loadScript,
   sortByFnCreator,
 } from './helpers/general';
 import {
+  type LSDB,
+  getDatabasePath as LSGetDatabasePath,
   getLsDB as LSGetLsDB,
   getTokenInfo as LSGetTokenInfo,
-  LSDB,
+  setDatabasePath as LSSetDatabasePath,
   setLsDB as LSSetLsDB,
   setTokenInfo as LSSetTokenInfo,
-  getDatabasePath as LSGetDatabasePath,
-  setDatabasePath as LSSetDatabasePath,
 } from './helpers/localStorage';
+import {
+  type DB,
+  type ItemType,
+  actionSchema,
+  categorySchema,
+  tagSchema,
+} from './helpers/schemas';
 import { getFormattedLocalDatetime } from './helpers/time';
-import ItemView from './components/ItemView';
-import Button from './components/Button';
-import { useOnlineStatus } from './components/useOnlineStatus';
-import { useQueue } from './components/useQueue';
 
 function redirectToCleanHomePage() {
   window.location.href = window.location.pathname;
@@ -224,6 +224,7 @@ export default function App() {
 
   const [client, setClient] = useState<google.accounts.oauth2.CodeClient>();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     (async () => {
       try {
@@ -268,17 +269,24 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex flex-col direct-first-child:mt-auto overflow-auto fixed inset-0">
-        <h2 className="text-2xl mt-0 mb-1 font-bold text-center pt-8 px-4 relative">
+      <div className="fixed inset-0 flex flex-col overflow-auto">
+        <a
+          href={GLOBAL_GITHUB_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-blue-300 self-center mt-2 font-bold"
+        >
+          @{GLOBAL_AUTHOR}/{GLOBAL_NAME}@{GLOBAL_APP_VERSION}{' '}
+          <span>{isOnline ? '🟢' : '🔴'}</span>
+        </a>
+
+        <h2 className="relative mb-1 mt-0 px-4 text-center text-2xl font-bold">
           Recientes
-          <span className="text-sm text-center text-neutral-500 absolute top-2 right-2">
-            v{APP_VERSION}
-            <span className="block">{isOnline ? '🟢' : '🔴'}</span>
-          </span>
         </h2>
-        <div className="overflow-auto px-4 py-4 flex-grow">
+
+        <div className="flex-grow overflow-auto px-4 py-4">
           {queue.status === 'error' || queue.status === 'ready' ? (
-            <div className="flex gap-2 justify-center">
+            <div className="flex justify-center gap-2">
               <Button onClick={queue.processQueue}>Reintentar cola</Button>
               <Button
                 onClick={() =>
@@ -292,6 +300,7 @@ export default function App() {
 
           {queue.queue.map((it, idx) => (
             <ItemView
+              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               key={idx}
               viewType="small"
               id={`${idx}`}
@@ -301,8 +310,8 @@ export default function App() {
                 it.status === 'processing'
                   ? 'Procesando'
                   : it.status === 'error'
-                  ? 'Error'
-                  : 'En espera',
+                    ? 'Error'
+                    : 'En espera',
               ]}
             />
           ))}
@@ -326,9 +335,9 @@ export default function App() {
               />
             ))}
         </div>
-        <div className="relative before:content-[''] before:absolute before:bottom-full before:left-0 before:w-full before:h-5 before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] mb-4" />
+        <div className="relative mb-4 before:absolute before:bottom-full before:left-0 before:h-5 before:w-full before:shadow-[inset_0_-8px_6px_-5px_rgba(0,0,0,0.4)] before:content-['']" />
 
-        <div className="flex flex-wrap gap-2 px-1 justify-center">
+        <div className="flex flex-wrap justify-center gap-2 px-1">
           {!tokenInfo && client ? (
             <Button onClick={() => client.requestCode()}>
               Iniciar sesión con Google
@@ -361,13 +370,13 @@ export default function App() {
           <Button onClick={redirectToCleanHomePage}>Recargar</Button>
         </div>
 
-        <div className="w-1/2 mx-auto mt-4 mb-2 border-b-4 border-b-[#333]" />
+        <div className="mx-auto mb-2 mt-4 w-1/2 border-b-4 border-b-[#333]" />
         <Calculator
           value={value}
           onButtonClick={setValue}
           onBackspaceLongPress={() => setValue(undefined)}
         />
-        <div className="flex gap-2 p-4 pt-0 ch:grow ch:text-xl ch:basis-1/2">
+        <div className="flex gap-2 p-4 pt-0 ch:grow ch:basis-1/2 ch:text-xl">
           <Button
             variant="success"
             className="font-bold"
@@ -384,7 +393,7 @@ export default function App() {
           </Button>
         </div>
 
-        <div className="h-14 bg-black/20 grid grid-cols-1 gap-px shrink-0">
+        <div className="grid h-14 shrink-0 grid-cols-1 gap-px bg-black/20">
           {[
             {
               label: 'Entradas',
@@ -392,18 +401,18 @@ export default function App() {
                 setPopup({ action: 'show', actionType: 'expense' }),
             },
           ].map((it) => (
-            <div
-              role="button"
+            <button
+              type="button"
               key={it.label}
               onClick={it.onClick}
-              className="text-xs bg-black/30 flex items-center justify-center px-2 text-center"
+              className="flex items-center justify-center bg-black/30 px-2 text-center text-xs"
             >
               {it.label}
-            </div>
+            </button>
           ))}
         </div>
 
-        <div className="h-14 bg-black/20 grid grid-cols-4 gap-px shrink-0 whitespace-pre-line">
+        <div className="grid h-14 shrink-0 grid-cols-4 gap-px whitespace-pre-line bg-black/20">
           {[
             {
               label: 'Categoría \ningresos',
@@ -426,14 +435,14 @@ export default function App() {
                 setPopup({ action: 'showTags', actionType: 'expense' }),
             },
           ].map((it) => (
-            <div
-              role="button"
+            <button
+              type="button"
               key={it.label}
               onClick={it.onClick}
-              className="text-xs bg-black/90 flex items-center justify-center px-2 text-center"
+              className="flex items-center justify-center bg-black/90 px-2 text-center text-xs"
             >
               {it.label}
-            </div>
+            </button>
           ))}
         </div>
 
@@ -471,7 +480,7 @@ export default function App() {
               title: item.name,
               description: `Items: ${actions.reduce(
                 (t, ac) => (ac.categoryId === item.id ? t + 1 : t),
-                0
+                0,
               )}`,
               texts: [
                 `Prioridad de orden: ${item.sortPriority}`,
@@ -539,19 +548,19 @@ export default function App() {
               description: `Items: ${actions.reduce(
                 (t, ac) =>
                   item.categoryIds.includes(ac.categoryId) ? t + 1 : t,
-                0
+                0,
               )}`,
               texts: [
                 `Prioridad de orden: ${item.sortPriority}`,
                 `Esperado mensual: ${formatNumberValueToCurrency(
-                  item.expectedPerMonth
+                  item.expectedPerMonth,
                 )}`,
                 `Categorías (${item.categoryIds.length}):
                   ${
                     item.categoryIds
                       .map(
                         (id) =>
-                          lsDb.db.categories.find((it) => it.id === id)?.name
+                          lsDb.db.categories.find((it) => it.id === id)?.name,
                       )
                       .join(', ') || '-'
                   }`,

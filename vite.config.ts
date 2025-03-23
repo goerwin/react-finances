@@ -10,7 +10,10 @@ export default defineConfig(() => {
   return {
     base: '/react-finances/',
     define: {
-      APP_VERSION: JSON.stringify(packageJson.version),
+      GLOBAL_APP_VERSION: JSON.stringify(packageJson.version),
+      GLOBAL_NAME: JSON.stringify(packageJson.name),
+      GLOBAL_AUTHOR: JSON.stringify(packageJson.author.name),
+      GLOBAL_GITHUB_URL: JSON.stringify(packageJson.repository.url),
     },
     plugins: [
       react(),
