@@ -274,7 +274,7 @@ export default function App() {
           href={GLOBAL_GITHUB_URL}
           target="_blank"
           rel="noreferrer"
-          className="text-xs text-blue-300 self-center mt-2 font-bold"
+          className="text-blue-300 self-center mt-2 font-bold"
         >
           @{GLOBAL_AUTHOR}/{GLOBAL_NAME}@{GLOBAL_APP_VERSION}{' '}
           <span>{isOnline ? '🟢' : '🔴'}</span>
