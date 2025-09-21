@@ -1,15 +1,10 @@
-import { z, ZodSchema } from 'zod';
-import { Action, DB, dbSchema, DBListItem } from '../helpers/schemas';
-
-// https://github.com/uuidjs/uuid/pull/654
-import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+import { DB, dbSchema } from '../helpers/schemas';
 
 import {
   getGoogleDriveFileContent,
   updateGoogleDriveFile,
 } from '../helpers/GoogleApi';
-
-export type NewAction = Omit<Action, 'date' | 'id'>;
 
 type DBApiRequiredAttrs = {
   gdFileId: string;
@@ -44,73 +39,4 @@ export async function updateDB(
   }));
 
   return newDB;
-}
-
-export async function addItem(
-  tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & {
-    schema: ZodSchema;
-    data: unknown;
-    type: DBListItem;
-  }
-) {
-  const db = await getDB(tokenInfo, attrs);
-  const date = new Date().toISOString();
-  const id = uuidv4();
-  const { type, data, schema } = attrs;
-  const parsedData = schema.parse(data);
-
-  return updateDB(tokenInfo, {
-    ...attrs,
-    db: {
-      ...db,
-      updatedAt: date,
-      [type]: [{ ...parsedData, id }, ...db[type]],
-    },
-  });
-}
-
-export async function editItem<T extends { id: string }>(
-  tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & {
-    schema: ZodSchema<T>;
-    type: DBListItem;
-    data: unknown;
-  }
-) {
-  const db = await getDB(tokenInfo, attrs);
-  const date = new Date().toISOString();
-  const { type, data, schema } = attrs;
-  const parsedData = schema.parse(data);
-
-  if (!type) throw new Error('Type is required');
-
-  return updateDB(tokenInfo, {
-    ...attrs,
-    db: {
-      ...db,
-      updatedAt: date,
-      [type]: db[type].map((it) =>
-        it.id === parsedData.id ? { ...parsedData } : it
-      ),
-    },
-  });
-}
-
-export async function deleteItem(
-  tokenInfo: TokenInfo,
-  attrs: DBApiRequiredAttrs & { id: string; type: DBListItem }
-) {
-  const db = await getDB(tokenInfo, attrs);
-  const date = new Date().toISOString();
-  const { type, id } = attrs;
-
-  return updateDB(tokenInfo, {
-    ...attrs,
-    db: {
-      ...db,
-      updatedAt: date,
-      [type]: db[type].filter((it) => it.id !== id),
-    },
-  });
 }

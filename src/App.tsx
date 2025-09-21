@@ -1,29 +1,23 @@
 import {
   QueryClient,
   QueryClientProvider,
-  useMutation,
 } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   type TokenInfo,
   TokenInfoSchema,
-  addItem,
-  deleteItem,
-  editItem,
 } from './api/actions';
 import Button from './components/Button';
 import Calculator, {
   formatNumberValueToCurrency,
 } from './components/Calculator';
 import ItemView from './components/ItemView';
-import Loading from './components/Loading';
 import PopupCRUD from './components/PopupCRUD';
 import PopupIncomeExpenseForm from './components/PopupIncomeExpenseForm';
 import PopupIncomesExpenses from './components/PopupIncomesExpenses';
 import PopupManageDB from './components/PopupManageDB';
 import { useOnlineStatus } from './components/useOnlineStatus';
-import { useQueue } from './components/useQueue';
 import {
   GOOGLE_CLIENT_ID,
   GOOGLE_REDIRECT_SERVER_URL,
@@ -46,7 +40,6 @@ import {
   setTokenInfo as LSSetTokenInfo,
 } from './helpers/localStorage';
 import {
-  type DB,
   type ItemType,
   actionSchema,
   categorySchema,
@@ -82,140 +75,177 @@ export default function App() {
     LSSetDatabasePath(lsDb?.path);
   };
 
-  const queue = useQueue({
-    gdFileId: lsDb?.fileId,
-    tokenInfo: tokenInfo,
-    db: lsDb?.db,
-    onQueueItemSuccess(db) {
-      if (lsDb) syncLsDB({ ...lsDb, db });
-      toast.success('Elemento en cola procesado!', { duration: 2000 });
-    },
-    onQueueItemError(err) {
-      handleErrorWithNotifications(err);
-    },
-  });
-
-  const { isLoading: mutateLoading, mutate } = useMutation({
-    onError: handleErrorWithNotifications,
-    onSuccess: (lsDb, attrs) => {
-      syncLsDB(lsDb);
-      attrs.alertMsg && toast.success(attrs.alertMsg, { duration: 2000 });
-    },
-    mutationFn: async (attrs: {
-      tokenInfo: typeof tokenInfo;
-      lsDb: typeof lsDb;
-      alertMsg?: string;
-      fn: (attrs: { tokenInfo: TokenInfo; gdFileId: string }) => Promise<DB>;
-    }) => {
-      if (!attrs.tokenInfo) throw new Error('MISSING_TOKEN_INFO');
-      if (!attrs.lsDb) throw new Error('MISSING_DB_DATA');
-
-      const db = await attrs.fn({
-        tokenInfo: attrs.tokenInfo,
-        gdFileId: attrs.lsDb.fileId,
-      });
-
-      return { ...attrs.lsDb, db };
-    },
-  });
-
   const handleAddActionFormSubmit = async (data: unknown) => {
     setValue(undefined);
     setPopup(undefined);
-    queue.addToQueue(data, 'actions', 'add');
+    
+    if (!lsDb) return;
+    
+    const parsedData = actionSchema.safeParse(data);
+    if (!parsedData.success) return;
+    
+    const newAction = {
+      ...parsedData.data,
+      id: crypto.randomUUID(),
+      date: new Date().toISOString(),
+    };
+    
+    const updatedDb = {
+      ...lsDb.db,
+      actions: [newAction, ...lsDb.db.actions],
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Entrada guardada localmente!', { duration: 2000 });
   };
 
-  const handleEditActionSubmit = (data: unknown) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Entrada editada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        editItem(tokenInfo, {
-          gdFileId,
-          data,
-          type: 'actions',
-          schema: actionSchema,
-        }),
-    });
+  const handleEditActionSubmit = (data: unknown) => {
+    if (!lsDb) return;
+    
+    const parsedData = actionSchema.safeParse(data);
+    if (!parsedData.success) return;
+    
+    const editedAction = parsedData.data;
+    const updatedActions = lsDb.db.actions.map((action) =>
+      action.id === editedAction.id ? editedAction : action
+    );
+    
+    const updatedDb = {
+      ...lsDb.db,
+      actions: updatedActions,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Entrada editada localmente!', { duration: 2000 });
+  };
 
-  const handleActionDelete = (id: string) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Entrada eliminada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        deleteItem(tokenInfo, { gdFileId, id, type: 'actions' }),
-    });
+  const handleActionDelete = (id: string) => {
+    if (!lsDb) return;
+    
+    const updatedActions = lsDb.db.actions.filter((action) => action.id !== id);
+    const updatedDb = {
+      ...lsDb.db,
+      actions: updatedActions,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Entrada eliminada localmente!', { duration: 2000 });
+  };
 
-  const handleAddCategorySubmit = (data: unknown) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Categoría agregada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        addItem(tokenInfo, {
-          gdFileId,
-          data,
-          type: 'categories',
-          schema: categorySchema,
-        }),
-    });
+  const handleAddCategorySubmit = (data: unknown) => {
+    if (!lsDb) return;
+    
+    const parsedData = categorySchema.safeParse(data);
+    if (!parsedData.success) return;
+    
+    const newCategory = {
+      ...parsedData.data,
+      id: crypto.randomUUID(),
+    };
+    
+    const updatedDb = {
+      ...lsDb.db,
+      categories: [newCategory, ...lsDb.db.categories],
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Categoría agregada localmente!', { duration: 2000 });
+  };
 
-  const handleEditCategorySubmit = (data: unknown) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Categoría editada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        editItem(tokenInfo, {
-          gdFileId,
-          data,
-          type: 'categories',
-          schema: categorySchema,
-        }),
-    });
+  const handleEditCategorySubmit = (data: unknown) => {
+    if (!lsDb) return;
+    
+    const parsedData = categorySchema.safeParse(data);
+    if (!parsedData.success) return;
+    
+    const editedCategory = parsedData.data;
+    const updatedCategories = lsDb.db.categories.map((category) =>
+      category.id === editedCategory.id ? editedCategory : category
+    );
+    
+    const updatedDb = {
+      ...lsDb.db,
+      categories: updatedCategories,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Categoría editada localmente!', { duration: 2000 });
+  };
 
-  const handleCategoryDelete = (id: string) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Categoría eliminada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        deleteItem(tokenInfo, { gdFileId, id, type: 'categories' }),
-    });
+  const handleCategoryDelete = (id: string) => {
+    if (!lsDb) return;
+    
+    const updatedCategories = lsDb.db.categories.filter((category) => category.id !== id);
+    const updatedDb = {
+      ...lsDb.db,
+      categories: updatedCategories,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Categoría eliminada localmente!', { duration: 2000 });
+  };
 
-  const handleAddTagSubmit = (data: unknown) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Etiqueta agregada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        addItem(tokenInfo, { gdFileId, data, type: 'tags', schema: tagSchema }),
-    });
+  const handleAddTagSubmit = (data: unknown) => {
+    if (!lsDb) return;
+    
+    const parsedData = tagSchema.safeParse(data);
+    if (!parsedData.success) return;
+    
+    const newTag = {
+      ...parsedData.data,
+      id: crypto.randomUUID(),
+    };
+    
+    const updatedDb = {
+      ...lsDb.db,
+      tags: [newTag, ...lsDb.db.tags],
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Etiqueta agregada localmente!', { duration: 2000 });
+  };
 
-  const handleEditTagSubmit = (data: unknown) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Etiqueta editada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        editItem(tokenInfo, {
-          gdFileId,
-          data,
-          type: 'tags',
-          schema: tagSchema,
-        }),
-    });
+  const handleEditTagSubmit = (data: unknown) => {
+    if (!lsDb) return;
+    
+    const parsedData = tagSchema.safeParse(data);
+    if (!parsedData.success) return;
+    
+    const editedTag = parsedData.data;
+    const updatedTags = lsDb.db.tags.map((tag) =>
+      tag.id === editedTag.id ? editedTag : tag
+    );
+    
+    const updatedDb = {
+      ...lsDb.db,
+      tags: updatedTags,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Etiqueta editada localmente!', { duration: 2000 });
+  };
 
-  const handleTagDelete = (id: string) =>
-    mutate({
-      tokenInfo,
-      lsDb,
-      alertMsg: 'Etiqueta eliminada',
-      fn: ({ tokenInfo, gdFileId }) =>
-        deleteItem(tokenInfo, { gdFileId, id, type: 'tags' }),
-    });
+  const handleTagDelete = (id: string) => {
+    if (!lsDb) return;
+    
+    const updatedTags = lsDb.db.tags.filter((tag) => tag.id !== id);
+    const updatedDb = {
+      ...lsDb.db,
+      tags: updatedTags,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    syncLsDB({ ...lsDb, db: updatedDb });
+    toast.success('Etiqueta eliminada localmente!', { duration: 2000 });
+  };
 
   const handleActionClick = (actionType: ItemType) => {
     if (!value) return;
@@ -274,7 +304,7 @@ export default function App() {
           href={GLOBAL_GITHUB_URL}
           target="_blank"
           rel="noreferrer"
-          className="text-blue-300 self-center mt-2 font-bold"
+          className="mt-2 self-center font-bold text-blue-300"
         >
           @{GLOBAL_AUTHOR}/{GLOBAL_NAME}@{GLOBAL_APP_VERSION}{' '}
           <span>{isOnline ? '🟢' : '🔴'}</span>
@@ -285,36 +315,6 @@ export default function App() {
         </h2>
 
         <div className="flex-grow overflow-auto px-4 py-4">
-          {queue.status === 'error' || queue.status === 'ready' ? (
-            <div className="flex justify-center gap-2">
-              <Button onClick={queue.processQueue}>Reintentar cola</Button>
-              <Button
-                onClick={() =>
-                  window.confirm('Seguro de limpiar cola?') && queue.clean()
-                }
-              >
-                Limpiar cola
-              </Button>
-            </div>
-          ) : null}
-
-          {queue.queue.map((it, idx) => (
-            <ItemView
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              key={idx}
-              viewType="small"
-              id={`${idx}`}
-              title={it.title}
-              description={it.description}
-              texts={[
-                it.status === 'processing'
-                  ? 'Procesando'
-                  : it.status === 'error'
-                    ? 'Error'
-                    : 'En espera',
-              ]}
-            />
-          ))}
           {lsDb?.db.actions
             .sort(sortByFnCreator('date', false))
             .slice(0, 10)
@@ -619,12 +619,12 @@ export default function App() {
           <PopupManageDB
             dbPath={lsDb?.path ?? LSGetDatabasePath() ?? ''}
             tokenInfo={tokenInfo}
+            currentLsDB={lsDb}
             onDBSync={syncLsDB}
             onClose={() => setPopup(undefined)}
           />
         ) : null}
 
-        {mutateLoading && <Loading />}
         <Toaster position="top-center" />
       </div>
     </QueryClientProvider>

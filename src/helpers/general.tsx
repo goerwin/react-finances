@@ -91,18 +91,6 @@ export function handleErrorWithNotifications(err: unknown) {
   );
 }
 
-export function getCategoryById(categories: Category[], categoryId: string) {
-  return categories.find((el) => el.id === categoryId);
-}
-
 export function getCategoryName(categories: Category[], categoryId: string) {
   return categories.find((el) => el.id === categoryId)?.name || '-';
-}
-
-export function wait(secs: number) {
-  return new Promise((res) => {
-    setTimeout(() => {
-      res(true);
-    }, secs * 1000);
-  });
 }

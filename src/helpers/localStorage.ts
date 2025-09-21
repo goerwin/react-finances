@@ -1,7 +1,7 @@
 import { LOCAL_STORAGE_NAMESPACE } from '../config';
 import { arrayIncludes } from './general';
 import { TokenInfoSchema, TokenInfo } from '../api/actions';
-import { type QueueItem, dbSchema, queueSchema } from './schemas';
+import { dbSchema } from './schemas';
 import { z } from 'zod';
 
 const Keys = {
@@ -10,7 +10,6 @@ const Keys = {
   db: `${LOCAL_STORAGE_NAMESPACE}_db`,
   filterByExpInc: `${LOCAL_STORAGE_NAMESPACE}_filterByExpInc`,
   databasePath: `${LOCAL_STORAGE_NAMESPACE}_databasePath`,
-  queue: `${LOCAL_STORAGE_NAMESPACE}_queue`,
 };
 
 function safeGetLSItem(key: string) {
@@ -89,15 +88,4 @@ export function setDatabasePath(dbPath?: string) {
 
 export function removeDatabasePath() {
   localStorage.removeItem(Keys.databasePath);
-}
-
-export function getLsQueue() {
-  const res = queueSchema.safeParse(safeGetLSItem(Keys.queue));
-  return res.success ? res.data : [];
-}
-
-export function setLsQueue(queue?: QueueItem[]) {
-  queue
-    ? localStorage.setItem(Keys.queue, JSON.stringify(queue))
-    : localStorage.removeItem(Keys.queue);
 }

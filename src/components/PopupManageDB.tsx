@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { getDB, TokenInfo } from '../api/actions';
+import { getDB, TokenInfo, updateDB } from '../api/actions';
 import { initialDB } from '../helpers/schemas';
 import { handleErrorWithNotifications } from '../helpers/general';
 import {
@@ -10,7 +10,7 @@ import {
   getGoogleDriveElementInfoById,
   uploadGoogleDriveFile,
 } from '../helpers/GoogleApi';
-import { LSDB } from '../helpers/localStorage';
+import { LSDB, setLsDB, removeDatabasePath } from '../helpers/localStorage';
 import Popup from './Popup';
 import Button from './Button';
 
@@ -19,6 +19,7 @@ export interface Props {
   dbPath: string;
   onClose?: () => void;
   onDBSync: (data?: LSDB) => void;
+  currentLsDB?: LSDB;
 }
 
 async function getDBFileId(
@@ -31,15 +32,17 @@ async function getDBFileId(
   return fileId;
 }
 
-export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
+export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props }: Props) {
   const { register, handleSubmit } = useForm({
     defaultValues: { dbPath },
   });
 
-  // handle verify DB
-  const { isLoading: isVerifyDBLoading, mutate: verifyDBMutate } = useMutation({
+  // handle import DB from Google Drive
+  const { isLoading: isImportDBLoading, mutate: importDBMutate } = useMutation({
     onError: handleErrorWithNotifications,
     mutationFn: async ({ dbPath }: { dbPath: string }) => {
+      if (!confirm(`Seguro de importar la base de datos "${dbPath}" desde Google Drive?`)) return;
+
       const fileId = await getDBFileId(tokenInfo, dbPath);
       const respInfo = await getGoogleDriveElementInfoById(tokenInfo, {
         gdElementId: fileId,
@@ -49,7 +52,7 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
 
       const db = await getDB(tokenInfo, { gdFileId: fileId });
 
-      toast.success('Base de datos actualizada! 😉');
+      toast.success('Base de datos importada desde Google Drive! 😉');
       props.onDBSync?.({ fileId, path: dbPath, db });
       props.onClose?.();
     },
@@ -94,24 +97,49 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
     },
   });
 
+  // handle export localStorage to Google Drive
+  const { isLoading: isSyncDBLoading, mutate: syncDBMutate } = useMutation({
+    onError: handleErrorWithNotifications,
+    mutationFn: async ({ dbPath }: { dbPath: string }) => {
+      if (!confirm(`Seguro de exportar los datos locales a "${dbPath}" en Google Drive?`)) return;
+
+      if (!currentLsDB?.db) throw new Error('No hay datos locales para exportar');
+
+      const fileId = await getDBFileId(tokenInfo, dbPath);
+      const updatedDB = await updateDB(tokenInfo, {
+        gdFileId: fileId,
+        db: currentLsDB.db
+      });
+
+      toast.success('Datos locales exportados a Google Drive! 🚀');
+      props.onDBSync?.({ ...currentLsDB, db: updatedDB });
+      props.onClose?.();
+    },
+  });
+
   // handle delete DB
   const { isLoading: isDeleteDBLoading, mutate: deleteDBMutate } = useMutation({
     onError: handleErrorWithNotifications,
     mutationFn: async ({ dbPath }: { dbPath: string }) => {
-      if (!confirm(`Seguro de eliminar la base de datos "${dbPath}"?`)) return;
+      if (!confirm(`Seguro de eliminar la base de datos "${dbPath}" tanto local como de Google Drive?`)) return;
 
       const fileId = await getDBFileId(tokenInfo, dbPath);
       void (await deleteGoogleDriveFile(tokenInfo, { gdFileId: fileId }));
-      toast.success('Base de datos eliminada! 😭');
+
+      // Also clear localStorage
+      setLsDB(undefined);
+      removeDatabasePath();
+
+      toast.success('Base de datos eliminada completamente! 😭');
       props.onDBSync?.();
       props.onClose?.();
     },
   });
 
-  const isLoading = isCreateDBLoading || isVerifyDBLoading || isDeleteDBLoading;
+  const isLoading = isCreateDBLoading || isImportDBLoading || isDeleteDBLoading || isSyncDBLoading;
 
   return (
-    <form onSubmit={handleSubmit((data) => verifyDBMutate(data))}>
+    <form onSubmit={handleSubmit((data) => importDBMutate(data))}>
       <Popup
         title="Gestionar DB"
         autoHeight
@@ -119,10 +147,18 @@ export default function PopupManageDB({ tokenInfo, dbPath, ...props }: Props) {
           <div className="flex gap-1 flex-wrap justify-center">
             <Button
               disabled={isLoading}
-              showLoading={isVerifyDBLoading}
-              onClick={handleSubmit((data) => verifyDBMutate(data))}
+              showLoading={isImportDBLoading}
+              onClick={handleSubmit((data) => importDBMutate(data))}
             >
-              Actualizar
+              Importar
+            </Button>
+
+            <Button
+              disabled={isLoading || !currentLsDB?.db}
+              showLoading={isSyncDBLoading}
+              onClick={handleSubmit((data) => syncDBMutate(data))}
+            >
+              Exportar
             </Button>
 
             <Button

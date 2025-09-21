@@ -32,10 +32,7 @@ function stringifyAxiosErrorData(error: unknown): string {
   }
 }
 
-let localStorageNamespace = 'googleApiHelpers_';
-export function setLocalStorageNamespace(namespace: string) {
-  localStorageNamespace = namespace;
-}
+const localStorageNamespace = 'googleApiHelpers_';
 
 function setLSAccessToken(at: string) {
   return localStorage.setItem(`${localStorageNamespace}_at`, at);
@@ -43,37 +40,6 @@ function setLSAccessToken(at: string) {
 
 function getLSAccessToken() {
   return localStorage.getItem(`${localStorageNamespace}_at`) || '';
-}
-
-export async function requestGapiAccessToken(attrs: {
-  gapiClient: typeof gapi;
-  googleClient: typeof google;
-  clientId: string;
-  scope: string;
-  skipConsentOnNoToken?: true;
-}) {
-  return new Promise<google.accounts.oauth2.TokenResponse>((res, rej) => {
-    // eslint-disable-next-line
-    const tokenClient = attrs.googleClient.accounts.oauth2.initTokenClient({
-      client_id: attrs.clientId,
-      scope: attrs.scope,
-
-      callback: (resp) => {
-        if (resp.error !== undefined) return rej(resp);
-        res(resp);
-      },
-      // eslint-disable-next-line
-      error_callback: (resp: any) => {
-        rej(resp);
-      },
-    } as google.accounts.oauth2.TokenClientConfig);
-
-    if (attrs.gapiClient.client.getToken() === null)
-      tokenClient.requestAccessToken({
-        prompt: attrs.skipConsentOnNoToken ? '' : 'consent',
-      });
-    else tokenClient.requestAccessToken({ prompt: '' });
-  });
 }
 
 export async function getNewAccessToken(cid: string, cs: string, rt: string) {
