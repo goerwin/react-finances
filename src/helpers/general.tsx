@@ -94,3 +94,17 @@ export function handleErrorWithNotifications(err: unknown) {
 export function getCategoryName(categories: Category[], categoryId: string) {
   return categories.find((el) => el.id === categoryId)?.name || '-';
 }
+
+export function downloadDataAsJSON(data: unknown, filename: string = 'data.json') {
+  const dataStr = JSON.stringify(data, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(dataBlob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}

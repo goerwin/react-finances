@@ -1,16 +1,21 @@
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { getDB, TokenInfo, updateDB } from '../api/actions';
+import { getDB, updateDB } from '../api/actions';
+import type { TokenInfo } from '../api/actions';
 import { initialDB } from '../helpers/schemas';
-import { handleErrorWithNotifications } from '../helpers/general';
+import {
+  handleErrorWithNotifications,
+  downloadDataAsJSON,
+} from '../helpers/general';
 import {
   deleteGoogleDriveFile,
   getGoogleDriveElementInfo,
   getGoogleDriveElementInfoById,
   uploadGoogleDriveFile,
 } from '../helpers/GoogleApi';
-import { LSDB, setLsDB, removeDatabasePath } from '../helpers/localStorage';
+import { setLsDB, removeDatabasePath } from '../helpers/localStorage';
+import type { LSDB } from '../helpers/localStorage';
 import Popup from './Popup';
 import Button from './Button';
 
@@ -24,7 +29,7 @@ export interface Props {
 
 async function getDBFileId(
   tokenInfo: TokenInfo,
-  dbPath: string
+  dbPath: string,
 ): Promise<string> {
   const respPath = await getGoogleDriveElementInfo(tokenInfo, { path: dbPath });
   const fileId = respPath?.id;
@@ -32,7 +37,12 @@ async function getDBFileId(
   return fileId;
 }
 
-export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props }: Props) {
+export default function PopupManageDB({
+  tokenInfo,
+  dbPath,
+  currentLsDB,
+  ...props
+}: Props) {
   const { register, handleSubmit } = useForm({
     defaultValues: { dbPath },
   });
@@ -41,7 +51,12 @@ export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props
   const { isLoading: isImportDBLoading, mutate: importDBMutate } = useMutation({
     onError: handleErrorWithNotifications,
     mutationFn: async ({ dbPath }: { dbPath: string }) => {
-      if (!confirm(`Seguro de importar la base de datos "${dbPath}" desde Google Drive?`)) return;
+      if (
+        !confirm(
+          `Seguro de importar la base de datos "${dbPath}" desde Google Drive?`,
+        )
+      )
+        return;
 
       const fileId = await getDBFileId(tokenInfo, dbPath);
       const respInfo = await getGoogleDriveElementInfoById(tokenInfo, {
@@ -69,7 +84,7 @@ export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props
       // verify dbPath does not exist
       try {
         // if this passes, then db already exists!
-        void (await getDBFileId(tokenInfo, dbPath));
+        await getDBFileId(tokenInfo, dbPath);
         throw new Error('DB_ALREADY_EXISTS_CANT_CREATE');
       } catch (err) {
         if (!(err instanceof Error)) throw err;
@@ -101,14 +116,20 @@ export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props
   const { isLoading: isSyncDBLoading, mutate: syncDBMutate } = useMutation({
     onError: handleErrorWithNotifications,
     mutationFn: async ({ dbPath }: { dbPath: string }) => {
-      if (!confirm(`Seguro de exportar los datos locales a "${dbPath}" en Google Drive?`)) return;
+      if (
+        !confirm(
+          `Seguro de exportar los datos locales a "${dbPath}" en Google Drive?`,
+        )
+      )
+        return;
 
-      if (!currentLsDB?.db) throw new Error('No hay datos locales para exportar');
+      if (!currentLsDB?.db)
+        throw new Error('No hay datos locales para exportar');
 
       const fileId = await getDBFileId(tokenInfo, dbPath);
       const updatedDB = await updateDB(tokenInfo, {
         gdFileId: fileId,
-        db: currentLsDB.db
+        db: currentLsDB.db,
       });
 
       toast.success('Datos locales exportados a Google Drive! 🚀');
@@ -117,17 +138,85 @@ export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props
     },
   });
 
+  const handleLocalExport = () => {
+    if (!currentLsDB?.db) {
+      toast.error('No hay datos locales para exportar');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `finances-backup-${timestamp}.json`;
+    downloadDataAsJSON(currentLsDB.db, filename);
+    toast.success('Datos exportados localmente! 📁');
+  };
+
+  const handleLocalImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const target = e.target instanceof HTMLInputElement ? e.target : null;
+
+      if (!target) return;
+
+      const file = target.files?.[0];
+
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        try {
+          const result = e.target?.result;
+          if (typeof result !== 'string') {
+            toast.error('Error al leer el archivo');
+            return;
+          }
+          const data = JSON.parse(result);
+          // Validate the data structure (basic check)
+          if (
+            data &&
+            typeof data === 'object' &&
+            data.actions &&
+            data.categories &&
+            data.tags
+          ) {
+            toast.success('Datos importados localmente! 📁');
+            props.onDBSync?.({
+              ...currentLsDB,
+              db: data,
+              path: currentLsDB?.path || 'local-import',
+              fileId: currentLsDB?.fileId || 'local-import',
+            });
+            props.onClose?.();
+          } else {
+            toast.error('El archivo no tiene el formato correcto');
+          }
+        } catch {
+          toast.error('Error al leer el archivo');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   // handle delete DB
   const { isLoading: isDeleteDBLoading, mutate: deleteDBMutate } = useMutation({
     onError: handleErrorWithNotifications,
     mutationFn: async ({ dbPath }: { dbPath: string }) => {
-      if (!confirm(`Seguro de eliminar la base de datos "${dbPath}" tanto local como de Google Drive?`)) return;
+      if (
+        !confirm(
+          `Seguro de eliminar la base de datos "${dbPath}" tanto local como de Google Drive?`,
+        )
+      )
+        return;
 
       const fileId = await getDBFileId(tokenInfo, dbPath);
-      void (await deleteGoogleDriveFile(tokenInfo, { gdFileId: fileId }));
+      await deleteGoogleDriveFile(tokenInfo, { gdFileId: fileId });
 
       // Also clear localStorage
-      setLsDB(undefined);
+      setLsDB();
       removeDatabasePath();
 
       toast.success('Base de datos eliminada completamente! 😭');
@@ -136,7 +225,11 @@ export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props
     },
   });
 
-  const isLoading = isCreateDBLoading || isImportDBLoading || isDeleteDBLoading || isSyncDBLoading;
+  const isLoading =
+    isCreateDBLoading ||
+    isImportDBLoading ||
+    isDeleteDBLoading ||
+    isSyncDBLoading;
 
   return (
     <form onSubmit={handleSubmit((data) => importDBMutate(data))}>
@@ -144,7 +237,7 @@ export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props
         title="Gestionar DB"
         autoHeight
         bottomArea={
-          <div className="flex gap-1 flex-wrap justify-center">
+          <div className="flex flex-wrap justify-center gap-1">
             <Button
               disabled={isLoading}
               showLoading={isImportDBLoading}
@@ -159,6 +252,17 @@ export default function PopupManageDB({ tokenInfo, dbPath, currentLsDB, ...props
               onClick={handleSubmit((data) => syncDBMutate(data))}
             >
               Exportar
+            </Button>
+
+            <Button
+              disabled={isLoading || !currentLsDB?.db}
+              onClick={handleLocalExport}
+            >
+              Exportar Local
+            </Button>
+
+            <Button disabled={isLoading} onClick={handleLocalImport}>
+              Importar Local
             </Button>
 
             <Button

@@ -2,7 +2,7 @@
   "name": "react-finances",
   "description": "PWA Finances made with React/Vite/Tailwindcss",
   "private": true,
-  "version": "2.4.12",
+  "version": "2.4.14",
   "type": "module",
   "author": {
     "name": "goerwin"
@@ -16,7 +16,7 @@
     "deploy": "gh-pages -d dist",
     "dev": "vite --host",
     "lint": "tsc && eslint src",
-    "test": "vitest --run",
+    "test": "vitest --run && npm run lint",
     "test-watch": "vitest",
     "preview": "npm run build && vite preview"
   },
